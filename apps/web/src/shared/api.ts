@@ -20,6 +20,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   try {
     response = await fetch(`/api${path}`, {
       ...options,
+      signal: options.signal ?? AbortSignal.timeout(10000),
       headers,
       credentials: 'same-origin',
       cache: 'no-store',

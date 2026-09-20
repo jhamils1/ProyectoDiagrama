@@ -31,11 +31,13 @@ export function DiagramCanvas({
   connect,
   editRelation,
   busy,
+  setEditing,
 }: {
   diagram: Diagram
   selectedId: string | null
   select: (id: string | null) => void
   busy: boolean
+  setEditing?: (area: string, pending: boolean) => void
   execute: (command: ModelCommand) => Promise<boolean>
   connect: (connection: Connection) => void
   editRelation: (relation: UmlRelation) => void
@@ -144,8 +146,10 @@ export function DiagramCanvas({
         }}
         onNodeClick={(_, node) => select(node.id)}
         onPaneClick={() => select(null)}
+        onNodeDragStart={() => setEditing?.('drag', true)}
         onNodeDragStop={async (_, node) => {
           await execute({ type: 'moveClass', id: node.id, position: node.position })
+          setEditing?.('drag', false)
           setPositions((current) => {
             const next = { ...current }
             delete next[node.id]

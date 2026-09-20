@@ -13,23 +13,76 @@ import { api, ApiError, errorMessage, type User } from '../../shared/api'
 import { LoginPage } from './LoginPage'
 import { ProjectsPanel } from '../projects/ProjectsPanel'
 import { UsersPanel } from '../projects/UsersPanel'
+import { ProjectDiagrams } from '../projects/ProjectDiagrams'
+import { ProjectCopiesPanel } from '../projects/ProjectCopiesPanel'
+import { OfflineProjectEditor } from '../modeling/ui/OfflineProjectEditor'
+import { projectCopies } from '../modeling/infrastructure/projectCopies'
+import { unavailable, verifyAccount } from '../modeling/application/syncProjectCopy'
+import { useProjectSynchronization } from '../modeling/application/useProjectSynchronization'
+import { copyKey } from '../modeling/infrastructure/projectCopies'
 import './access.css'
 
 export default function AccountWorkspace() {
   const [user, setUser] = useState<User | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
-    [view, setView] = useState<'projects' | 'users'>('projects')
+    [view, setView] = useState<'projects' | 'users' | 'copies'>(
+      new URLSearchParams(location.search).has('copies') ? 'copies' : 'projects',
+    )
+  const [offline, setOffline] = useState(false)
   const [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0)
+  const route = new URLSearchParams(window.location.search)
+  const projectId = route.get('project'),
+    diagramId = route.get('diagram')
+  const synchronization = useProjectSynchronization(
+    user?.id,
+    user && projectId && diagramId && (route.has('offline') || offline)
+      ? copyKey(user.id, projectId, diagramId)
+      : null,
+  )
+  useEffect(() => {
+    if (!user) return
+    let canceled = false
+    const timer = setInterval(() => {
+      void projectCopies()
+        .session()
+        .then((session) => {
+          if (!canceled && session && (session.locked || session.user.id !== user.id)) {
+            setUser(null)
+            setError('La sesión local se cerró o cambió de cuenta. Inicia sesión para continuar.')
+          }
+        })
+        .catch(() => {})
+    }, 1000)
+    return () => {
+      canceled = true
+      clearInterval(timer)
+    }
+  }, [user])
   useEffect(() => {
     let canceled = false
-    api<User>('/auth/me')
+    verifyAccount()
       .then((u) => {
-        if (!canceled) setUser(u)
-      })
-      .catch((e) => {
         if (!canceled) {
+          setUser(u)
+          setOffline(false)
+        }
+      })
+      .catch(async (e) => {
+        if (!canceled) {
+          if (unavailable(e)) {
+            const session = await projectCopies()
+              .session()
+              .catch(() => undefined)
+            if (canceled) return
+            if (session && !session.locked && session.until > Date.now()) {
+              setUser(session.user)
+              setOffline(true)
+              setView('copies')
+              return
+            }
+          }
           if (e instanceof ApiError && e.status === 401) setUser(null)
           else setError(errorMessage(e))
         }
@@ -46,7 +99,11 @@ export default function AccountWorkspace() {
     if (e instanceof ApiError && e.status === 401) setUser(null)
   }, [])
   const success = (u: User) => {
+    void projectCopies()
+      .remember(u)
+      .catch((e) => setError(errorMessage(e)))
     setUser(u)
+    setOffline(false)
     setError('')
     setView('projects')
   }
@@ -58,6 +115,10 @@ export default function AccountWorkspace() {
       </div>
     )
   if (!user) return <LoginPage key={error} onSuccess={success} initialError={error} />
+  if (projectId && diagramId && (route.has('offline') || offline))
+    return <OfflineProjectEditor userId={user.id} projectId={projectId} diagramId={diagramId} />
+  if (projectId && !offline)
+    return <ProjectDiagrams userId={user.id} projectId={projectId} diagramId={diagramId} />
   return (
     <div className="app-shell account-shell">
       <aside className="sidebar">
@@ -79,6 +140,7 @@ export default function AccountWorkspace() {
         <div className="sidebar-section">ESPACIO COMPARTIDO</div>
         <nav className="account-nav">
           <button
+            disabled={offline}
             className={view === 'projects' ? 'active' : ''}
             onClick={() => {
               setView('projects')
@@ -88,7 +150,10 @@ export default function AccountWorkspace() {
             <Folder size={17} />
             Proyectos
           </button>
-          {user.rol === 'ADMINISTRADOR' && (
+          <button className={view === 'copies' ? 'active' : ''} onClick={() => setView('copies')}>
+            <Folder size={17} /> Copias sin conexión
+          </button>
+          {user.rol === 'ADMINISTRADOR' && !offline && (
             <button
               className={view === 'users' ? 'active' : ''}
               onClick={() => {
@@ -112,11 +177,17 @@ export default function AccountWorkspace() {
             onClick={async () => {
               setBusy(true)
               try {
-                await api('/auth/logout', { method: 'POST' })
+                await projectCopies().lock(true)
                 setUser(null)
+                await api('/auth/logout', { method: 'POST' })
+                await projectCopies().logoutCompleted()
                 setError('')
               } catch (e) {
-                report(e)
+                setError(
+                  unavailable(e)
+                    ? 'Sesión local cerrada. Los pendientes se conservan. La sesión del servidor se cerrará al reconectar.'
+                    : errorMessage(e),
+                )
               } finally {
                 setBusy(false)
               }
@@ -127,7 +198,7 @@ export default function AccountWorkspace() {
           </button>
           <div className="sidebar-foot">
             <span className="status-dot" />
-            Modela · Segunda etapa
+            Modela · Diagramas de proyecto
           </div>
         </div>
       </aside>
@@ -163,7 +234,9 @@ export default function AccountWorkspace() {
             </button>
           </div>
         )}
-        {view === 'users' && user.rol === 'ADMINISTRADOR' ? (
+        {view === 'copies' || offline ? (
+          <ProjectCopiesPanel userId={user.id} synchronization={synchronization} />
+        ) : view === 'users' && user.rol === 'ADMINISTRADOR' ? (
           <UsersPanel report={report} />
         ) : (
           <ProjectsPanel admin={user.rol === 'ADMINISTRADOR'} report={report} />

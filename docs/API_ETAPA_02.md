@@ -51,7 +51,7 @@ ParticipanteDTO: `id`, `usuario` (UsuarioDTO), `permiso`, `revision`. Un par usu
 
 Páginas: `{items, total, page, size}`; página mínima 0 y tamaño de 1 a 100. Usuarios/proyectos ordenados por nombre e ID; participantes por fecha de ingreso e ID. Ediciones y eliminaciones necesitan la revisión recibida; JPA `@Version` también protege la escritura dentro de la transacción.
 
-La API no implementa diagramas centrales ni WebSocket todavía. La tabla `flyway_schema_history` controla migraciones; el dominio implementa 3 de las 10 entidades previstas: `usuario`, `proyecto`, `participacion`.
+Este contrato describe las tres entidades de la etapa 2: `usuario`, `proyecto`, `participacion`. La etapa 3 agrega diagramas y versiones, documentados en [API etapa 3](API_ETAPA_03.md); WebSocket continúa pendiente. `flyway_schema_history` controla migraciones y no es una entidad adicional del dominio.
 
 ## Conservación y recuperación local
 

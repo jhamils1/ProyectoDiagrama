@@ -1,8 +1,9 @@
 # Contexto del proyecto para documentación y desarrollo
 
 Actualizado: 20 de septiembre de 2026.
+Relevo entre cuentas: leer también `CONTINUAR_AQUI.md`, con pendientes, mapa técnico, ejecución y siguiente incremento acotado de IA local.
 Documento contrastado: `Primer Parcial Documentacion.docx`, guardado el 19/09/2026 a las 22:32:03.
-Estado: editor web local implementado (CU07/CU08 parciales) y segunda etapa de acceso, usuarios, proyectos y participantes con Spring Boot/PostgreSQL. Google necesita Client ID y validación con cuenta real; CU06 todavía no incluye diagramas centrales. Código y evidencia se registran en `docs/TRAZABILIDAD.md`.
+Estado: editor web local, acceso/usuarios/proyectos, diagramas centrales, colaboración online y quinta parte web implementados. 5A cubre edición offline y 5B añade creación offline en proyectos preparados y sincronización de copias cerradas mientras el espacio de trabajo está abierto. La cola conserva cambios por cuenta y resuelve conflictos al reconectar. V3 mantiene diez entidades; Cambio registra también CREAR. IndexedDB migra a versión 2 sin borrar copias anteriores. Móvil, Google real, IA, interoperabilidad, generación y despliegue siguen pendientes. Código/evidencia en `docs/TRAZABILIDAD.md` y `docs/ETAPA_05B.md`.
 
 ## 1. Cómo utilizar este archivo
 
@@ -90,7 +91,9 @@ No está acordado generar automáticamente el frontend consumidor, reproducir to
 
 **Segunda etapa:** Spring Boot 4.1.1, Java 21 LTS, Maven 3.9.11, Spring Security, JPA, Flyway y PostgreSQL 17. API en `apps/api`, módulos auth/users/projects; React consume `/api` desde `/workspace`. Configuración privada en `.local/backend.json`, herramientas en `.tools`; ambas carpetas excluidas de Git. Instancia local independiente en 55432, bases `modela` y `modela_test`. El servidor existente en 5432 se conserva. Ver ADR 003 y `docs/API_ETAPA_02.md`.
 
-**No seleccionados aún:** versiones de Flutter y runtimes de IA, revisiones/hashes de modelos, almacenamiento local móvil, protocolo detallado de sincronización, servicios concretos de AWS y despliegue. GitHub ya contiene la primera etapa publicada por el usuario; las nuevas modificaciones requieren otro commit/push. Tailwind, Docker, Django y React Native no son decisiones adoptadas por aparecer en ejemplos.
+**Tercera etapa:** módulo `diagrams`, migración V2 y editor reutilizado para diagramas de proyecto. Estado actual en cuatro tablas UML y versiones en VersionDiagrama; lectura coherente y guardado transaccional con revisión esperada. Listado paginado, creación, copia explícita de borrador, edición y eliminación lógica. Ver ADR 004 y `docs/API_ETAPA_03.md`.
+
+**No seleccionados aún:** versiones de Flutter y runtimes de IA, revisiones/hashes de modelos, almacenamiento local móvil, adaptación de sincronización a Flutter, servicios concretos de AWS y despliegue. El protocolo web de propuestas, creación y cola se define en ADR 007–009. GitHub ya contiene la primera etapa publicada por el usuario; las nuevas modificaciones requieren otro commit/push. Tailwind, Docker, Django y React Native no son decisiones adoptadas por aparecer en ejemplos.
 
 ## 5. Actores, autenticación y permisos
 
@@ -111,13 +114,13 @@ Diseño implementado de acceso (ADR 003):
 - Google: firma, emisor, audiencia, expiración, correo verificado y nonce de consumo único. Identidad estable `sub`; cuenta precreada activa se vincula por correo solo si Google es autoridad (Gmail o Workspace verificado), preservando UUID y permisos.
 - Colaborador recién registrado accede a un panel vacío hasta recibir participación; nunca obtiene acceso general a proyectos.
 - Sesión en servidor, cookie HttpOnly/SameSite=Lax, CSRF en escrituras y 30 minutos de inactividad; desactivación comprobada en cada petición. Sesiones en memoria, sin persistencia entre reinicios.
-- Administrador administra usuarios/proyectos/participantes; Colaborador consulta solo proyectos autorizados. CONSULTA y EDICION se almacenan por proyecto.
+- Administrador administra usuarios/proyectos/participantes; Colaborador consulta solo proyectos autorizados. CONSULTA visualiza diagramas; EDICION permite crear, copiar, renombrar, editar y eliminar diagramas del proyecto. El servidor revalida permisos en cada operación.
+- ADR 008 implementa acceso local por 24 horas desde la comprobación online de cuenta y permiso del diagrama. Cerrar sesión bloquea copias y conserva pendientes por cuenta; si no hay red, la invalidación remota se completa antes de consultar identidad nuevamente. Caducidad/revocación conocida bloquean el modelo y conservan pendientes. No permite registrarse o validar Google offline; IndexedDB no está cifrado y no protege frente a acceso directo al perfil del navegador.
 
 Pendiente:
 - Configurar Client ID OAuth y comprobar Google con cuentas reales. La integración automatizada simula el proveedor; las pruebas criptográficas usan claves de prueba.
 - Procedimiento adicional para vincular correos externos no autoritativos; por ahora se rechaza esa vinculación.
 - Matriz exacta de permisos para exportar, generar backend y otras operaciones.
-- Sesión disponible offline, caducidad, revocación y cierre de sesión con cambios pendientes. El funcionamiento offline no implica registrarse o validar Google sin internet.
 
 ## 6. Casos de uso y trazabilidad funcional
 
@@ -203,7 +206,9 @@ Ayuda confirmada:
 7. Validar la resolución, actualizar y comunicar la nueva versión.
 8. Si no se resuelve, conservar el conflicto pendiente y sus propuestas.
 
-**Diseño técnico a concretar al implementar:**
+**Diseño técnico y estado:** ADR 007 concreta comparación de tres versiones, propuesta idempotente y resolución atómica online. ADR 008–009 implementan creación/edición offline web: guardar confirma IndexedDB antes de enviar, mantiene revisión base/UUID y congela el cuerpo desde el primer intento. Los cambios nunca enviados se agrupan; una respuesta perdida se reintenta sin duplicar. La creación guarda grafo/versión inicial/recibo Cambio CREAR en una transacción y sus reintentos no sobrescriben ediciones posteriores. La copia abierta se sincroniza con su editor; el espacio de trabajo procesa las copias cerradas en secuencia. Los conflictos y errores de una copia no descartan los de las demás. Formularios sin Guardar no son cambios durables. Con toda la aplicación cerrada el envío espera a su reapertura; Flutter sigue pendiente.
+
+Criterios a mantener al ampliar sincronización:
 - Comprobar versión y guardar atómicamente; no separar la comprobación y el guardado sin protección.
 - Revalidar también la versión al resolver un conflicto.
 - Identificar operaciones para evitar duplicaciones al reintentar.
@@ -248,7 +253,7 @@ Este modelo estructura los datos de la herramienta. No es el modelo de ejemplo q
 | Cambio | Operación propuesta | id, elementoId, tipoElemento, propiedad, operacion, valorAnterior, valorPropuesto, estado, fechaCreacion |
 | Conflicto | Discrepancia y resolución | id, valorServidor, valorResuelto opcional, estado, fechaResolucion opcional |
 
-Tipos de referencia: UUID para identificadores; String para textos; Boolean para indicadores; Long para versiones; Decimal para posiciones; DateTime para fechas; JSON para instantáneas y valores de operaciones/conflictos. La migración V1 concreta Usuario, Proyecto y Participacion con UUID, FK, unicidad, enums, límites y `revision` de concurrencia. Proyecto agrega `eliminadoEn` para eliminación lógica. Las otras siete entidades centrales siguen pendientes; no tratar toda esta tabla como migración implementada.
+Tipos de referencia: UUID para identificadores; String para textos; Boolean para indicadores; Long para versiones; coordenadas numéricas; DateTime para fechas; JSON para instantáneas y valores de operaciones/conflictos. V1 implementa Usuario, Proyecto y Participacion. V2 implementa Diagrama, ClaseUML, AtributoUML, RelacionUML y VersionDiagrama. V3 agrega Cambio y Conflicto: diez entidades centrales con clases JPA y tablas. Cambio es una propuesta del diagrama completo ligada a su autor y versión base; Conflicto detalla rutas/valores incompatibles y su resolución. Posiciones DOUBLE PRECISION finitas entre ±100000; instantáneas JSONB inmutables. Proyecto y Diagrama usan `eliminadoEn`; `revision` protege escrituras.
 
 Asociaciones y multiplicidades de la referencia:
 - Usuario (1) — Participacion (0..*).
@@ -276,12 +281,13 @@ Criterios adoptados:
 - Generación e IA son servicios; no requieren por sí solas tablas GeneradorCodigo o IA.
 - No se adoptaron invitaciones por correo/token ni historial persistente de generación.
 - La herencia puede existir en los diagramas editados y se representa en RelacionUML.tipo; no requiere herencia entre estas entidades.
-- Falta resolver cómo se referencia de forma íntegra un elemento eliminado en Cambio, cómo se conserva historial y cómo se invalidan versiones. No borrar esa trazabilidad por cascadas sin definir.
+- ADR 007 conserva elementos eliminados mediante UUID lógico en las instantáneas, sin FK a filas del grafo que se reemplazan. Cambio/Conflicto referencian versiones históricas por FK. Una comparación reemplazada pasa a SUPERADO y conserva valores previos; no se elimina historial por cascada.
+- ADR 009 registra creaciones offline con Cambio CREAR/APLICADO: `valorAnterior` es JSON null y la FK `versionBaseId` apunta a la versión inicial creada en la misma transacción. El recibo conserva autor/UUID/cuerpo y permite devolver el estado vigente sin repetir la creación ni sobrescribir ediciones posteriores.
 - Las reglas de unicidad, obligatoriedad, acceso, eliminación y consistencia entre diagrama, versión y extremos de relaciones deben especificarse antes de implementar sus migraciones.
 
 ## 12. Subsistemas y capítulo de implementación
 
-La organización general es prevista. Usuarios/acceso y proyectos/participantes ya tienen implementación en `apps/api`; el modelado local está en `apps/web/src/features/modeling`. Los demás subsistemas siguen pendientes.
+Usuarios/acceso, proyectos/participantes, diagramas/versiones y propuestas/conflictos tienen implementación en `apps/api`; el modelado local y central reutiliza `apps/web/src/features/modeling` y `EditorView`. `ProjectCopies`, `OfflineProjectEditor` y `useProjectSynchronization` implementan proyectos preparados, creación/edición offline y envío de pendientes con el espacio web abierto. IA, Flutter, interoperabilidad y generación siguen pendientes.
 
 ### 3.4.1 Elección de Plataforma de Desarrollo de software
 
@@ -333,15 +339,27 @@ Equipos de demostración: PC ASUS con Windows 11 y teléfono POCO X7 Pro, confir
 
 Primera etapa: `apps/web` permite crear/renombrar borradores, clases, atributos y asociaciones/generalización, editar/eliminar elementos, guardar posiciones y recuperar el modelo desde IndexedDB. La compilación dispone de recursos para apertura offline tras preparación inicial. Son borradores sin cuentas/proyectos: no acreditan permisos ni sincronización. `localRevision` evita sobrescritura entre pestañas, pero no implementa VersionDiagrama/Cambio/Conflicto ni la resolución de CU12. El subconjunto de nombres, tipos, herencia y eliminaciones locales se define en ADR 002.
 
-Segunda etapa: `/workspace` incorpora acceso y gestión de usuarios, proyectos y participaciones con API real. Tres de las diez entidades centrales tienen tablas. El editor local sigue separado de las cuentas; no se cachean datos privados de `/api`. La siguiente integración debe asociar diagramas centrales a proyectos y aplicar consulta/edición. No confundir esta entrega con colaboración en tiempo real.
+Segunda etapa: `/workspace` incorpora acceso y gestión de usuarios, proyectos y participaciones con API real. El editor local sigue separado de las cuentas; no se cachean datos privados de `/api`.
+
+Tercera etapa: cada proyecto abre su lista de diagramas y el editor central. Administrador/EDICION escriben y CONSULTA visualiza. Copiar un borrador genera identidades nuevas y conserva el original; no crea un vínculo de sincronización. Cada guardado online conserva una instantánea y aumenta la revisión; 409 evita sobrescribir una versión antigua. El fallo no cierra el formulario; recargar descarta explícitamente campos sin guardar. Ocho entidades persistidas; no hay WebSocket, combinación de cambios ni sesión offline de proyectos. La siguiente parte debe definir operaciones, sincronización y conflictos.
+
+Etapa 4, primer incremento: el editor consulta revisión y permiso cada 3 segundos y descarga el modelo cuando cambia. Dos sesiones ven los cambios confirmados sin recargar. Un formulario pendiente o arrastre pospone la aplicación remota, muestra un aviso y mantiene 409 si se intenta guardar una versión antigua. Se revalidan permisos en cada consulta; pérdida de acceso retira el modelo. ADR 005 y `docs/ETAPA_04A.md` delimitan implementación y pruebas. Quedan WebSocket, presencia, reconexiones avanzadas, Cambio/Conflicto, combinación y sesión offline de proyectos. Incorporar también ADR 005 y esta evidencia en el Word.
+
+Etapa 4B: WebSocket avisa de revisiones confirmadas y muestra nombres de usuarios conectados, agrupando sus pestañas. El canal usa sesión HTTP, origen estricto y revalidación de permisos; latido cada 10 segundos y cierre de conexiones sin respuesta después de 35 segundos. Reconexión progresiva y consulta de respaldo de 15 segundos conectado / 3 segundos desconectado. ADR 006 y `docs/ETAPA_04B.md` delimitan esa entrega. Presencia en memoria para una sola instancia.
+
+Etapa 4C: el editor envía propuestas idempotentes, integra cambios compatibles y permite resolver discrepancias por campo. Cambio/Conflicto y sus versiones se conservan en PostgreSQL. Revalidar revisión al resolver impide aplicar decisiones sobre un servidor que volvió a cambiar. Descartar no cambia el modelo; dejar pendiente permite retomarlo. ADR 007 y `docs/ETAPA_04C.md` registran ese incremento histórico.
+
+Etapa 5A: copias explícitas de diagramas existentes, edición sin red con guardado transaccional en IndexedDB, recuperación al recargar, cola agrupada/congelada e integración con propuestas/conflictos. Acceso local por cuenta con caducidad, bloqueo por logout/revocación y reautenticación. ADR 008 y `docs/ETAPA_05A.md` registran ese incremento histórico.
+
+Etapa 5B (estado vigente, quinta parte web completa): preparar proyectos incluso vacíos; crear diagramas offline con UUID y modelo validado; recuperar cambios locales y enviar creaciones sin duplicar aunque haya ediciones remotas posteriores. El espacio de trabajo sincroniza copias pendientes cerradas al abrir/reconectar, cada cinco segundos y manualmente. Una copia con conflicto/rechazo conserva sus datos y no impide procesar las demás. IndexedDB 2 añade proyectos por cuenta y migra las copias de 5A; el backend reutiliza Cambio CREAR/APLICADO sin nueva tabla. Una pestaña antigua que bloquea la migración muestra instrucciones de cierre y recarga sin borrar datos. Se usa HTTP para copias y se mantiene WebSocket en el editor central. ADR 009 y `docs/ETAPA_05B.md` registran alcance/pruebas. Incorporar ADR 001–009 al Word; los párrafos anteriores son históricos.
 
 | Pendiente | Momento recomendado |
 | --- | --- |
 | Equipos objetivo y prueba local de texto, voz e imágenes en navegador/Flutter | Primero: es el riesgo técnico principal |
 | Validar motores/modelos seleccionados, fijar recursos, descarga e integración; almacenamiento móvil | Antes de incorporar IA al producto; apertura web offline inicial implementada |
 | Client ID y validación real de Google; vinculación externa no autoritativa; permisos de exportación/generación | Acceso base definido en ADR 003; ampliar antes de esas funciones |
-| Restricciones/enums/relaciones de las siete entidades UML/históricas y sus eliminaciones | Antes de sus migraciones; V1 ya cubre usuarios/proyectos/participaciones |
-| Operaciones, versiones, reintentos y validación atómica | Antes de colaboración y sincronización |
+| Recuperación de formularios todavía sin Guardar y envío con toda la aplicación cerrada | Posibles ampliaciones; no forman parte de la quinta parte web. La creación/edición offline y el envío de copias cerradas con el espacio abierto están implementados |
+| Contrato de operaciones para móvil y envío al reconectar | Reutilizar revisiones, idempotencia y validación atómica de propuestas ya implementadas |
 | Editor móvil y contrato de intercambio común; React Flow y modelo web inicial ya seleccionados | Antes de integrar clientes, sincronización y editor completo |
 | Archivo real, versión y formato de Enterprise Architect | Antes de declarar interoperabilidad compatible |
 | Reglas del generador, relaciones/herencia y contrato del backend producido | Antes del generador |
@@ -354,7 +372,7 @@ Orden de trabajo recomendado, sin alterar los ciclos académicos: validar pronto
 
 ## 15. Estado de la documentación y trabajo pendiente
 
-El Word no fue editado durante estas etapas de código. Incorporar ADR 001/002/003, esquema real y evidencia en 3.4/3.5, distinguiendo el backend de acceso/proyectos ya construido de los diagramas centrales, IA y Flutter pendientes. El README contiene instrucciones de ejecución/uso y configuración Google; no sustituye el manual y los tutoriales de la entrega completa.
+El Word no fue editado durante estas etapas de código. Incorporar ADR 001–009, esquema real y evidencia en 3.4/3.5, distinguiendo colaboración online y creación/edición/sincronización offline web ya construidas de IA y Flutter pendientes. El README contiene instrucciones de ejecución/uso y configuración Google; no sustituye el manual y los tutoriales de la entrega completa.
 
 Verificación de este traspaso:
 - Word guardado a las 22:32:03 del 19/09/2026; 18 tablas y 40 imágenes en línea.

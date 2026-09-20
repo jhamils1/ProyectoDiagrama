@@ -136,8 +136,8 @@ export function MembersPanel({
         </div>
       )}
       <p className="section-note">
-        Consulta permite ver el proyecto. Edición se aplicará también al editor compartido cuando se
-        integre.
+        Consulta permite visualizar los diagramas. Edición permite crearlos y modificarlos dentro del
+        proyecto.
       </p>
       {adding && (
         <AddMember

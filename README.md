@@ -1,6 +1,6 @@
 # Modela · Primer parcial de Software 1
 
-Editor web de diagramas de clases con borradores locales. Segunda etapa: acceso, usuarios, proyectos y participantes mediante Spring Boot y PostgreSQL. Los diagramas locales todavía no se vinculan a proyectos centrales.
+Editor web de diagramas de clases con borradores locales y diagramas de proyecto guardados en PostgreSQL. Incluye acceso, usuarios, proyectos y permisos mediante Spring Boot, colaboración en vivo, resolución de conflictos y creación/edición sin conexión con sincronización de pendientes (quinta parte web, 5A–5B).
 
 ## Ejecutar
 
@@ -28,7 +28,19 @@ En otra terminal ejecutar `npm.cmd run dev` y abrir **http://127.0.0.1:5173/work
 
 El backend escucha en 127.0.0.1:8080; Vite reenvía `/api`. La sesión expira tras 30 minutos sin actividad y se pierde al reiniciar el backend. Ctrl+C detiene cada servidor; PostgreSQL se puede detener conservando datos con `& 'C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe' stop -D .local/postgres -m fast`.
 
-El Administrador puede crear/desactivar colaboradores, crear/editar/eliminar lógicamente proyectos y gestionar participantes. Crear una cuenta no concede proyectos. Consulta y Edición se conservan como permisos; las operaciones de edición compartida se incorporarán con los diagramas centrales.
+El Administrador puede crear/desactivar colaboradores, crear/editar/eliminar lógicamente proyectos y gestionar participantes. Crear una cuenta no concede proyectos. Consulta permite visualizar diagramas; Edición permite crearlos, modificarlos y eliminarlos en los proyectos asignados.
+
+### Diagramas de un proyecto
+
+1. Acceder, crear o elegir un proyecto y pulsar **Diagramas**.
+2. Pulsar **Nuevo diagrama**, escribir un nombre y guardarlo.
+3. Agregar clases, atributos y relaciones en el editor; los cambios confirmados y las posiciones se guardan en PostgreSQL.
+4. **Volver a diagramas** permite consultar la lista y eliminar lógicamente uno. El lápiz del título permite renombrarlo.
+5. **Copiar borrador local** permite seleccionar un modelo del mismo navegador/origen. Crea una copia independiente con UUID nuevos; conserva el original en IndexedDB.
+
+Cada cambio central aplicado genera una instantánea histórica, incluida la creación; no se crea una versión redundante si el resultado es idéntico. WebSocket notifica y muestra presencia. El editor combina propuestas compatibles; si hay discrepancias, abre **Resolver cambios** y conserva la propuesta enviada en PostgreSQL. **Recargar diagrama** solicita confirmación porque descarta campos nunca enviados; las propuestas pendientes ya registradas se recuperan. Un fallo de red no se presenta como guardado confirmado; reintentar la misma propuesta evita duplicar versiones. Aún no hay pantalla de restauración de versiones.
+
+Los proyectos centrales necesitan sesión y conexión. No tienen caché offline ni se copian automáticamente al espacio anónimo. El editor local continúa funcionando sin conexión como antes. Límites actuales: 200 clases por diagrama, 100 atributos por clase y 500 relaciones; una superclase sin ciclos y un identificador obligatorio por clase.
 
 ### Activar Google
 
@@ -89,16 +101,56 @@ Estas pruebas crean registros con nombres E2E, eliminan lógicamente su proyecto
 
 ## Estado y decisiones
 
+- [Continuar desde otra cuenta: estado, pendientes e instrucciones de relevo](CONTINUAR_AQUI.md).
 - [Trazabilidad de CU y pruebas](docs/TRAZABILIDAD.md).
 - [Evidencia de la primera etapa: 24 pruebas de dominio/persistencia y 6 de navegador](docs/EVIDENCIA_ETAPA_01.md).
 - [Evidencia de la segunda etapa: backend y recorrido web real](docs/EVIDENCIA_ETAPA_02.md).
+- [Evidencia de la tercera etapa: diagramas centrales](docs/EVIDENCIA_ETAPA_03.md).
 - [Motores de IA local elegidos y evaluación pendiente](docs/decisiones/ADR-001-ia-local.md).
 - [Diseño y límites de esta primera entrega](docs/decisiones/ADR-002-editor-local.md).
 - [Decisiones de acceso y proyectos](docs/decisiones/ADR-003-acceso-proyectos.md).
 - [Contrato de la API y copia de seguridad local](docs/API_ETAPA_02.md).
+- [API de diagramas y versiones](docs/API_ETAPA_03.md).
+- [Decisiones de diagramas centrales](docs/decisiones/ADR-004-diagramas-centrales.md).
 - [Revisión inicial de documentación](docs/REVISION_INICIAL.md).
 - [Contexto vigente](CONTEXTO_PROYECTO.md).
 
-CU07/CU08 tienen cobertura parcial local. La etapa 2 incorpora el backend de cuentas y proyectos; quedan pendientes la validación Google con una cuenta real, diagramas centrales, Flutter, sincronización, inferencia de IA, Enterprise Architect y generación del backend. CU06 cubre proyectos autorizados, todavía no sus diagramas. La configuración de AWS/HTTPS y la sesión offline se abordarán en incrementos posteriores.
+CU06 incluye proyectos y diagramas autorizados en web. CU07/CU08 y CU12 cubren modelado, guardado, colaboración, combinación y resolución de propuestas, incluyendo creación/edición offline y envío de pendientes con el espacio de trabajo abierto. Faltan Google con una cuenta real, Flutter, inferencia de IA, Enterprise Architect, generación del backend y despliegue AWS/HTTPS. CU12 móvil no está implementado.
 
-Los borradores no tienen respaldo fuera del navegador. Borrar sus datos puede eliminarlos. La revisión local no equivale al versionado central pendiente de CU12.
+Los borradores y los cambios aún no sincronizados no tienen respaldo fuera del navegador. Borrar sus datos puede eliminarlos. La revisión local se distingue de la revisión central usada para sincronizar.
+
+### Etapa 4B: conexión en vivo y usuarios conectados
+
+Abre el mismo diagrama en dos ventanas con sesión iniciada (puedes usar una ventana privada para una sesión independiente). La franja de presencia muestra quién está conectado y agrupa varias pestañas de una persona. Guarda una clase, atributo, relación o nombre: el canal WebSocket avisa a la otra ventana al confirmar el guardado. Si tiene campos pendientes, muestra un aviso y los conserva; recargar requiere confirmación.
+
+Si se corta el canal, la presencia deja de mostrarse como vigente y se intenta reconectar con espera progresiva de hasta 30 segundos. La consulta HTTP continúa como respaldo. Tras reconectar se recupera la revisión actual. Para editar sin red utiliza las copias descritas en 5A. El proxy habilita WebSocket. Contrato del canal: [etapa 4B](docs/ETAPA_04B.md), [ADR 006](docs/decisiones/ADR-006-conexion-y-presencia.md).
+
+### Etapa 4C: resolver propuestas
+
+Abre el mismo diagrama en dos ventanas. En una, comienza a cambiar el nombre sin guardarlo; guarda otro nombre en la segunda y después guarda en la primera. Aparece **Resolver cambios** con base, propuesta y servidor. Elige un valor o escribe otro y pulsa **Guardar resolución**. Si el servidor cambia otra vez, se pide revisar la comparación. Cambios en campos independientes se integran directamente.
+
+**Dejar pendiente** conserva la propuesta en PostgreSQL y permite recuperarla al reabrir. **Descartar mi propuesta** conserva el modelo actual, previa confirmación. Para probar V3 reinicia el backend; se agregan Cambio y Conflicto sin borrar datos. Detalles, API y evidencia: [etapa 4C](docs/ETAPA_04C.md), [ADR 007](docs/decisiones/ADR-007-resolucion-de-propuestas.md).
+
+### Etapa 5A: editar una copia sin conexión
+
+1. Ejecuta `npm run build` y `npm run preview` junto con el backend. Abre `http://127.0.0.1:4173/workspace` e inicia sesión. La preparación PWA requiere la versión compilada.
+2. Abre un diagrama existente, guarda/cierra los formularios abiertos y pulsa **Preparar para trabajar sin conexión**. Se abrirá su copia y aparecerá **Sincronizado · copia disponible sin conexión**.
+3. Desconecta la red —o usa Offline en las herramientas del navegador si todo corre en localhost—. Edita y pulsa Guardar en cada formulario. Puedes recargar: los cambios guardados permanecen.
+4. Recupera la conexión con la copia abierta. Se sincroniza automáticamente; también puedes pulsar **Actualizar y sincronizar**. Si hay discrepancias, utiliza **Resolver cambios**.
+5. Encuentra tus copias desde **Copias sin conexión**. Desde 5B, el espacio de trabajo también envía sus pendientes aunque los editores estén cerrados.
+
+El acceso local dura 24 horas desde la última comprobación online de cuenta y permiso. Cerrar sesión bloquea las copias sin borrar los pendientes; vuelve a autenticar la misma cuenta con conexión para recuperarlos. No se guardan credenciales en IndexedDB; las copias no están cifradas y deben usarse en tu perfil de navegador. Los campos de formularios que no guardaste aún no son cambios persistidos.
+
+Detalles y pruebas: [etapa 5A](docs/ETAPA_05A.md), [ADR 008](docs/decisiones/ADR-008-edicion-offline-web.md).
+
+### Quinta parte completa: crear offline y sincronizar todas las copias
+
+1. Con conexión, abre un proyecto y pulsa **Preparar proyecto sin conexión** en su lista de diagramas. Puede estar vacío. Espera a que aparezca **Copias sin conexión**.
+2. Desconecta la red (simula Offline en el navegador si trabajas contra localhost). Pulsa **Nuevo diagrama sin conexión**, selecciona el proyecto preparado y escribe su nombre. **Crear en este equipo** guarda el diagrama antes de abrirlo.
+3. Edita y guarda los formularios. Puedes recargar o volver a **Copias sin conexión**: las creaciones y ediciones quedan pendientes.
+4. Recupera la conexión con el espacio de trabajo abierto. Todas las copias pendientes se procesan automáticamente, sin abrir cada editor. **Sincronizar pendientes** inicia otra comprobación manual.
+5. Si una copia muestra **Conflicto pendiente**, ábrela para decidir. Una copia rechazada conserva sus datos y muestra el error; las demás continúan.
+
+Un envío perdido se reintenta con el mismo identificador; crear de nuevo no reemplaza una edición posterior del servidor. Cerrar sesión conserva los pendientes por cuenta y detiene el acceso local. Si cierras toda la aplicación, la sincronización continúa al volver a abrirla con una sesión válida. La actualización migra las copias de 5A; si una pestaña antigua bloquea el proceso, se indica cerrarla y recargar, sin borrar los datos del navegador.
+
+Detalles, API y evidencia: [etapa 5B](docs/ETAPA_05B.md), [ADR 009](docs/decisiones/ADR-009-creacion-offline-y-cola-completa.md).

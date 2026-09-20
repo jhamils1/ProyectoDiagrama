@@ -2,7 +2,68 @@
 
 Base: `CONTEXTO_PROYECTO.md` §6–13 y Word §3.1.4–3.1.5. Actualizado: 20 de septiembre de 2026.
 
-Estado: **CU07/CU08 parcialmente implementados en web local; acceso, usuarios, proyectos y participantes implementados en la segunda etapa**. Google con cuentas reales, diagramas centrales, móvil y sesión offline siguen pendientes. La tabla define la aceptación integral, no cobertura completa. Los identificadores P-CUxx enlazan escenarios con pruebas cuando existen; el registro inferior distingue evidencia ejecutada de planificación. Se conserva el ciclo académico del Word.
+Estado: **editor local, acceso/proyectos, diagramas centrales, colaboración online y quinta parte web implementados**. 5A–5B cubren creación/edición offline por cuenta, recuperación, envío de copias pendientes aunque sus editores estén cerrados y resolución de conflictos. El espacio web debe permanecer abierto para enviar. Móvil, Google real, IA e interoperabilidad/generación siguen pendientes. V3 conserva diez entidades; IndexedDB 2 agrega proyectos preparados. La tabla define aceptación integral, no cobertura completa móvil. Los incrementos anteriores conservan su alcance histórico y el ciclo académico del Word.
+
+## Incremento 5B — quinta parte web completa
+
+| Requisito | Código / datos | Verificación |
+| --- | --- | --- |
+| CU06/CU07: preparar proyecto vacío y crear offline | `prepareOfflineApp`, `ProjectDiagrams`, `ProjectCopies.create`, `ProjectCopiesPanel`; IndexedDB proyectos+copias por cuenta | E2E `5B: proyecto vacío…`: crear/editar, recargar sin red y enviar desde panel sin abrir editor |
+| CU07/CU12: creación transaccional con recibo | `ChangeController.Creation`, `ChangeService.create`, `DiagramService.createFresh`; Cambio CREAR/APLICADO y versión inicial | Backend valida modelo/permisos/CSRF/autor; dos creaciones concurrentes generan una versión y un recibo |
+| CU12: reintento de creación tras otra edición | Comparación de UUID/autor/operación/cuerpo; retorno de versión central actual | Backend y E2E pierden respuesta, guardan otra revisión y reintentan sin duplicar ni sobrescribir |
+| CU12: procesar copias cerradas y aislar problemas | `useProjectSynchronization`, `synchronizeCopy`, error por copia y cola secuencial | E2E combina una copia, conserva conflicto de otra y bloquea una eliminada dentro del mismo lote |
+| CU13: detener envíos al cerrar sesión | Bloqueo local, generación de sesión y comprobación antes de confirmar | E2E retiene respuesta de creación del panel, cierra sesión y recupera tras autenticarse sin duplicar |
+| Conservación de datos de 5A | IndexedDB 1→2 y aviso cuando una pestaña antigua bloquea actualización | Unitarias migran una propuesta congelada, preparan proyecto y comprueban aviso sin eliminar base |
+
+Alcance y evidencia en [etapa 5B](ETAPA_05B.md), decisiones previas en [ADR 009](decisiones/ADR-009-creacion-offline-y-cola-completa.md). No se promete sincronización con toda la aplicación cerrada ni creación/edición móvil.
+
+## Incremento 5A — edición offline de diagramas existentes en web
+
+| Requisito | Código / datos | Validación |
+| --- | --- | --- |
+| CU06/CU08: preparar datos y abrir sin red | `ProjectDiagrams`, PWA, `ProjectCopiesPanel`, `OfflineProjectEditor`; IndexedDB `modela-project-copies-v1` | E2E prepara, desconecta, guarda nombre/clase, recarga y recupera ambos |
+| CU08/CU12: persistir cambios y versión base antes de enviar | `ProjectCopies.edit/freeze`, UUID, base y contador local | Unitarias de recuperación, agrupación, CAS entre pestañas y rechazo tras congelar |
+| CU12: integración y conflicto al reconectar | `synchronizeCopy`, API Cambio/Conflicto, `ConflictDialog` | E2E integra clases independientes y resuelve nombres incompatibles tras recarga |
+| CU12: respuesta perdida sin duplicar | Cuerpo congelado + UUID de Cambio; confirmación transaccional IndexedDB | E2E pierde respuesta confirmada, recarga y reenvía el mismo UUID; revisión central única |
+| CU05/CU13: permiso, aislamiento, caducidad y logout | Clave por cuenta, permiso/caducidad local, bloqueo y logout remoto pendiente; API valida `authorId` contra sesión | Unitarias de otra cuenta/caducidad/Consulta/revocación; backend rechaza autor esperado ajeno; E2E cierra sesión y recupera pendientes con la misma cuenta |
+| CU12/CU13: conservar pendientes ante eliminación o respuesta tardía | `ProjectCopies.deny/acknowledge`, auditoría independiente y ciclo de vida del editor | E2E elimina proyecto y bloquea modelo conservando copia; prueba adicional de confirmación tardía tras logout |
+
+Alcance, evidencia y pendientes en [etapa 5A](ETAPA_05A.md) y [ADR 008](decisiones/ADR-008-edicion-offline-web.md). No declarar CU12 web/móvil completo.
+
+## Incremento 4C — resolución persistente de propuestas online
+
+| Requisito | Código / datos | Prueba y resultado | Pendiente |
+| --- | --- | --- | --- |
+| CU12: comparar base/propuesta/servidor e integrar cambios compatibles | `DiagramMerge`, `ChangeService`, VersionDiagrama; colecciones por UUID y campos | `proposalsMergeIndependentFieldsAndRetryWithoutDuplicateVersions`; E2E de dos ventanas combina clase y nombre de diagrama | Cola offline y móvil |
+| CU08/CU12: conservar y recuperar discrepancias | `Cambio`, `Conflicto`, V3, GET propios `/changes`; `ConflictDialog` | Propuestas y valores persistidos en PostgreSQL; E2E deja pendiente, recarga y recupera | Formularios nunca enviados y sesión offline |
+| CU12: elegir/introducir valor y validar | POST `/{id}/resolve`; `DiagramMerge.select`; validación UML común | Resolución personalizada, elección servidor, campo vacío rechazado, eliminación frente a edición y mezcla inválida por nombres | Edición estructural personalizada desde el comparador (se elige modelo completo) |
+| CU12: revisión nueva durante decisión | Bloqueo de proyecto + `comparedRevision`; Conflicto SUPERADO conserva historial | Backend y E2E rechazan aplicar decisiones sobre revisión antigua, muestran comparación nueva | Ninguno en este flujo online |
+| RT01/RT03: idempotencia, permisos y atomicidad | Clave UUID de Cambio, autor/versión base; transacción de propuesta/grafo/versión/conflicto | Respuesta perdida con reintento sin versión duplicada; CSRF, Consulta, autor ajeno, revocación, rollback y descarte probados | Rendimiento y operación distribuida |
+| CU13: cierre de sesión durante respuesta pendiente | `useProjectEditor` mantiene auditoría HTTP durante guardado e invalida respuestas al perder acceso | E2E demora respuesta confirmada, cierra sesión, retira datos y comprueba que la respuesta posterior no los reponga | Política de cola offline al cerrar sesión |
+
+Detalle, límites y evidencias: [etapa 4C](ETAPA_04C.md), [ADR 007](decisiones/ADR-007-resolucion-de-propuestas.md). El editor usa propuestas POST; PUT tradicional conserva 409 y no registra Cambio automáticamente. No afirmar CU12 completo offline/móvil.
+
+## Incremento 4B — canal en vivo y presencia
+
+| Requisito parcial | Código / datos | Evidencia | Pendiente |
+| --- | --- | --- | --- |
+| CU08: avisar de guardados confirmados | `DiagramService.Changed` después de commit, `DiagramLiveHandler`, `diagramLive.ts` | Pruebas de canal real con revisión recibida, modelo recuperado y campos conservados | Operaciones y combinación |
+| CU05/CU06: restringir sesiones y proyectos | Origen estricto; sesión HTTP y `DiagramService.liveState` revalidan identidad y acceso | Origen ajeno/anónimo rechazados en E2E; identidad/permiso/revocación real en PostgreSQL; aislamiento de salas probado con handler | Google real |
+| CU08: participantes presentes | Presencia efímera por diagrama; UUID/nombre/conexiones sin correo | Deduplicación, entrada/salida y dos sesiones del mismo usuario; pruebas de handler y E2E | Múltiples instancias y carga |
+| CU12 parcial: recuperación de conexión | `diagramLive.ts` reconexión progresiva y lectura actual; respaldo HTTP | Corte controlado, reconexión real, revisión guardada durante el corte recuperada; cierre de sesión retira el modelo | Cola offline, Cambio/Conflicto y resolución |
+
+Detalles y límites en [etapa 4B](ETAPA_04B.md) y [ADR 006](decisiones/ADR-006-conexion-y-presencia.md).
+
+## Incremento 4A — actualización entre sesiones
+
+| Requisito parcial | Código / datos | Prueba ejecutada | Pendiente |
+| --- | --- | --- | --- |
+| CU08: observar cambios confirmados de otra sesión | `DiagramController/DiagramService.state`, `useProjectEditor`, revisión existente de Diagrama | `stateTracksRevisionWithoutReturningTheGraph`; E2E de dos sesiones independientes en ambos sentidos, atributos/relaciones/posiciones | WebSocket, presencia y edición por operaciones |
+| CU05/CU06: respetar permisos durante consulta automática | Endpoint `/state` reutiliza acceso a proyecto y usuario actual | CONSULTA, revocación, anónimo, proyecto ajeno y eliminado en `DiagramIntegrationTest`; retirada de vista ante 404 simulado en E2E | Prueba Google real y presencia autorizada |
+| CU08/CU12 parcial: conservar propuesta pendiente | `EditorView`, `Inspector`, `DiagramCanvas`, guardia de formularios/arrastre; revisión obligatoria en PUT | E2E conserva nombre de clase pendiente, muestra aviso, rechaza guardado antiguo y permite recarga confirmada | Persistir Cambio/Conflicto, combinar y resolver propuestas |
+| Fallo de consulta sin pérdida del modelo | `useProjectEditor`: mensaje separado y sondeo serial | E2E bloquea la consulta, conserva modelo, reanuda al retirar fallo | Recuperación avanzada y cola offline |
+
+Contrato, límites y resultados: [etapa 4A](ETAPA_04A.md). Decisiones previas: [ADR 005](decisiones/ADR-005-actualizacion-entre-sesiones.md).
 
 | CU / ciclo | Responsabilidad prevista y datos | Prueba de aceptación planificada | Decisiones relacionadas |
 | --- | --- | --- | --- |
@@ -65,3 +126,18 @@ Pruebas del backend en `apps/api/src/test/java/bo/edu/modela/AccessProjectsInteg
 | RT01/RT03, persistencia y protección parcial | `V1__usuarios_proyectos_participaciones.sql`, entidades con `@Version`, DTOs sin credenciales, cookie/CSRF | Migración ejecutada en PostgreSQL, esquema validado por JPA, restricciones reales, permisos en servidor, sin hash/googleId en DTO | Siete entidades centrales, sincronización y despliegue HTTPS pendientes |
 
 La evidencia de navegador, capturas y límites de la entrega se registra en `EVIDENCIA_ETAPA_02.md`. Las pruebas del editor anterior se conservaron: 24 unitarias/IndexedDB y 6 E2E aprobadas durante este incremento.
+
+## Tercera etapa: diagramas centrales
+
+Decisiones antes de implementar: [ADR 004](decisiones/ADR-004-diagramas-centrales.md). Contrato: [API etapa 3](API_ETAPA_03.md). Resultados y límites: [EVIDENCIA_ETAPA_03](EVIDENCIA_ETAPA_03.md).
+
+| Requisito | Código y correspondencia de datos | Prueba ejecutada | Alcance pendiente |
+| --- | --- | --- | --- |
+| CU06, consulta web de diagramas | `ProjectDiagrams.tsx`, `useProjectEditor.ts`, `DiagramController/Service/Repository`; GET `/api/projects/{p}/diagrams` y `/{id}`; Diagrama/diagrama | `DiagramIntegrationTest`: alcance propio, lector, proyecto ajeno/eliminado; `e2e/diagrams.spec.ts`: abrir en contexto sin IndexedDB | Flutter y consulta privada offline |
+| CU07, creación online y copia | POST misma base; `DiagramDocument`; `copyDiagram.ts`; Diagrama/ClaseUML/AtributoUML/RelacionUML y sus tablas | Integración: creación, idempotencia, estructura y versión inicial; unidad de remapeo; E2E copia sin borrar original | Creación autorizada offline y sincronización inicial |
+| CU08, edición central | PUT con revisión; `EditorView` reutilizado y permisos del servidor; modelos actuales normalizados | Backend: persistencia, rollback, reglas UML, revisión antigua; E2E: atributos, relaciones, movimiento, renombrado y recuperación | WebSocket, mezcla de cambios y resolución de conflictos |
+| CU05 / RT03, permisos efectivos en editor | `DiagramService.access`, bloqueo de proyecto y revalidación de participación; `ProyectoRepository.findLocked` | Lector no crea/edita/elimina; editor autorizado sí; revocar cierra acceso; IDs de otro proyecto rechazados | Canal colaborativo y políticas al reconectar |
+| RT01, datos y versiones | V2 agrega cinco entidades/tablas; `VersionDiagrama`/`version_diagrama`, JSONB inmutable | Estado relacional recuperado, instantánea inicial preservada, FK/identidades y rollback; eliminación lógica mantiene historial | Cambio/Conflicto y sus referencias a elementos eliminados; interfaz de historial |
+| Protección frente a escritura antigua, parte preparatoria de CU12 | Revisión esperada, bloqueo transaccional, `@Version`; GET con REPEATABLE READ | Dos peticiones concurrentes: un 200 y un 409. Dos pestañas no sobrescriben; caída de red mantiene formulario | No acredita CU12 completo ni cola offline |
+
+Verificación de este incremento: **38 pruebas backend** (27 previas + 11 de diagramas), **25 frontend** y **11 E2E** aprobadas. Compilación y lint correctos. Mismo PostgreSQL 17.6 real, Java 21 y navegador Edge. Ninguna simulación de PostgreSQL; E2E de diagramas usa sesión real de Administrador. La identidad Colaborador de las pruebas de integración es controlada por Spring Security Test, no Google real.

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useLayoutEffect, useState, type FormEvent } from 'react'
 import { Plus, Trash2, Pencil, Box, X } from 'lucide-react'
 import {
   dataTypes,
@@ -11,13 +11,27 @@ import {
 type Props = {
   value: UmlClass
   busy: boolean
+  readOnly?: boolean
   execute: (command: ModelCommand) => Promise<boolean>
   onDelete: () => void
+  setEditing?: (area: string, pending: boolean) => void
 }
-export function Inspector({ value, execute, onDelete, busy }: Props) {
+export function Inspector({
+  value,
+  execute,
+  onDelete,
+  busy,
+  readOnly = false,
+  setEditing: notifyEditing,
+}: Props) {
   const [name, setName] = useState(value.name)
   const [abstract, setAbstract] = useState(value.abstract)
   const [editing, setEditing] = useState<UmlAttribute | null>(null)
+  const pending = name !== value.name || abstract !== value.abstract || !!editing
+  useLayoutEffect(() => {
+    notifyEditing?.('inspector', pending)
+    return () => notifyEditing?.('inspector', false)
+  }, [notifyEditing, pending])
   function newAttribute() {
     setEditing({
       id: crypto.randomUUID(),
@@ -43,11 +57,18 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
       <form onSubmit={saveClass} className="property-form">
         <label>
           Nombre de la clase
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} />
+          <input
+            disabled={busy}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            maxLength={80}
+          />
         </label>
         <label className="checkbox">
           <input
             type="checkbox"
+            disabled={busy}
             checked={abstract}
             onChange={(e) => setAbstract(e.target.checked)}
           />
@@ -77,7 +98,7 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
       {value.attributes.length === 0 && !editing && (
         <div className="empty-attributes">
           <p>Todavía no hay atributos.</p>
-          <button className="text-button" onClick={newAttribute}>
+          <button className="text-button" onClick={newAttribute} disabled={busy}>
             Agregar el primero
           </button>
         </div>
@@ -87,6 +108,7 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
           <div key={a.id} className="attribute-row">
             <button
               className="attribute-edit"
+              disabled={busy || readOnly}
               onClick={() => setEditing(a)}
               aria-label={`Editar atributo ${a.name}`}
             >
@@ -136,6 +158,7 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
             Nombre del atributo
             <input
               autoFocus
+              disabled={busy}
               required
               maxLength={80}
               value={editing.name}
@@ -146,6 +169,7 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
           <label>
             Tipo de dato
             <select
+              disabled={busy}
               value={editing.dataType}
               onChange={(e) =>
                 setEditing({ ...editing, dataType: e.target.value as UmlAttribute['dataType'] })
@@ -159,6 +183,7 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
           <label>
             Visibilidad
             <select
+              disabled={busy}
               value={editing.visibility}
               onChange={(e) =>
                 setEditing({ ...editing, visibility: e.target.value as UmlAttribute['visibility'] })
@@ -172,6 +197,7 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
           <label className="checkbox">
             <input
               type="checkbox"
+              disabled={busy}
               checked={editing.identifier}
               onChange={(e) =>
                 setEditing({
@@ -187,7 +213,7 @@ export function Inspector({ value, execute, onDelete, busy }: Props) {
             <input
               type="checkbox"
               checked={editing.required}
-              disabled={editing.identifier}
+              disabled={busy || editing.identifier}
               onChange={(e) => setEditing({ ...editing, required: e.target.checked })}
             />
             Obligatorio

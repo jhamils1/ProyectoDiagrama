@@ -1,0 +1,13 @@
+# ADR 008 — Copias de proyecto y propuestas offline en web
+
+Decisión previa a la implementación, 20/09/2026. Fuente: CONTEXTO §§5, 8–9 y CU08/CU12/CU13 del Word. El Word también pide crear diagramas offline (CU07); ese recorrido queda para un incremento posterior, junto con Flutter.
+
+- Preparación explícita de un diagrama existente y autorizado. Recursos PWA previamente instalados; IndexedDB independiente de los borradores anónimos. Se guardan proyecto, última versión central, modelo local y propuesta pendiente por usuario/proyecto/diagrama.
+- Acceso local durante 24 horas desde la última comprobación online de identidad y permiso del diagrama. No equivale a una sesión remota ni permite validar Google offline. Caducidad/revocación conocida bloquean lectura y edición; conservan pendientes hasta volver a autenticar la misma cuenta y recuperar permiso. La revocación desconocida no puede comprobarse sin red.
+- Guardar en el editor confirma primero una transacción IndexedDB. Mientras nunca se intentó enviar, los cambios se agrupan en una propuesta con UUID y revisión base estable. Antes del primer envío se congela el contenido: una respuesta perdida se reintenta con idéntico UUID/cuerpo. No se permite seguir editando esa propuesta hasta conocer su resultado.
+- Sincronización automática al abrir la copia y al recuperar conectividad con ella abierta; respaldo periódico y botón manual. Copias cerradas conservan sus pendientes hasta abrirlas. Se comprueba identidad y permiso en servidor antes de enviar; el backend además compara autor esperado con la sesión al aceptar la propuesta.
+- Transacciones locales y contador local evitan sobrescritura entre pestañas. POST idempotente tolera envíos concurrentes del mismo cuerpo. La propuesta se elimina de la cola solo tras persistir su respuesta; conflictos conservados localmente y en Cambio/Conflicto, resueltos online con ADR 007.
+- Cerrar sesión bloquea inmediatamente el acceso local, conserva cambios por cuenta y propaga el bloqueo a otras pestañas. Si no hay red, queda pendiente invalidar también la sesión remota antes de volver a consultar identidad. No se pueden reabrir copias después del cierre sin autenticación online.
+- El almacenamiento no contiene contraseñas, cookies ni tokens y no se cachea /api en el service worker. IndexedDB no está cifrado: la separación de cuentas es de aplicación y no protege frente a acceso al perfil del navegador. La interfaz comunica preparación, pendientes, bloqueo y falta de espacio; nunca dice guardado si IndexedDB falla.
+
+Validar recuperación tras recarga offline, combinación/conflicto al reconectar, respuesta perdida, concurrencia local, caducidad, aislamiento, cierre de sesión y reautenticación. Mantener los recorridos online existentes.

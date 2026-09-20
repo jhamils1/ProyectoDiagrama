@@ -16,8 +16,7 @@ export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: u
     [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Project | 'new' | null>(null),
     [removing, setRemoving] = useState<Project | null>(null),
-    [members, setMembers] = useState<Project | null>(null),
-    [detail, setDetail] = useState<Project | null>(null)
+    [members, setMembers] = useState<Project | null>(null)
   const [busy, setBusy] = useState(false)
   const [removeError, setRemoveError] = useState('')
   useEffect(() => {
@@ -102,6 +101,9 @@ export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: u
                   Creado el {new Date(p.fechaCreacion).toLocaleDateString('es-BO')}
                 </span>
                 <div className="project-card-actions">
+                  <a className="text-button" href={`/workspace?project=${p.id}`}>
+                    Diagramas <ArrowUpRight size={15} />
+                  </a>
                   {admin ? (
                     <>
                       <button className="text-button" onClick={() => setMembers(p)}>
@@ -126,21 +128,7 @@ export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: u
                         <Trash2 size={15} />
                       </button>
                     </>
-                  ) : (
-                    <button
-                      className="text-button"
-                      onClick={async () => {
-                        try {
-                          setDetail(await api<Project>(`/projects/${p.id}`))
-                        } catch (e) {
-                          report(e)
-                        }
-                      }}
-                    >
-                      Ver proyecto
-                      <ArrowUpRight size={15} />
-                    </button>
-                  )}
+                  ) : null}
                 </div>
               </article>
             ))}
@@ -158,8 +146,8 @@ export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: u
         <div>
           <strong>Tu espacio de modelado local sigue disponible</strong>
           <p>
-            Los borradores del navegador se conservan por separado. Su vinculación con proyectos
-            llegará en la siguiente etapa.
+            Puedes copiar un borrador desde la lista de diagramas de un proyecto. El original se
+            conserva en este navegador.
           </p>
         </div>
         <a href="/">
@@ -176,15 +164,6 @@ export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: u
           }}
           report={report}
         />
-      )}
-      {detail && (
-        <Modal title={detail.nombre} close={() => setDetail(null)}>
-          <p>{detail.descripcion || 'Sin descripción.'}</p>
-          <p>
-            Tu permiso: {detail.permiso === 'EDICION' ? 'Edición' : 'Consulta'}. Los diagramas
-            compartidos se integrarán en la próxima etapa.
-          </p>
-        </Modal>
       )}
       {removing && (
         <Modal title="Eliminar proyecto" close={() => setRemoving(null)}>

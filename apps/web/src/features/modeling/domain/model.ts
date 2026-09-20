@@ -24,6 +24,7 @@ const name = z
 const uuid = z.uuid()
 const multiplicity = z
   .string()
+  .max(80)
   .regex(/^(\*|\d+|\d+\.\.(\d+|\*))$/, 'Multiplicidad inválida. Usa 1, *, 0..1 o un intervalo.')
   .refine((value) => {
     const [min, max] = value.split('..')
@@ -42,8 +43,11 @@ export const classSchema = z.object({
   id: uuid,
   name,
   abstract: z.boolean(),
-  position: z.object({ x: z.number().finite(), y: z.number().finite() }),
-  attributes: z.array(attributeSchema),
+  position: z.object({
+    x: z.number().finite().min(-100000).max(100000),
+    y: z.number().finite().min(-100000).max(100000),
+  }),
+  attributes: z.array(attributeSchema).max(100),
 })
 export const relationSchema = z.object({
   id: uuid,
@@ -60,8 +64,8 @@ export const diagramSchema = z.object({
   name: z.string().trim().min(1, 'El diagrama necesita un nombre.').max(100),
   localRevision: z.number().int().nonnegative(),
   updatedAt: z.iso.datetime(),
-  classes: z.array(classSchema),
-  relations: z.array(relationSchema),
+  classes: z.array(classSchema).max(200),
+  relations: z.array(relationSchema).max(500),
 })
 export type UmlAttribute = z.infer<typeof attributeSchema>
 export type UmlClass = z.infer<typeof classSchema>

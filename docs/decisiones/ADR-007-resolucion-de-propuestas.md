@@ -1,0 +1,13 @@
+# ADR 007 — Comparación y resolución persistente de propuestas
+
+Fecha: 20/09/2026. Decisiones previas a la etapa 4C, continuación de la colaboración online.
+
+- Comparación de tres versiones en el servidor: instantánea base verificada, documento propuesto y documento actual. Integrar automáticamente campos independientes; colecciones por UUID (no por posición). Movimiento se compara por coordenada. Eliminación frente a modificación y altas incompatibles del mismo UUID requieren elección explícita.
+- Guardar cada propuesta online como Cambio, con autor, versión base, documento anterior y propuesto. Registrar Conflicto por campo incompatible, versión comparada y valores de ambas partes. Los elementos eliminados se referencian por UUID lógico dentro de las instantáneas; no por FK a filas físicas reemplazadas del grafo. Cambio es una propuesta del diagrama completo; las discrepancias se detallan en Conflicto.
+- Si combinar cambios independientes viola reglas UML (nombres duplicados, extremos eliminados, ciclos, etc.), ofrecer elección explícita del modelo completo local o servidor. No reparar eliminando elementos silenciosamente. Elecciones por campo y valores nuevos se validan en conjunto; un resultado inválido no se guarda.
+- Usar un UUID de propuesta como clave de idempotencia, ligado a autor/diagrama/contenido/base. Resolución con revisión comparada obligatoria y bloqueo de proyecto. Una nueva edición mientras se decide obliga a revisar de nuevo; no reutilizar elecciones a ciegas. Guardado, instantánea, Cambio y resolución de Conflicto se confirman en una misma transacción.
+- Permitir consultar solo propuestas propias dentro de proyectos autorizados; para proponer/resolver/descartar se exige Edición o Administrador. Conservar pendientes en PostgreSQL, recuperarlos al reabrir y no almacenarlos en el espacio anónimo IndexedDB. La pérdida de acceso retira los datos de la vista.
+- La UI muestra base, propuesta y servidor, elecciones por campo y valor nuevo para datos simples. No muestra JSON técnico como flujo de usuario. Cerrar la comparación la deja pendiente; descartar es una acción explícita. Al abrir una propuesta persistida se cierran los formularios anteriores porque su contenido ya se conserva en esa propuesta.
+- V3 agrega Cambio y Conflicto sin modificar V1/V2. Este incremento resuelve propuestas online; la cola offline de proyectos, recuperación de campos nunca enviados y editor móvil siguen pendientes.
+
+Verificar integración independiente, mismo campo, valor personalizado, eliminación/edición, integridad UML, nueva carrera al resolver, permisos, aislamiento de autor, idempotencia y recuperación tras recarga.

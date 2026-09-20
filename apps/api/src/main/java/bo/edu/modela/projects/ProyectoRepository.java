@@ -6,6 +6,10 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 public interface ProyectoRepository extends JpaRepository<Proyecto, UUID> {
+  @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+  @Query("select p from Proyecto p where p.id=:id")
+  Optional<Proyecto> findLocked(@Param("id") UUID id);
+
   Optional<Proyecto> findByIdAndEliminadoEnIsNull(UUID id);
 
   Page<Proyecto> findByEliminadoEnIsNull(Pageable page);

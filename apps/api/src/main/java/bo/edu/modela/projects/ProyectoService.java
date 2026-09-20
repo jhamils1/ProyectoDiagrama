@@ -76,7 +76,7 @@ public class ProyectoService {
   @Transactional
   public ProyectoDto update(UUID id, String name, String description, long revision) {
     current.admin();
-    var p = available(id);
+    var p = locked(id);
     checkRevision(p.revision, revision);
     p.nombre = name.trim();
     p.descripcion = description.trim();
@@ -86,7 +86,7 @@ public class ProyectoService {
   @Transactional
   public void delete(UUID id, long revision) {
     current.admin();
-    var p = available(id);
+    var p = locked(id);
     checkRevision(p.revision, revision);
     p.eliminadoEn = Instant.now();
     projects.saveAndFlush(p);
@@ -110,7 +110,7 @@ public class ProyectoService {
   @Transactional
   public MemberDto add(UUID projectId, UUID userId, Participacion.Permiso permission) {
     current.admin();
-    var project = available(projectId);
+    var project = locked(projectId);
     var user = users.findById(userId).orElseThrow(ApiException::notFound);
     if (!user.activo || user.rol != Usuario.Rol.COLABORADOR)
       throw ApiException.conflict("Selecciona un Colaborador activo.");
@@ -121,7 +121,7 @@ public class ProyectoService {
   public MemberDto change(
       UUID projectId, UUID id, Participacion.Permiso permission, long revision) {
     current.admin();
-    available(projectId);
+    locked(projectId);
     var member = members.findByIdAndProyectoId(id, projectId).orElseThrow(ApiException::notFound);
     checkRevision(member.revision, revision);
     member.permiso = permission;
@@ -131,7 +131,7 @@ public class ProyectoService {
   @Transactional
   public void remove(UUID projectId, UUID id, long revision) {
     current.admin();
-    available(projectId);
+    locked(projectId);
     var member = members.findByIdAndProyectoId(id, projectId).orElseThrow(ApiException::notFound);
     checkRevision(member.revision, revision);
     members.delete(member);
@@ -140,6 +140,13 @@ public class ProyectoService {
 
   private Proyecto available(UUID id) {
     return projects.findByIdAndEliminadoEnIsNull(id).orElseThrow(ApiException::notFound);
+  }
+
+  private Proyecto locked(UUID id) {
+    return projects
+        .findLocked(id)
+        .filter(p -> p.eliminadoEn == null)
+        .orElseThrow(ApiException::notFound);
   }
 
   private void checkRevision(long actual, long expected) {

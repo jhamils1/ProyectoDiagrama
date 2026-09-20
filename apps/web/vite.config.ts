@@ -4,8 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  server: { proxy: { '/api': { target: 'http://127.0.0.1:8080', changeOrigin: false } } },
-  preview: { proxy: { '/api': { target: 'http://127.0.0.1:8080', changeOrigin: false } } },
+  server: { proxy: { '/api': { target: 'http://127.0.0.1:8080', changeOrigin: false, ws: true } } },
+  preview: {
+    proxy: { '/api': { target: 'http://127.0.0.1:8080', changeOrigin: false, ws: true } },
+  },
   plugins: [
     react(),
     VitePWA({

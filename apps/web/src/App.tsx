@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import {
   Box,
@@ -18,10 +18,11 @@ import {
   PanelRightClose,
 } from 'lucide-react'
 import { useEditor } from './features/modeling/application/useEditor'
-import { createClass, type UmlRelation } from './features/modeling/domain/model'
+import { createClass, type UmlRelation, type Diagram } from './features/modeling/domain/model'
 import { DiagramCanvas } from './features/modeling/ui/DiagramCanvas'
 import { Inspector } from './features/modeling/ui/Inspector'
 import { RelationDialog } from './features/modeling/ui/RelationDialog'
+import type { Presence, ConnectionStatus } from './features/modeling/infrastructure/diagramLive'
 import '@xyflow/react/dist/style.css'
 
 function DeleteDialog({
@@ -61,11 +62,42 @@ function DeleteDialog({
 
 export default function App() {
   const editor = useEditor()
+  return <EditorView editor={editor} />
+}
+
+export type EditorController = Omit<ReturnType<typeof useEditor>, 'diagrams'> & {
+  diagrams: Pick<Diagram, 'id' | 'name'>[]
+}
+export function EditorView({
+  editor,
+  remote,
+}: {
+  editor: EditorController
+  remote?: {
+    projectName: string
+    backHref: string
+    readOnly: boolean
+    reload: () => void
+    setEditing: (area: string, pending: boolean) => void
+    syncMessage: string
+    presence: Presence
+    connection: ConnectionStatus
+    localCopy?: boolean
+    conflictPending: boolean
+    review: () => void
+  }
+}) {
   const { active, loading, saving, loadFailed } = editor
+  const locked = saving || !!remote?.readOnly
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [relation, setRelation] = useState<UmlRelation | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(false)
+  const notifyEditing = remote?.setEditing
+  useLayoutEffect(() => {
+    notifyEditing?.('dialog', renaming || !!relation || deleting)
+    return () => notifyEditing?.('dialog', false)
+  }, [notifyEditing, renaming, relation, deleting])
   const [online, setOnline] = useState(navigator.onLine)
   const {
     offlineReady: [offlineReady],
@@ -119,20 +151,22 @@ export default function App() {
         <div className="workspace-label">
           <span className="workspace-avatar">M</span>
           <div>
-            <strong>Mi espacio de trabajo</strong>
-            <span>En este navegador</span>
+            <strong>{remote?.projectName ?? 'Mi espacio de trabajo'}</strong>
+            <span>{remote ? 'Proyecto compartido' : 'En este navegador'}</span>
           </div>
         </div>
         <div className="sidebar-section">
-          <span>BORRADORES LOCALES</span>
-          <button
-            className="sidebar-icon"
-            aria-label="Crear otro diagrama"
-            onClick={() => void newDiagram()}
-            disabled={loading || saving || loadFailed}
-          >
-            <Plus size={16} />
-          </button>
+          <span>{remote ? 'DIAGRAMA ABIERTO' : 'BORRADORES LOCALES'}</span>
+          {!remote && (
+            <button
+              className="sidebar-icon"
+              aria-label="Crear otro diagrama"
+              onClick={() => void newDiagram()}
+              disabled={loading || saving || loadFailed}
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
         <nav aria-label="Diagramas locales" className="draft-list">
           {editor.diagrams.map((d) => (
@@ -197,7 +231,7 @@ export default function App() {
         <header className="topbar">
           <div className="breadcrumb">
             <FolderOpen size={16} />
-            <span>Espacio local</span>
+            <span>{remote?.projectName ?? 'Espacio local'}</span>
             <ChevronRight size={14} />
             <strong>Editor de clases</strong>
           </div>
@@ -208,8 +242,8 @@ export default function App() {
                 Sin conexión
               </span>
             )}
-            <a className="shared-workspace-link" href="/workspace">
-              Acceder a proyectos
+            <a className="shared-workspace-link" href={remote?.backHref ?? '/workspace'}>
+              {remote ? 'Volver a diagramas' : 'Acceder a proyectos'}
             </a>
             <span className="user-avatar">M</span>
           </div>
@@ -242,7 +276,7 @@ export default function App() {
                       required
                       maxLength={100}
                     />
-                    <button className="icon-button" aria-label="Guardar nombre" disabled={saving}>
+                    <button className="icon-button" aria-label="Guardar nombre" disabled={locked}>
                       <Check size={18} />
                     </button>
                     <button
@@ -260,6 +294,7 @@ export default function App() {
                     <button
                       className="icon-button"
                       aria-label="Renombrar diagrama"
+                      disabled={locked}
                       onClick={() => setRenaming(true)}
                     >
                       <Pencil size={15} />
@@ -275,10 +310,46 @@ export default function App() {
           {active && (
             <span className={`save-status ${saving ? 'saving' : ''}`} role="status">
               {saving ? <LoaderCircle size={15} className="spin" /> : <Check size={15} />}
-              {saving ? 'Guardando…' : 'Guardado en este navegador'}
+              {saving
+                ? 'Guardando…'
+                : editor.error
+                  ? 'No se confirmó el último cambio'
+                  : remote
+                    ? remote.localCopy
+                      ? 'Guardado en este equipo'
+                      : remote.readOnly
+                        ? 'Solo consulta'
+                        : 'Guardado en el servidor'
+                    : 'Guardado en este navegador'}
             </span>
           )}
         </div>
+        {remote && !remote.localCopy && (
+          <div className="live-presence" aria-label="Usuarios conectados">
+            <span role="status">
+              {remote.connection === 'connected'
+                ? `${remote.presence.length} usuario(s) conectado(s)`
+                : 'Reconectando · consulta periódica disponible'}
+            </span>
+            {remote.presence.map((user) => (
+              <span key={user.id} className="live-user">
+                {user.name}
+                {user.sessions > 1 ? ` · ${user.sessions} conexiones` : ''}
+              </span>
+            ))}
+          </div>
+        )}
+        {remote && (
+          <div className="update-banner">
+            <span role="status">{remote.syncMessage}</span>
+            {remote.conflictPending && (
+              <button onClick={remote.review}>Resolver cambios pendientes</button>
+            )}
+            <button disabled={saving} onClick={remote.reload}>
+              {remote.localCopy ? 'Actualizar y sincronizar' : 'Recargar diagrama'}
+            </button>
+          </div>
+        )}
         {needRefresh && (
           <div className="update-banner">
             Hay una nueva versión. Guarda los formularios antes de actualizar.
@@ -316,28 +387,34 @@ export default function App() {
               <br />
               Tus borradores se guardan en este navegador.
             </p>
-            <button
-              className="primary large"
-              onClick={() => void newDiagram()}
-              disabled={saving || loadFailed}
-            >
-              <Plus size={18} />
-              Crear mi primer diagrama
-            </button>
-            <span className="start-caption">Editor local · Sin cuenta en esta etapa</span>
+            {!remote && (
+              <button
+                className="primary large"
+                onClick={() => void newDiagram()}
+                disabled={saving || loadFailed}
+              >
+                <Plus size={18} />
+                Crear mi primer diagrama
+              </button>
+            )}
+            <span className="start-caption">
+              {remote
+                ? 'No se pudo abrir el diagrama. Revisa el acceso o vuelve al proyecto.'
+                : 'Editor local · Sin cuenta'}
+            </span>
           </div>
         ) : (
           <>
             <div className="editor-toolbar">
               <div className="toolbar-group">
-                <button className="primary" onClick={() => void addClass()} disabled={saving}>
+                <button className="primary" onClick={() => void addClass()} disabled={locked}>
                   <Plus size={16} />
                   Nueva clase
                 </button>
                 <button
                   className="secondary"
                   onClick={() => newRelation()}
-                  disabled={saving || !active.classes.length}
+                  disabled={locked || !active.classes.length}
                 >
                   <GitBranch size={16} />
                   Relación
@@ -358,16 +435,21 @@ export default function App() {
                 diagram={active}
                 selectedId={selectedId}
                 select={setSelectedId}
-                busy={saving}
+                busy={locked}
+                setEditing={notifyEditing}
                 execute={editor.execute}
                 connect={(c) => newRelation(c.source, c.target)}
-                editRelation={setRelation}
+                editRelation={(r) => {
+                  if (!locked) setRelation(r)
+                }}
               />
               {selected ? (
                 <Inspector
                   key={`${selected.id}:${active.localRevision}`}
                   value={selected}
-                  busy={saving}
+                  busy={locked}
+                  readOnly={!!remote?.readOnly}
+                  setEditing={notifyEditing}
                   execute={editor.execute}
                   onDelete={() => setDeleting(true)}
                 />
@@ -401,14 +483,24 @@ export default function App() {
             <footer className="statusbar">
               <span>
                 <span className="status-dot" />
-                Borrador local · Sin sincronización
+                {remote
+                  ? remote.localCopy
+                    ? 'Copia local del proyecto'
+                    : 'Diagrama del proyecto · Actualización entre sesiones'
+                  : 'Borrador local · Sin sincronización'}
               </span>
               <span>
                 {active.classes.length} clases<span className="status-separator">/</span>
                 {active.relations.length} relaciones
               </span>
               <span>
-                {offlineReady ? 'Aplicación preparada sin conexión' : 'Almacenamiento local'}
+                {remote
+                  ? remote.localCopy
+                    ? 'Revisión local'
+                    : 'Revisión del servidor'
+                  : offlineReady
+                    ? 'Aplicación preparada sin conexión'
+                    : 'Almacenamiento local'}
                 <span className="status-separator">/</span>r{active.localRevision}
               </span>
             </footer>
@@ -421,7 +513,7 @@ export default function App() {
           initial={relation}
           close={() => setRelation(null)}
           execute={editor.execute}
-          busy={saving}
+          busy={locked}
           error={editor.error}
         />
       )}
