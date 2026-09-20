@@ -1,0 +1,8 @@
+node_modules
+dist
+.qa
+test-results
+playwright-report
+package-lock.json
+CONTEXTO_PROYECTO.md
+docs
