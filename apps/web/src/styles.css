@@ -7,6 +7,15 @@
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
 }
+.shared-workspace-link {
+  color: #7862b3;
+  background: #f1edf9;
+  padding: 8px 11px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 11px;
+  white-space: nowrap;
+}
 * {
   box-sizing: border-box;
 }

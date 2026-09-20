@@ -2,7 +2,7 @@
 
 Base: `CONTEXTO_PROYECTO.md` §6–13 y Word §3.1.4–3.1.5. Actualizado: 20 de septiembre de 2026.
 
-Estado: **CU07/CU08 parcialmente implementados en web local**; los demás CU continúan pendientes. La tabla define la aceptación integral, no cobertura completa. Los identificadores P-CUxx enlazan escenarios con pruebas cuando existen; el registro inferior distingue evidencia ejecutada de planificación. Se conserva el ciclo académico del Word.
+Estado: **CU07/CU08 parcialmente implementados en web local; acceso, usuarios, proyectos y participantes implementados en la segunda etapa**. Google con cuentas reales, diagramas centrales, móvil y sesión offline siguen pendientes. La tabla define la aceptación integral, no cobertura completa. Los identificadores P-CUxx enlazan escenarios con pruebas cuando existen; el registro inferior distingue evidencia ejecutada de planificación. Se conserva el ciclo académico del Word.
 
 | CU / ciclo | Responsabilidad prevista y datos | Prueba de aceptación planificada | Decisiones relacionadas |
 | --- | --- | --- | --- |
@@ -46,3 +46,22 @@ Verificación del 20/09/2026: **24 pruebas de dominio/persistencia y 6 pruebas d
 | Calidad de la etapa | `apps/web/tsconfig.app.json`, `.oxlintrc.json` y pruebas de navegador | Compilación TypeScript estricta, lint y ventana estrecha | `npm.cmd run build`; `npm.cmd run lint` | Compilación y lint correctos; revisión visual de capturas de escritorio y ventana de 390 px. No equivale a probar la aplicación Flutter en POCO. |
 
 Separar resultados del backend de la herramienta, clientes web/móvil, backend generado y aplicación consumidora. La aceptación integral de un CU exige sus escenarios relevantes, incluyendo errores, autorización y offline cuando corresponda.
+
+## Segunda etapa: acceso y proyectos
+
+Decisiones D03/D04/D05/D06 concretadas para este incremento en [ADR 003](decisiones/ADR-003-acceso-proyectos.md); contrato en [API etapa 2](API_ETAPA_02.md). Entorno: Windows 11, Java 21, Spring Boot 4.1.1 y PostgreSQL 17.6 real en `modela_test`.
+
+Pruebas del backend en `apps/api/src/test/java/bo/edu/modela/AccessProjectsIntegrationTest.java` (20 escenarios) y `auth/GoogleTokenVerifierTest.java` (7 escenarios criptográficos). Comando: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/backend.ps1 test`. **27 aprobadas, 0 fallos, 0 omitidas**. Informes generados en `apps/api/target/surefire-reports`.
+
+| Requisito / alcance real | Código, endpoint y entidad-tabla | Escenarios comprobados | Límite pendiente |
+| --- | --- | --- | --- |
+| CU01, registro Google parcial | `auth/AuthController`, `AuthService`, `GoogleTokenVerifier`; POST `/api/auth/google`; Usuario/usuario; `features/access/GoogleAccess.tsx` | Registro crea Colaborador sin proyectos; firma RSA, aud, iss, exp, nonce y correo verificado; firma falsificada rechazada | Client ID y prueba completa con cuenta Google real. En integración solo se simula el proveedor Google; la criptografía usa claves de prueba |
+| CU02, autenticación y autorización web | `auth/SecurityConfig`, `CurrentUser`, `BootstrapAdmin`; `/api/auth/admin`, `/me`, `/csrf`; Usuario/usuario | Contraseña incorrecta, Colaborador sin contraseña local, rotación de sesión, hash BCrypt, anonimato, CSRF, nonce de consumo único, vinculación preserva UUID/permisos, correo externo no autoritativo rechazado, desactivación invalida sesión | Google real y sesión autorizada offline |
+| CU03, usuarios | `users/UsuarioController`, `UsuarioService`, `UsuarioRepository`; `/api/users`; `features/projects/UsersPanel.tsx` | Crear, modificar nombre, desactivar, correo duplicado normalizado, datos inválidos y Colaborador sin permiso | Correo inmutable por ADR; móvil pendiente |
+| CU04, proyectos | `projects/ProyectoController`, `ProyectoService`, `ProyectoRepository`; `/api/projects`; Proyecto/proyecto; `ProjectsPanel.tsx` | CRUD, nombre duplicado con acentos/mayúsculas, datos vacíos, revisión antigua 409, eliminación lógica conserva registro y cierra acceso | Diagramas e historial central aún no asociados |
+| CU05, participantes y permisos parcial | `ParticipacionRepository`, servicio/controlador de proyectos; `/api/projects/{id}/members`; Participacion/participacion; `MembersPanel.tsx` | Añadir, cambiar, quitar; duplicado, ID inexistente, enum inválido, revisión antigua y miembro de otro proyecto rechazados; revocación afecta consulta inmediatamente | Aplicar permisos al futuro editor y canal WebSocket |
+| CU06, consulta de proyectos parcial | `ProyectoRepository.findAuthorized`, `ProyectoService.get/list`; GET `/api/projects` y `/{id}` | Solo asignados; proyecto ajeno por ID devuelve 404; cuenta nueva sin proyectos; permiso CONSULTA/EDICION devuelto | Consulta de diagramas centrales pendiente |
+| CU13, cierre de sesión web parcial | POST `/api/auth/logout`; `AccountWorkspace.tsx` | Sesión invalidada; petición siguiente sin identidad devuelve 401 | Datos de proyectos offline, cambios pendientes y Flutter; borradores anónimos permanecen separados |
+| RT01/RT03, persistencia y protección parcial | `V1__usuarios_proyectos_participaciones.sql`, entidades con `@Version`, DTOs sin credenciales, cookie/CSRF | Migración ejecutada en PostgreSQL, esquema validado por JPA, restricciones reales, permisos en servidor, sin hash/googleId en DTO | Siete entidades centrales, sincronización y despliegue HTTPS pendientes |
+
+La evidencia de navegador, capturas y límites de la entrega se registra en `EVIDENCIA_ETAPA_02.md`. Las pruebas del editor anterior se conservaron: 24 unitarias/IndexedDB y 6 E2E aprobadas durante este incremento.

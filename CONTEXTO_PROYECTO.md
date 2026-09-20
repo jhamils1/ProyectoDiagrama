@@ -2,7 +2,7 @@
 
 Actualizado: 20 de septiembre de 2026.
 Documento contrastado: `Primer Parcial Documentacion.docx`, guardado el 19/09/2026 a las 22:32:03.
-Estado: primera etapa del editor web local implementada; CU07/CU08 parcialmente cubiertos. El resto del sistema continúa pendiente. Código y evidencia se registran en `docs/TRAZABILIDAD.md`.
+Estado: editor web local implementado (CU07/CU08 parciales) y segunda etapa de acceso, usuarios, proyectos y participantes con Spring Boot/PostgreSQL. Google necesita Client ID y validación con cuenta real; CU06 todavía no incluye diagramas centrales. Código y evidencia se registran en `docs/TRAZABILIDAD.md`.
 
 ## 1. Cómo utilizar este archivo
 
@@ -88,7 +88,9 @@ No está acordado generar automáticamente el frontend consumidor, reproducir to
 
 **Motores de IA adoptados para integrar:** Transformers.js/ONNX Runtime Web en navegador; llama.cpp para texto/visión y whisper.cpp para voz en Flutter mediante puente nativo. Modelos iniciales: Qwen3-0.6B para texto/asistencia, Whisper base multilingüe para voz y SmolVLM-500M-Instruct para imágenes. Son selecciones para evaluación, no inferencia implementada ni resultados medidos. Ver `docs/decisiones/ADR-001-ia-local.md`.
 
-**No seleccionados aún:** versiones del backend/Flutter y runtimes de IA, revisiones/hashes de modelos, almacenamiento local móvil, protocolo detallado de sincronización, servicios concretos de AWS y despliegue. Tailwind, Docker, GitHub, Django y React Native no son decisiones adoptadas por aparecer en ejemplos.
+**Segunda etapa:** Spring Boot 4.1.1, Java 21 LTS, Maven 3.9.11, Spring Security, JPA, Flyway y PostgreSQL 17. API en `apps/api`, módulos auth/users/projects; React consume `/api` desde `/workspace`. Configuración privada en `.local/backend.json`, herramientas en `.tools`; ambas carpetas excluidas de Git. Instancia local independiente en 55432, bases `modela` y `modela_test`. El servidor existente en 5432 se conserva. Ver ADR 003 y `docs/API_ETAPA_02.md`.
+
+**No seleccionados aún:** versiones de Flutter y runtimes de IA, revisiones/hashes de modelos, almacenamiento local móvil, protocolo detallado de sincronización, servicios concretos de AWS y despliegue. GitHub ya contiene la primera etapa publicada por el usuario; las nuevas modificaciones requieren otro commit/push. Tailwind, Docker, Django y React Native no son decisiones adoptadas por aparecer en ejemplos.
 
 ## 5. Actores, autenticación y permisos
 
@@ -99,15 +101,21 @@ Solo hay dos actores humanos:
 Confirmado:
 - Administrador creado inicialmente en la base de datos con correo y contraseña; sin registro público de administradores.
 - Colaboradores se registran y autentican mediante Google.
-- Colaboradores también pueden ser precreados en la base de datos; CU03 permite crearlos, consultarlos, modificarlos y desactivarlos. Campos editables pendientes, especialmente correo vinculado a Google.
+- Colaboradores también pueden ser precreados; CU03 permite crearlos, consultarlos, modificar nombre y activar/desactivar. Correo inmutable en esta etapa; no se crea contraseña local.
 - Consulta y edición son permisos de proyecto, no actores nuevos.
 - No existe un caso de uso separado de Iniciar sesión; se conserva CU02 Autenticarse en el sistema.
 - Guardar un hash de contraseña, nunca contraseñas en texto plano ni secretos en este contexto.
 
+Diseño implementado de acceso (ADR 003):
+- Administrador inicial sembrado una vez, contraseña BCrypt; sin registro público de administradores.
+- Google: firma, emisor, audiencia, expiración, correo verificado y nonce de consumo único. Identidad estable `sub`; cuenta precreada activa se vincula por correo solo si Google es autoridad (Gmail o Workspace verificado), preservando UUID y permisos.
+- Colaborador recién registrado accede a un panel vacío hasta recibir participación; nunca obtiene acceso general a proyectos.
+- Sesión en servidor, cookie HttpOnly/SameSite=Lax, CSRF en escrituras y 30 minutos de inactividad; desactivación comprobada en cada petición. Sesiones en memoria, sin persistencia entre reinicios.
+- Administrador administra usuarios/proyectos/participantes; Colaborador consulta solo proyectos autorizados. CONSULTA y EDICION se almacenan por proyecto.
+
 Pendiente:
-- Vinculación segura entre un colaborador precreado y su identidad de Google, sin duplicar cuentas ni perder permisos.
-- No asumir contraseña local para colaboradores precreados.
-- Acceso inicial del colaborador recién registrado; no concederle todos los proyectos.
+- Configurar Client ID OAuth y comprobar Google con cuentas reales. La integración automatizada simula el proveedor; las pruebas criptográficas usan claves de prueba.
+- Procedimiento adicional para vincular correos externos no autoritativos; por ahora se rechaza esa vinculación.
 - Matriz exacta de permisos para exportar, generar backend y otras operaciones.
 - Sesión disponible offline, caducidad, revocación y cierre de sesión con cambios pendientes. El funcionamiento offline no implica registrarse o validar Google sin internet.
 
@@ -240,7 +248,7 @@ Este modelo estructura los datos de la herramienta. No es el modelo de ejemplo q
 | Cambio | Operación propuesta | id, elementoId, tipoElemento, propiedad, operacion, valorAnterior, valorPropuesto, estado, fechaCreacion |
 | Conflicto | Discrepancia y resolución | id, valorServidor, valorResuelto opcional, estado, fechaResolucion opcional |
 
-Tipos de referencia: UUID para identificadores; String para textos; Boolean para indicadores; Long para versiones; Decimal para posiciones; DateTime para fechas; JSON para instantáneas y valores de operaciones/conflictos. Faltan concretar enums, tamaños, tipos físicos y reglas; no tratar esta tabla como migración final.
+Tipos de referencia: UUID para identificadores; String para textos; Boolean para indicadores; Long para versiones; Decimal para posiciones; DateTime para fechas; JSON para instantáneas y valores de operaciones/conflictos. La migración V1 concreta Usuario, Proyecto y Participacion con UUID, FK, unicidad, enums, límites y `revision` de concurrencia. Proyecto agrega `eliminadoEn` para eliminación lógica. Las otras siete entidades centrales siguen pendientes; no tratar toda esta tabla como migración implementada.
 
 Asociaciones y multiplicidades de la referencia:
 - Usuario (1) — Participacion (0..*).
@@ -273,7 +281,7 @@ Criterios adoptados:
 
 ## 12. Subsistemas y capítulo de implementación
 
-La organización es prevista, no código existente.
+La organización general es prevista. Usuarios/acceso y proyectos/participantes ya tienen implementación en `apps/api`; el modelado local está en `apps/web/src/features/modeling`. Los demás subsistemas siguen pendientes.
 
 ### 3.4.1 Elección de Plataforma de Desarrollo de software
 
@@ -297,11 +305,11 @@ Recorrido previsto: controladores reciben solicitudes → servicios ejecutan reg
 | Generación de Backend | Transformación a Spring Boot y empaquetado ZIP | Utiliza el modelo validado |
 | Interoperabilidad | Importación/exportación y validación del formato | Utiliza el modelo UML |
 
-Nombres como ProyectoController/ProyectoService/ProyectoRepository son ejemplos previstos, no archivos existentes. Las entidades compartidas se definen una vez, no se duplican en cada subsistema.
+ProyectoController/ProyectoService/ProyectoRepository ya existen en `apps/api/src/main/java/bo/edu/modela/projects`; UsuarioController/UsuarioService/UsuarioRepository en `users`. Las entidades compartidas se definen una vez, no se duplican en cada subsistema.
 
 ## 13. Evidencia funcional para la defensa
 
-Guía de aceptación integral derivada de los requisitos. La cobertura parcial local de CU07/CU08 ya dispone de pruebas; consultar `docs/TRAZABILIDAD.md` para los resultados. Los escenarios restantes no se consideran ejecutados:
+Guía de aceptación integral derivada de los requisitos. La cobertura local de CU07/CU08 y las reglas de acceso/proyectos de la etapa 2 disponen de pruebas; consultar `docs/TRAZABILIDAD.md` para distinguir resultados ejecutados y pendientes:
 - CU01–CU03/CU13: distinguir acceso del Administrador y Google; comprobar usuarios desactivados y cierre de sesión.
 - CU04–CU06: asignar un colaborador a un proyecto y mostrar que sus permisos se cumplen también en el backend.
 - CU07–CU08: crear clases, atributos y relaciones; guardar y recuperar el mismo modelo.
@@ -323,14 +331,16 @@ Equipos de demostración: PC ASUS con Windows 11 y teléfono POCO X7 Pro, confir
 
 `docs/REVISION_INICIAL.md` conserva el contraste inicial con el Word; `docs/TRAZABILIDAD.md` registra CU → código/datos → pruebas y evidencia. Se verificaron texto, tablas y las imágenes de paquetes/arquitectura; no toda la maquetación del Word. Las decisiones técnicas posteriores están en `docs/decisiones/`. Deben reflejarse en el Word al completar los apartados de implementación y pruebas.
 
-Primera etapa: `apps/web` permite crear/renombrar borradores, clases, atributos y asociaciones/generalización, editar/eliminar elementos, guardar posiciones y recuperar el modelo desde IndexedDB. La compilación dispone de recursos para apertura offline tras preparación inicial. Son borradores sin cuentas/proyectos: no acreditan permisos ni sincronización. `localRevision` evita sobrescritura entre pestañas, pero no implementa VersionDiagrama/Cambio/Conflicto ni la resolución de CU12. El almacenamiento local de documentos no sustituye las 10 entidades/tablas centrales pendientes. El subconjunto de nombres, tipos, herencia y eliminaciones locales se define en ADR 002.
+Primera etapa: `apps/web` permite crear/renombrar borradores, clases, atributos y asociaciones/generalización, editar/eliminar elementos, guardar posiciones y recuperar el modelo desde IndexedDB. La compilación dispone de recursos para apertura offline tras preparación inicial. Son borradores sin cuentas/proyectos: no acreditan permisos ni sincronización. `localRevision` evita sobrescritura entre pestañas, pero no implementa VersionDiagrama/Cambio/Conflicto ni la resolución de CU12. El subconjunto de nombres, tipos, herencia y eliminaciones locales se define en ADR 002.
+
+Segunda etapa: `/workspace` incorpora acceso y gestión de usuarios, proyectos y participaciones con API real. Tres de las diez entidades centrales tienen tablas. El editor local sigue separado de las cuentas; no se cachean datos privados de `/api`. La siguiente integración debe asociar diagramas centrales a proyectos y aplicar consulta/edición. No confundir esta entrega con colaboración en tiempo real.
 
 | Pendiente | Momento recomendado |
 | --- | --- |
 | Equipos objetivo y prueba local de texto, voz e imágenes en navegador/Flutter | Primero: es el riesgo técnico principal |
 | Validar motores/modelos seleccionados, fijar recursos, descarga e integración; almacenamiento móvil | Antes de incorporar IA al producto; apertura web offline inicial implementada |
-| Matriz de permisos y vinculación Google de cuentas precreadas | Antes del módulo de acceso |
-| Restricciones/enums/relaciones del modelo de datos y gestión de eliminaciones | Antes de migraciones definitivas |
+| Client ID y validación real de Google; vinculación externa no autoritativa; permisos de exportación/generación | Acceso base definido en ADR 003; ampliar antes de esas funciones |
+| Restricciones/enums/relaciones de las siete entidades UML/históricas y sus eliminaciones | Antes de sus migraciones; V1 ya cubre usuarios/proyectos/participaciones |
 | Operaciones, versiones, reintentos y validación atómica | Antes de colaboración y sincronización |
 | Editor móvil y contrato de intercambio común; React Flow y modelo web inicial ya seleccionados | Antes de integrar clientes, sincronización y editor completo |
 | Archivo real, versión y formato de Enterprise Architect | Antes de declarar interoperabilidad compatible |
@@ -344,7 +354,7 @@ Orden de trabajo recomendado, sin alterar los ciclos académicos: validar pronto
 
 ## 15. Estado de la documentación y trabajo pendiente
 
-El Word no fue editado durante la primera etapa del editor. Incorporar ADR 001/002 y evidencia real en 3.4/3.5, manteniendo como pendientes IA, servicios centrales y Flutter. El README contiene instrucciones iniciales de uso; no sustituye el manual y los tutoriales de la entrega completa.
+El Word no fue editado durante estas etapas de código. Incorporar ADR 001/002/003, esquema real y evidencia en 3.4/3.5, distinguiendo el backend de acceso/proyectos ya construido de los diagramas centrales, IA y Flutter pendientes. El README contiene instrucciones de ejecución/uso y configuración Google; no sustituye el manual y los tutoriales de la entrega completa.
 
 Verificación de este traspaso:
 - Word guardado a las 22:32:03 del 19/09/2026; 18 tablas y 40 imágenes en línea.

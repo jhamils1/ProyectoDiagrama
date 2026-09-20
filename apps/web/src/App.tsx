@@ -208,7 +208,9 @@ export default function App() {
                 Sin conexión
               </span>
             )}
-            <span className="version-badge">Primera etapa</span>
+            <a className="shared-workspace-link" href="/workspace">
+              Acceder a proyectos
+            </a>
             <span className="user-avatar">M</span>
           </div>
         </header>
