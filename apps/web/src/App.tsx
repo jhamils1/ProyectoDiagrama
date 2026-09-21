@@ -440,6 +440,10 @@ export function EditorView({
                   source={remote.generationSource}
                   blocked={locked || !online || pendingFields || renaming || !!relation || deleting || assistantOpen}
                 />}
+                {remote?.generationSource && <GenerateBackendButton format="xmi"
+                  source={remote.generationSource}
+                  blocked={locked || !online || pendingFields || renaming || !!relation || deleting || assistantOpen}
+                />}
                 <button
                   className="secondary"
                   disabled={locked || pendingFields || renaming}

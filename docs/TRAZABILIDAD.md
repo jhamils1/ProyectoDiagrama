@@ -1,5 +1,9 @@
 # Trazabilidad de requisitos, código y pruebas
 
+## CU10 — exportación e importación manual en EA, 21/09/2026
+
+`EaXmiWriter` → `XmiExportController` → botón Exportar XML → importación manual del usuario en EA. Captura de `prueba importacion`: Cliente/ClientePremium/Pedido, atributos y tipos, asociación 1..1–0..* y generalización al padre conservadas. Clases colocadas manualmente como Link; no se acredita distribución visual, propiedades no visibles ni compatibilidad universal. Captura recibida en chat, sin archivo de imagen versionado. No se ejecutaron pruebas nuevas para esta actualización documental. [Procedimiento, resultados y límites](CU10_EXPORTACION.md).
+
 ## CU09 — simplificación de decisiones, vigente
 
 `EaXmiReader.Issue` añade suggestedType/emptyAssociation; `ImportXmiDialog` prepara la vista previa automáticamente y expone opciones avanzadas. `EaXmiConverter` mantiene resoluciones validadas y avisos legibles; no persiste por analizar. Suite backend de 92 aprobada y luego 6 pruebas específicas del lector (incluye nueva garantía de no sugerir para tipos desconocidos/relaciones incompletas). Dos E2E controlada/real aprobadas, build correcto y captura revisada. La confirmación persiste, no la carga. [Decisión y límites](INTEROPERABILIDAD_01.md).

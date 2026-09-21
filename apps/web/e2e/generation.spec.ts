@@ -6,7 +6,7 @@ async function setup(page: Page, permission = 'EDICION') {
   await page.routeWebSocket('**/live', () => {})
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
-    if (path.endsWith('/backend')) return route.fallback()
+    if (path.endsWith('/backend') || path.endsWith('/xmi')) return route.fallback()
     let json: unknown = {}
     if (path.endsWith('/auth/me')) json = { id: randomUUID(), nombre: 'Demo', correo: 'demo@test.local', rol: 'COLABORADOR', activo: true, revision: 0 }
     else if (path.endsWith('/state')) json = { revision: 3, permiso: permission }
@@ -47,4 +47,32 @@ test('CU11 consulta no permite generar', async ({ page }) => {
   const state = await setup(page, 'CONSULTA')
   await state.open()
   await expect(page.getByRole('button', { name: 'Generar backend', exact: true })).toBeDisabled()
+})
+
+
+test('CU10 exporta XML y bloquea la descarga con cambios pendientes', async ({ page }) => {
+  const state = await setup(page)
+  let conflict = true
+  await page.route('**/xmi?revision=*', async route => {
+    expect(new URL(route.request().url()).searchParams.get('revision')).toBe('3')
+    if (conflict) await route.fulfill({ status: 409, json: { message: 'Actualiza antes de exportar.' } })
+    else await route.fulfill({ contentType: 'application/xml', body: '<xml/>' })
+  })
+  await state.open()
+  const button = page.getByRole('button', { name: 'Exportar XML', exact: true })
+  await button.click()
+  await expect(page.getByRole('alert')).toContainText('Actualiza antes de exportar.')
+  conflict = false
+  const download = page.waitForEvent('download')
+  await button.click()
+  expect((await download).suggestedFilename()).toBe(`diagrama-${state.diagram}-r3.xml`)
+  await page.locator('.class-node').click()
+  await page.getByLabel('Nombre de la clase', { exact: true }).fill('Pendiente')
+  await expect(button).toBeDisabled()
+})
+
+test('CU10 consulta no permite exportar XML', async ({ page }) => {
+  const state = await setup(page, 'CONSULTA')
+  await state.open()
+  await expect(page.getByRole('button', { name: 'Exportar XML', exact: true })).toBeDisabled()
 })

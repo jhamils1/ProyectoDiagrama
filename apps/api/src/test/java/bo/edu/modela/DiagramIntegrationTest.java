@@ -127,6 +127,35 @@ class DiagramIntegrationTest {
         .andExpect(jsonPath("$.issues[0].message").isNotEmpty());
   }
 
+  @Test
+  void xmiDownloadChecksPermissionsRevisionAndPreservesModel() throws Exception {
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    String endpoint = path()+"/"+doc.get("id")+"/xmi?revision=0";
+    mvc.perform(get(endpoint)).andExpect(status().isUnauthorized());
+    mvc.perform(get(endpoint).with(actor(collaborator))).andExpect(status().isNotFound());
+    var member = members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    mvc.perform(get(endpoint).with(actor(collaborator))).andExpect(status().isForbidden());
+    member.permiso=Participacion.Permiso.EDICION; members.saveAndFlush(member);
+    for (var user : List.of(admin, collaborator)) {
+      var response = mvc.perform(get(endpoint).with(actor(user))).andExpect(status().isOk())
+          .andExpect(content().contentType("application/xml"))
+          .andExpect(header().string("Cache-Control", "no-store"))
+          .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".xml")))
+          .andReturn().getResponse();
+      var inventory=bo.edu.modela.interoperability.EaXmiReader.read(response.getContentAsByteArray());
+      assertThat(inventory.issues()).isEmpty();
+      assertThat(inventory.classes()).hasSize(2);
+      assertThat(inventory.relations()).hasSize(1);
+    }
+    mvc.perform(get(path()+"/"+doc.get("id")+"/xmi?revision=1").with(actor(admin))).andExpect(status().isConflict());
+    mvc.perform(get("/api/projects/"+other.id+"/diagrams/"+doc.get("id")+"/xmi?revision=0").with(actor(admin)))
+        .andExpect(status().isNotFound());
+    assertThat(jdbc.queryForObject("select count(*) from version_diagrama where diagrama_id=?", Integer.class,
+        UUID.fromString((String)doc.get("id")))).isEqualTo(1);
+    members.deleteById(member.id);
+    mvc.perform(get(endpoint).with(actor(collaborator))).andExpect(status().isNotFound());
+  }
+
   @Test @SuppressWarnings("unchecked")
   void backendDownloadExplainsRedeclaredInheritedIdentifier() throws Exception {
     var doc = copy(document());
