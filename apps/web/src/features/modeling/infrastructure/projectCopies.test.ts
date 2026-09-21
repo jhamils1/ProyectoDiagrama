@@ -3,6 +3,7 @@ import { openDB } from 'idb'
 import { afterEach, expect, it, vi } from 'vitest'
 import { ProjectCopies } from './projectCopies'
 import { createDiagram } from '../domain/model'
+import { requestedEditorOperations, reviewedEditorCommand } from '../../ai/domain/editorProposal'
 import type { Project, User } from '../../../shared/api'
 import type { ProposalResponse } from '../application/useProjectEditor'
 
@@ -147,6 +148,53 @@ async function prepared(r = repo()) {
   await r.remember(user)
   return { r, copy: await r.prepare(user.id, project, base()) }
 }
+
+it.each([false, true])('permite guardar tras confirmar sincronización propia (IA=%s)', async (ai) => {
+  const { r, copy } = await prepared()
+  const editing = await r.edit(copy, { type: 'renameDiagram', name: 'Mi diagrama' })
+  const instruction = 'Crea la clase Faro.'
+  const command = ai ? reviewedEditorCommand(instruction, editing.document, {
+    status: 'propose', operations: requestedEditorOperations(instruction),
+  }) : { type: 'renameDiagram' as const, name: 'Continuando' }
+  await r.freeze(copy.key)
+  const serverDocument = { ...editing.document, localRevision: 10, updatedAt: new Date().toISOString() }
+  await r.acknowledge(copy.key, {
+    id: editing.pending!.id, status: 'APLICADO', baseRevision: 0, comparedRevision: 1,
+    proposed: editing.document, current: { ...copy.base, document: serverDocument, revision: 1, versionActual: 2 }, conflicts: [],
+  })
+  const saved = await r.edit(editing, command)
+  expect(saved.pending?.baseRevision).toBe(1)
+  expect(saved.pending?.id).not.toBe(editing.pending?.id)
+  expect(saved.document.localRevision).toBe(11)
+  if (ai) expect(saved.document.classes[0].name).toBe('Faro')
+  else expect(saved.document.name).toBe('Continuando')
+})
+
+it('el cambio solo de permiso no permite editar con una copia antigua', async () => {
+  const { r, copy } = await prepared()
+  await r.prepare(user.id, project, { ...copy.base, permiso: 'CONSULTA' })
+  await expect(r.edit(copy, { type: 'renameDiagram', name: 'No autorizado' })).rejects.toThrow('permiso')
+})
+
+it('la edición revisada de IA conserva la cola offline y respeta consulta y bloqueo', async () => {
+  const { r, copy } = await prepared()
+  const instruction = 'Crea Faro y agrega altura de tipo Decimal a Faro.'
+  const command = reviewedEditorCommand(instruction, copy.document, {
+    status: 'propose',
+    operations: requestedEditorOperations(instruction),
+  })
+  const changed = await r.edit(copy, command)
+  expect(changed.document.classes[0].attributes[0].name).toBe('altura')
+  expect(changed.document.localRevision).toBe(copy.document.localRevision + 1)
+  const frozen = await r.freeze(copy.key)
+  expect(frozen.pending?.document.classes).toEqual(changed.document.classes)
+  await expect(r.edit(frozen, command)).rejects.toThrow()
+  const { r: reader } = await prepared()
+  const readOnly = await reader.prepare(user.id, project, { ...copy.base, permiso: 'CONSULTA' })
+  await expect(reader.edit(readOnly, command)).rejects.toThrow()
+  await r.lock(true)
+  await expect(r.edit(changed, command)).rejects.toThrow()
+})
 
 it('conserva cambios y versión base tras cerrar IndexedDB; agrupa solo propuestas nunca enviadas', async () => {
   const name = crypto.randomUUID(),

@@ -1,0 +1,96 @@
+{
+  "recordedAt": "2026-09-21T01:44:09.308Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6F-v1",
+  "editorValidation": "6G-limited-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "La clase automóvil hereda de vehiculo",
+      "elapsedMs": 60522,
+      "message": "El motivo cita un nombre o dato que no aparece exactamente en la solicitud.",
+      "preview": null,
+      "unchangedBeforeConfirmation": true,
+      "saved": false,
+      "generations": [
+        {
+          "raw": "{\"status\":\"reject\",\"reason\":\"self_inheritance\",\"subject\":\"CLASE_LITERAL\"}",
+          "elapsedMs": 32554.300000000745,
+          "inputTokens": 1457,
+          "outputTokens": 18,
+          "tokenLimitReached": false
+        },
+        {
+          "raw": "{\"status\":\"reject\",\"reason\":\"self_inheritance\",\"subject\":\"CLASE_LITERAL\"}",
+          "elapsedMs": 27361.800000000745,
+          "inputTokens": 1591,
+          "outputTokens": 18,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "ae81a2ef-f224-492e-93ac-72ca1b5990fc",
+    "name": "Presentacion IA 1789955051964",
+    "localRevision": 5,
+    "updatedAt": "2026-09-21T01:44:12.434Z",
+    "classes": [
+      {
+        "id": "cc565a60-46fb-4725-a690-5c65d95d4af5",
+        "name": "automóvil",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "d357c4d2-2544-4ec6-a3b9-2000e70bd28e",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "ae81a2ef-f224-492e-93ac-72ca1b5990fc",
+    "name": "Presentacion IA 1789955051964",
+    "localRevision": 5,
+    "updatedAt": "2026-09-21T01:44:12.434Z",
+    "classes": [
+      {
+        "id": "cc565a60-46fb-4725-a690-5c65d95d4af5",
+        "name": "automóvil",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "d357c4d2-2544-4ec6-a3b9-2000e70bd28e",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  }
+}

@@ -1,0 +1,251 @@
+{
+  "recordedAt": "2026-09-21T02:03:07.636Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "editor-current-per-operation",
+  "editorValidation": "6G-limited-v1",
+  "mode": "structured-untyped/greedy-other",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Crea la clase vehiculo con atributo marca",
+      "elapsedMs": 27373,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase vehiculo.\nAgregar vehiculo.marca: sin tipo, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"vehiculo\",\"abstract\":false},{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"marca\",\"dataType\":\"\",\"required\":false}]}",
+          "elapsedMs": 23599.5,
+          "inputTokens": 412,
+          "outputTokens": 43,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Agrega el atributo modelo en la clase vehiculo",
+      "elapsedMs": 10227,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar vehiculo.modelo: sin tipo, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"modelo\",\"dataType\":\"\",\"required\":false}]}",
+          "elapsedMs": 9886.79999999702,
+          "inputTokens": 473,
+          "outputTokens": 30,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Agrega el atributo ruedas de tipo int en la clase vehiculo.",
+      "elapsedMs": 48561,
+      "message": "La IA no produjo una respuesta válida. No se aplicó nada. Inténtalo nuevamente.",
+      "preview": null,
+      "unchangedBeforeConfirmation": true,
+      "saved": false,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"ruedas\",\"dataType\":\"int\",\"required\":false}]}",
+          "elapsedMs": 23233.09999999404,
+          "inputTokens": 1469,
+          "outputTokens": 34,
+          "tokenLimitReached": false
+        },
+        {
+          "raw": "{\"status\":\"reject\",\"reason\":\"invalid_value\",\"subject\":\"ruedas\"}",
+          "elapsedMs": 25141.10000000149,
+          "inputTokens": 1858,
+          "outputTokens": 17,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Crea la clase automóvil.",
+      "elapsedMs": 28487,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase automóvil.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"automóvil\",\"abstract\":false}]}",
+          "elapsedMs": 27927.59999999404,
+          "inputTokens": 1459,
+          "outputTokens": 24,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "La clase automóvil hereda de vehiculo",
+      "elapsedMs": 8711,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nautomóvil hereda de vehiculo.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"automóvil\",\"target\":\"vehiculo\",\"kind\":\"generalization\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"1\"}]}",
+          "elapsedMs": 8346.89999999851,
+          "inputTokens": 233,
+          "outputTokens": 41,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Crea la clase Cliente.",
+      "elapsedMs": 18861,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase Cliente.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Cliente\",\"abstract\":false}]}",
+          "elapsedMs": 18659.5,
+          "inputTokens": 1466,
+          "outputTokens": 22,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Crea la clase Pedido.",
+      "elapsedMs": 23540,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase Pedido.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Pedido\",\"abstract\":false}]}",
+          "elapsedMs": 23406.89999999851,
+          "inputTokens": 1474,
+          "outputTokens": 22,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Crear una asociación entre Cliente y Pedido, donde un Cliente puede tener muchos Pedidos y cada Pedido pertenece a un solo Cliente.",
+      "elapsedMs": 8974,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAsociación UML: Cliente 1 — 0..* Pedido. Se relacionan clases existentes.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Cliente\",\"target\":\"Pedido\",\"kind\":\"association\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"0..*\"}]}",
+          "elapsedMs": 8779.40000000596,
+          "inputTokens": 244,
+          "outputTokens": 39,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "8ef68a65-bfc9-4558-a2b2-dfd391e3c902",
+    "name": "Presentacion IA 1789956189695",
+    "localRevision": 1,
+    "updatedAt": "2026-09-21T02:03:09.904Z",
+    "classes": [],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "8ef68a65-bfc9-4558-a2b2-dfd391e3c902",
+    "name": "Presentacion IA 1789956189695",
+    "localRevision": 8,
+    "updatedAt": "2026-09-21T02:06:22.758Z",
+    "classes": [
+      {
+        "id": "6d36efed-e6cd-4bba-8cbf-57b77704a0cf",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": [
+          {
+            "id": "2f2bdc67-adc5-43a7-b4a3-4e5c6ccd8668",
+            "name": "marca",
+            "dataType": "",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          },
+          {
+            "id": "0ab43dc1-b4eb-4c92-b77f-7abb7965fbaa",
+            "name": "modelo",
+            "dataType": "",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "e672f980-0142-4e7e-8103-4054126f8e4d",
+        "name": "automóvil",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "1e5c003f-5b1c-4407-b046-3343e3e76dd9",
+        "name": "Cliente",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "602dcd6e-edb4-4cda-a76f-57520066cafb",
+        "name": "Pedido",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": []
+      }
+    ],
+    "relations": [
+      {
+        "id": "59336804-77ca-4fb4-9cf4-992c8505a4e3",
+        "type": "generalization",
+        "sourceId": "e672f980-0142-4e7e-8103-4054126f8e4d",
+        "targetId": "6d36efed-e6cd-4bba-8cbf-57b77704a0cf",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "1"
+      },
+      {
+        "id": "b29e8fd0-a733-4001-beaa-185b1ced5633",
+        "type": "association",
+        "sourceId": "1e5c003f-5b1c-4407-b046-3343e3e76dd9",
+        "targetId": "602dcd6e-edb4-4cda-a76f-57520066cafb",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..*"
+      }
+    ]
+  },
+  "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false"
+}

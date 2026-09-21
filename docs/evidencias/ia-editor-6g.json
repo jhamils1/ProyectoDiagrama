@@ -1,0 +1,197 @@
+{
+  "recordedAt": "2026-09-20T22:52:14.522Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6F-v1",
+  "editorValidation": "6G-limited-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Crea la clase Carga.",
+      "elapsedMs": 30866,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase Carga.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    },
+    {
+      "instruction": "Agrega capacidad de tipo Long a Lancha.",
+      "elapsedMs": 14300,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar Lancha.capacidad: Long, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    },
+    {
+      "instruction": "Agrega licencia de tipo String obligatoria a Capitan.",
+      "elapsedMs": 14286,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar Capitan.licencia: String, obligatorio, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    },
+    {
+      "instruction": "Crea Faro y agrega altura de tipo Decimal a Faro.",
+      "elapsedMs": 14819,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase Faro.\nAgregar Faro.altura: Decimal, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    },
+    {
+      "instruction": "Lancha hereda de Embarcacion.",
+      "elapsedMs": 20711,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nLancha hereda de Embarcacion.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    },
+    {
+      "instruction": "Renombra Lancha a Velero.",
+      "elapsedMs": 14698,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nRenombrar Lancha a Velero.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "20fb1388-6bc5-48bd-a946-fa2bb28b44cf",
+    "name": "Presentacion IA 1789944735891",
+    "localRevision": 7,
+    "updatedAt": "2026-09-20T22:52:16.681Z",
+    "classes": [
+      {
+        "id": "8db4fd9d-c236-45f3-8f45-b683b42f58d4",
+        "name": "Lancha",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "767fbc4d-b285-4c66-8fa4-7a1b4d3ae8cf",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "6da0bbff-ab69-44d5-9f70-c161e6ef30ac",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "20fb1388-6bc5-48bd-a946-fa2bb28b44cf",
+    "name": "Presentacion IA 1789944735891",
+    "localRevision": 13,
+    "updatedAt": "2026-09-20T22:54:17.298Z",
+    "classes": [
+      {
+        "id": "8db4fd9d-c236-45f3-8f45-b683b42f58d4",
+        "name": "Velero",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": [
+          {
+            "id": "c1d67ed1-9397-4019-9d22-9e73545f6912",
+            "name": "capacidad",
+            "dataType": "Long",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "767fbc4d-b285-4c66-8fa4-7a1b4d3ae8cf",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": [
+          {
+            "id": "dcb9d585-bf0b-4ce5-afda-c3c65ae8e70c",
+            "name": "licencia",
+            "dataType": "String",
+            "visibility": "private",
+            "identifier": false,
+            "required": true
+          }
+        ]
+      },
+      {
+        "id": "6da0bbff-ab69-44d5-9f70-c161e6ef30ac",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "117883f9-5f0b-4f7d-89f7-ccd128a04cda",
+        "name": "Carga",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "6eaa4581-5da0-4c2c-8f1f-b46fd7b04912",
+        "name": "Faro",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 370
+        },
+        "attributes": [
+          {
+            "id": "72d05332-3bfe-445c-a3ba-687a2abaed23",
+            "name": "altura",
+            "dataType": "Decimal",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "id": "f7053de5-82ec-48e9-b218-07e2ada1e223",
+        "type": "generalization",
+        "sourceId": "8db4fd9d-c236-45f3-8f45-b683b42f58d4",
+        "targetId": "6da0bbff-ab69-44d5-9f70-c161e6ef30ac",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "1"
+      }
+    ]
+  }
+}

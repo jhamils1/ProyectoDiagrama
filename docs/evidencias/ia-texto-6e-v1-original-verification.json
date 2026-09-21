@@ -1,0 +1,10 @@
+{
+  "modelKey": "qwen3-1.7b-external",
+  "decoding": "legacy",
+  "instruction": null,
+  "suite": "6A",
+  "initialLoad": "Modelo listo. Carga local: 8.0 s.",
+  "offlineLoad": "Modelo listo. Carga local: 9.4 s.",
+  "cancelledInFlight": true,
+  "reopenedOffline": true
+}

@@ -1,6 +1,6 @@
 import { copyLocalDiagram } from '../modeling/domain/copyDiagram'
 import { useEffect, useRef, useState } from 'react'
-import { Plus, ArrowLeft, Layers3, Trash2, Upload } from 'lucide-react'
+import { Plus, ArrowLeft, Layers3, Trash2, Upload, Download, LoaderCircle } from 'lucide-react'
 import { api, errorMessage, type Project, type PageResult } from '../../shared/api'
 import { createDiagram, type Diagram } from '../modeling/domain/model'
 import { diagramRepository } from '../modeling/infrastructure/diagramRepository'
@@ -70,12 +70,12 @@ function ProjectEditor({
   const state = useProjectEditor(project.id, diagramId)
   const [preparing, setPreparing] = useState(false),
     [prepareError, setPrepareError] = useState('')
-  return (
-    <>
-      <div className="offline-toolbar">
-        <span>Prepara una copia para guardar cambios aunque pierdas la conexión.</span>
+  const offlineAction = (
+      <>
         <button
-          className="secondary"
+          className="icon-button"
+          aria-label="Preparar para trabajar sin conexión"
+          title="Prepara una copia para guardar cambios aunque pierdas la conexión"
           disabled={preparing || !state.editor.active || state.editor.saving || !!state.conflict}
           onClick={async () => {
             setPreparing(true)
@@ -98,10 +98,13 @@ function ProjectEditor({
             }
           }}
         >
-          {preparing ? 'Preparando…' : 'Preparar para trabajar sin conexión'}
+          {preparing ? <LoaderCircle size={17} className="spin" /> : <Download size={17} />}
         </button>
         {prepareError && <span role="alert">{prepareError}</span>}
-      </div>
+      </>
+  )
+  return (
+    <>
       <EditorView
         key={`${state.generation}:${state.viewGeneration}`}
         editor={state.editor}
@@ -110,6 +113,7 @@ function ProjectEditor({
           backHref: href(project.id),
           readOnly: state.readOnly,
           reload: state.reload,
+          offlineAction,
           setEditing: state.setEditing,
           syncMessage: state.syncMessage,
           presence: state.presence,

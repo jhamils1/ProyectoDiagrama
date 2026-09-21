@@ -1,0 +1,76 @@
+{
+  "recordedAt": "2026-09-21T01:15:41.951Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6I-untyped-v1",
+  "editorValidation": "6I-untyped-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "agrega el atributo modelo en la clase vehiculo",
+      "elapsedMs": 19042,
+      "message": "La IA no produjo una respuesta válida. No se aplicó nada. Inténtalo nuevamente.",
+      "preview": null,
+      "unchangedBeforeConfirmation": true,
+      "saved": false,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"modelo\",\"dataType\":\"\",\"required\":false}]\"}",
+          "elapsedMs": 10400,
+          "inputTokens": 421,
+          "outputTokens": 30,
+          "tokenLimitReached": false
+        },
+        {
+          "raw": "{\"status\":\"error\",\"message\":\"Expected ',' or '}' after property value in JSON at position 128 (line 1 column 129)\"}",
+          "elapsedMs": 8288.60000000149,
+          "inputTokens": 576,
+          "outputTokens": 35,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "6b09a8b6-eb6b-40f4-8961-15ac923f025b",
+    "name": "Presentacion IA 1789953344432",
+    "localRevision": 3,
+    "updatedAt": "2026-09-21T01:15:44.758Z",
+    "classes": [
+      {
+        "id": "ee69574b-c2dd-4205-a861-0d57fc32e1bb",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "6b09a8b6-eb6b-40f4-8961-15ac923f025b",
+    "name": "Presentacion IA 1789953344432",
+    "localRevision": 3,
+    "updatedAt": "2026-09-21T01:15:44.758Z",
+    "classes": [
+      {
+        "id": "ee69574b-c2dd-4205-a861-0d57fc32e1bb",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  }
+}

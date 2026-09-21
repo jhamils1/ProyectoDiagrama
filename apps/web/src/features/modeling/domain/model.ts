@@ -5,6 +5,8 @@ export const dataTypes = [
   'Integer',
   'Long',
   'Decimal',
+  'Float',
+  'Double',
   'Boolean',
   'Date',
   'DateTime',
@@ -18,8 +20,8 @@ const name = z
   .min(1, 'El nombre es obligatorio.')
   .max(80, 'Máximo 80 caracteres.')
   .regex(
-    /^[A-Za-z_][A-Za-z0-9_]*$/,
-    'Usa letras sin acentos, números y guion bajo; comienza con una letra o guion bajo.',
+    /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ_][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9_]*$/,
+    'Usa letras (incluidas tildes y ñ), números y guion bajo; comienza con una letra o guion bajo.',
   )
 const uuid = z.uuid()
 const multiplicity = z
@@ -34,7 +36,7 @@ const multiplicity = z
 export const attributeSchema = z.object({
   id: uuid,
   name,
-  dataType: z.enum(dataTypes),
+  dataType: z.enum(['', ...dataTypes]).default(''),
   visibility: z.enum(visibilities),
   identifier: z.boolean(),
   required: z.boolean(),
@@ -125,6 +127,12 @@ export function validateDiagram(input: unknown): Diagram {
 }
 
 export type ModelCommand =
+  | {
+      type: 'applyReviewedEdit'
+      expectedSnapshot: string
+      classes: UmlClass[]
+      relations: UmlRelation[]
+    }
   | { type: 'renameDiagram'; name: string }
   | { type: 'addClass'; value: UmlClass }
   | { type: 'updateClass'; id: string; name: string; abstract: boolean }
@@ -143,6 +151,14 @@ export function applyCommand(input: Diagram, command: ModelCommand): Diagram {
     return c
   }
   switch (command.type) {
+    case 'applyReviewedEdit':
+      if (JSON.stringify(input) !== command.expectedSnapshot)
+        throw new ModelError(
+          'El diagrama cambió desde la vista previa. Genera una propuesta nueva.',
+        )
+      next.classes = structuredClone(command.classes)
+      next.relations = structuredClone(command.relations)
+      break
     case 'renameDiagram':
       next.name = command.name
       break

@@ -1,11 +1,21 @@
 # Contexto del proyecto para documentación y desarrollo
 
+Corrección posterior de sincronización individual: las copias posponen nuevos envíos con formularios abiertos y esperan el envío activo al guardar. Los cambios solo de metadatos ya no provocan falsos conflictos; los cambios reales siguen protegidos. Ver docs/CORRECCION_SINCRONIZACION_EDICION.md: 154 pruebas unitarias y 28 E2E aprobadas en conjunto (una repetida tras vencer el límite de login), compilación/lint correctos. Sin migraciones nuevas ni cambios en CONTINUAR_AQUI.md.
+
 Actualizado: 20 de septiembre de 2026.
-Relevo entre cuentas: leer también `CONTINUAR_AQUI.md`, con pendientes, mapa técnico, ejecución y siguiente incremento acotado de IA local.
+`CONTINUAR_AQUI.md` queda como respaldo histórico: por instrucción del usuario, solo se modifica cuando lo pida explícitamente. El estado vigente se mantiene aquí y en los documentos de etapa.
 Documento contrastado: `Primer Parcial Documentacion.docx`, guardado el 19/09/2026 a las 22:32:03.
-Estado: editor web local, acceso/usuarios/proyectos, diagramas centrales, colaboración online y quinta parte web implementados. 5A cubre edición offline y 5B añade creación offline en proyectos preparados y sincronización de copias cerradas mientras el espacio de trabajo está abierto. La cola conserva cambios por cuenta y resuelve conflictos al reconectar. V3 mantiene diez entidades; Cambio registra también CREAR. IndexedDB migra a versión 2 sin borrar copias anteriores. Móvil, Google real, IA, interoperabilidad, generación y despliegue siguen pendientes. Código/evidencia en `docs/TRAZABILIDAD.md` y `docs/ETAPA_05B.md`.
+Estado vigente: quinta parte web completa e IA de texto integrada de forma acotada (6G), asociaciones uno a muchos (6H) y atributos con tipo opcional (6I). El editor permite Sin tipo; la IA admite «Agrega modelo a Vehiculo» sin inventar String, con vista previa y confirmación. V4 permite tipo_dato vacío en PostgreSQL; API normaliza ausencia/null. Reiniciar backend actualizado antes de usarlo en proyectos centrales. 138 pruebas unitarias frontend y 5 E2E del asistente aprobadas en la última ampliación; anteriormente 21 E2E y 61 backend aprobadas; compilación/lint correctos. También admite «Crea la clase vehiculo con atributo marca», probado con el motor real. Ver docs/ETAPA_06I.md y ADR 019. Los resultados históricos 6F/6G/6H no acreditan precisión general. Métodos, otras operaciones IA, voz, Flutter, asistencia contextual, Google real, interoperabilidad, generación y despliegue siguen pendientes. CU15 al final y previa consulta. Diez entidades; IndexedDB de proyectos versión 2. CONTINUAR_AQUI.md intacto.
+
+Verificación integrada posterior a 6K: backend iniciado, V4–V6 aplicadas a la base de desarrollo; 21 E2E con API real aprobadas. Guion completo IA: 8/8 instrucciones confirmadas y recuperadas offline, estructura final verificada. Se corrigió un fallo int/Integer con contexto específico para atributos tipados (`typed.ts`); 151 pruebas unitarias y 5 E2E del asistente aprobadas tras el ajuste. Ver docs/PRUEBA_PRESENTACION_IA.md y sus evidencias. CONTINUAR_AQUI.md sin cambios.
+
+Última ampliación 6K: «La clase automóvil hereda de vehiculo», probado con IA local real y recuperación offline. Se admiten tildes/ñ en nombres sin eliminarlas; V6 amplía las restricciones de PostgreSQL. Reiniciar backend actualizado. Ver docs/ETAPA_06K.md: 151 pruebas unitarias, 63 backend y 11 E2E aprobadas, con 5 E2E del asistente repetidas tras ajustar el prompt. Ambas clases deben existir; no se crean automáticamente.
+
+Ampliación 6J: CU14 admite tipos sin distinguir mayúsculas y alias int/entero, bool/booleano, texto/cadena. Float y Double son tipos propios, distintos de Decimal; V5 amplía PostgreSQL. Reiniciar backend actualizado para proyectos centrales. Ver docs/ETAPA_06J.md: 148 pruebas unitarias, 14 E2E y 62 backend aprobadas; cinco instrucciones con IA real guardadas y recuperadas offline. Esta verificación es posterior al resumen anterior.
 
 ## 1. Cómo utilizar este archivo
+
+**Ampliación vigente 6H (CU14):** se habilita asociación simple uno a muchos mediante las formulaciones naturales acordadas. «Un A puede tener/tiene muchos Bs y cada B pertenece a un (solo) A» significa A=1, B=0..*, sin asumir multiplicidades para peticiones incompletas. También admite origen 1 y destino 0..* o 1..* explícitos. Si falta una clase, pide crearla primero; si faltan multiplicidades, pide aclaración. Prompt específico de asociación, comprobación exacta de intención con un reintento, vista previa y confirmación. Ensayo real: 3/3 ejemplos del usuario guardados y recuperados offline; uno necesitó corregir extremos invertidos. Asociación por IA deja de ser pendiente para este subconjunto, ampliando el estado 6G anterior. No incluye composición/agregación ni lenguaje general. Ver docs/ETAPA_06H.md y ADR 018. API, tablas y permisos sin cambios; CU15 y CONTINUAR_AQUI.md conservan sus restricciones.
 
 Este archivo es el resumen vigente del proyecto de Ingeniería de Software 1. Está preparado para copiarse a la raíz de una nueva carpeta de desarrollo y entenderse sin consultar el historial del chat. No es una skill ni una memoria global.
 
@@ -43,11 +53,15 @@ La copia del contexto anterior se conserva en `.qa/CONTEXTO_PROYECTO-antes-trasp
 
 ## 3. Producto y resultado esperado
 
+**Decisión de alcance del usuario (posterior a 6F): CU15 queda pendiente como última etapa de implementación y solo se retomará si el tiempo disponible lo permite.** Primero completar y estabilizar las funcionalidades principales. Antes de iniciar desarrollo de visión artificial, reconocimiento de imágenes o integración de modelos de imagen, consultar al usuario y esperar su autorización explícita. Una instrucción genérica de continuar no autoriza CU15. Esta decisión prevalece sobre el orden y la prioridad históricos del Word; queda pendiente reflejarla allí.
+
+**Precisión del usuario (posterior a 6E):** la IA es asistente de edición del diagrama existente mediante instrucciones concretas sobre clases, atributos, métodos y relaciones. No generar diagramas completos ni inferir clases desde descripciones del dominio («crear sistema de biblioteca»). Crear clases expresamente solicitadas dentro del diagrama sí pertenece al alcance. Métodos es requisito confirmado pero todavía no implementado en modelo, editor, API o sincronización; definir firma/parámetros/retorno/visibilidad y migración antes de incorporarlos. Las operaciones IA actuales también son un subconjunto de la edición prevista. No confundir pendientes con exclusiones. CU15 de imagen y CU11 de backend generado permanecen separados. Ver ADR 016; Word pendiente de actualización de esta precisión.
+
 **Confirmado.** Construir una herramienta web y móvil similar a Enterprise Architect, centrada en:
 1. Diseñar diagramas de clases editables.
 2. Colaborar sobre ellos en tiempo real.
 3. Crear y modificar el modelo mediante controles visuales, texto y voz.
-4. Reconstruir un modelo editable desde una imagen usando IA.
+4. Reconstruir un modelo editable desde una imagen usando IA: CU15 pendiente para la última etapa, condicionado al tiempo y a consulta/autorización previa del usuario.
 5. Recibir asistencia contextual automática de un agente de IA.
 6. Trabajar con IA y datos locales sin conexión en web y móvil.
 7. Sincronizar cambios y resolver conflictos sin sobrescrituras silenciosas.
@@ -87,13 +101,13 @@ No está acordado generar automáticamente el frontend consumidor, reproducir to
 
 **Seleccionados en la primera etapa:** React con TypeScript estricto, Vite, React Flow para el lienzo, IndexedDB mediante idb para borradores locales, Zod para validar datos y vite-plugin-pwa para cachear la aplicación compilada. Versiones reproducibles en `package-lock.json`; decisiones y alcance en `docs/decisiones/ADR-002-editor-local.md`. Vitest prueba dominio/persistencia y Playwright prueba el navegador.
 
-**Motores de IA adoptados para integrar:** Transformers.js/ONNX Runtime Web en navegador; llama.cpp para texto/visión y whisper.cpp para voz en Flutter mediante puente nativo. Modelos iniciales: Qwen3-0.6B para texto/asistencia, Whisper base multilingüe para voz y SmolVLM-500M-Instruct para imágenes. Son selecciones para evaluación, no inferencia implementada ni resultados medidos. Ver `docs/decisiones/ADR-001-ia-local.md`.
+**Motores de IA:** Transformers.js 4.3.0/ONNX Runtime Web, Worker y WebGPU Intel gen-12lp. En 6C Qwen3-1.7B q4f16 con datos ONNX externos funciona offline en laboratorio; los 508 inicializadores y la estructura se verificaron contra el original. Revisiones/hashes/receta en scripts/ai/model-lock.json, model-1.7b-lock.json, model-external-lock.json y externalize.py. Python solo prepara los archivos; no ejecuta la inferencia del producto. La precisi?n todav?a requiere mejora antes de integrar. llama.cpp/whisper.cpp en Flutter, Whisper base multiling?e y SmolVLM-500M-Instruct contin?an sin evaluaci?n. Ver ADR 001, 010?013 y docs/ETAPA_06C.md.
 
 **Segunda etapa:** Spring Boot 4.1.1, Java 21 LTS, Maven 3.9.11, Spring Security, JPA, Flyway y PostgreSQL 17. API en `apps/api`, módulos auth/users/projects; React consume `/api` desde `/workspace`. Configuración privada en `.local/backend.json`, herramientas en `.tools`; ambas carpetas excluidas de Git. Instancia local independiente en 55432, bases `modela` y `modela_test`. El servidor existente en 5432 se conserva. Ver ADR 003 y `docs/API_ETAPA_02.md`.
 
 **Tercera etapa:** módulo `diagrams`, migración V2 y editor reutilizado para diagramas de proyecto. Estado actual en cuatro tablas UML y versiones en VersionDiagrama; lectura coherente y guardado transaccional con revisión esperada. Listado paginado, creación, copia explícita de borrador, edición y eliminación lógica. Ver ADR 004 y `docs/API_ETAPA_03.md`.
 
-**No seleccionados aún:** versiones de Flutter y runtimes de IA, revisiones/hashes de modelos, almacenamiento local móvil, adaptación de sincronización a Flutter, servicios concretos de AWS y despliegue. El protocolo web de propuestas, creación y cola se define en ADR 007–009. GitHub ya contiene la primera etapa publicada por el usuario; las nuevas modificaciones requieren otro commit/push. Tailwind, Docker, Django y React Native no son decisiones adoptadas por aparecer en ejemplos.
+**No seleccionados aún:** versiones de Flutter y runtimes móviles de IA, revisiones/hashes de modelos de voz/visión, almacenamiento local móvil, adaptación de sincronización a Flutter, servicios concretos de AWS y despliegue. Runtime/revisión/hashes del texto web están fijados en 6A. El protocolo web de propuestas, creación y cola se define en ADR 007–009. Al iniciar 6A se verificó el commit local `ffb3739` de etapas 3–5/relevo; 6A necesita otro commit/push. Tailwind, Docker, Django y React Native no son decisiones adoptadas por aparecer en ejemplos.
 
 ## 5. Actores, autenticación y permisos
 
@@ -142,7 +156,7 @@ Ciclos y prioridades son los del Word; no equivalen a un calendario. Riesgo Bajo
 | CU12 | Sincronizar cambios del diagrama | Ambos | Alta / Alto | C3 |
 | CU13 | Cerrar sesión | Ambos | Baja / Bajo | C1 |
 | CU14 | Interactuar con el diagrama mediante IA | Ambos | Alta / Alto | C3 |
-| CU15 | Generar diagrama de clases mediante imagen con IA | Ambos | Alta / Alto | C3 |
+| CU15 | Generar diagrama de clases mediante imagen con IA — pendiente condicionado | Ambos | Última etapa / Alto | C3 histórico; ejecución aplazada |
 | CU16 | Recibir asistencia contextual mediante un agente de IA | Ambos | Alta / Alto | C3 |
 
 Comportamientos que debe cubrir el código:
@@ -153,14 +167,16 @@ Comportamientos que debe cubrir el código:
 - CU11: generar los archivos completos del backend, empaquetar y descargar.
 - CU12: comparar versiones, integrar cambios compatibles y resolver conflictos.
 - CU14: capturar texto/voz, interpretar, validar permisos y estructura, aplicar y mostrar resultado.
-- CU15: capturar/cargar imagen, identificar elementos, generar modelo editable, permitir revisión y guardar.
+- CU15 (pendiente, última etapa y previa autorización): capturar/cargar imagen, identificar elementos, generar modelo editable, permitir revisión y guardar; solo retomar si hay tiempo disponible.
 - CU16: observar acciones relevantes, generar orientación, mostrarla sin modificar el modelo; permitir consultar o descartar y desactivar asistencia.
 
 Los títulos abreviados de algunas figuras o del índice no crean casos adicionales.
 
 ## 7. Reglas de modelado e interoperabilidad
 
-- Clases con nombre; atributos con nombre y tipo; relaciones con extremos identificables.
+- CU14 admite «Agrega el atributo modelo en la clase vehiculo» y «Agrega el atributo modelo a la clase vehiculo», además de la forma breve. El tipo sigue siendo opcional; los nombres deben coincidir con clases existentes. Ver ampliación en ETAPA_06I.
+
+- Clases con nombre; atributos con nombre y tipo opcional (Sin tipo si aún no se define, decisión 6I); relaciones con extremos identificables.
 - El alcance incluye asociación y generalización/herencia. Generalización y herencia no son dos conectores distintos.
 - El usuario puede crear, modificar y eliminar elementos, respetando las validaciones.
 - Conservar identificadores estables para elementos creados manualmente o por IA, importados o editados offline.
@@ -174,7 +190,7 @@ Los títulos abreviados de algunas figuras o del índice no crean casos adiciona
 
 **Decisión vigente confirmada: IA LOCAL en web Y móvil.** Reemplaza la recomendación anterior de servicio remoto para la web.
 
-Las funciones locales abarcan texto, reconocimiento de voz, interpretación de imágenes y asistencia contextual, según CU14–CU16. No sustituirlas por una API remota sin autorización que cambie el alcance.
+Las funciones locales abarcan texto, reconocimiento de voz, interpretación de imágenes y asistencia contextual, según CU14–CU16. CU15 de imágenes queda aplazado a la última etapa, condicionado al tiempo y a consulta/autorización previa; no iniciar su desarrollo ni integrar modelos de imagen durante el trabajo de texto, voz o asistencia. No sustituir funciones locales por una API remota sin autorización que cambie el alcance.
 
 Condiciones:
 - Descargar previamente aplicación, modelos, recursos y datos necesarios.
@@ -287,7 +303,7 @@ Criterios adoptados:
 
 ## 12. Subsistemas y capítulo de implementación
 
-Usuarios/acceso, proyectos/participantes, diagramas/versiones y propuestas/conflictos tienen implementación en `apps/api`; el modelado local y central reutiliza `apps/web/src/features/modeling` y `EditorView`. `ProjectCopies`, `OfflineProjectEditor` y `useProjectSynchronization` implementan proyectos preparados, creación/edición offline y envío de pendientes con el espacio web abierto. IA, Flutter, interoperabilidad y generación siguen pendientes.
+Usuarios/acceso, proyectos/participantes, diagramas/versiones y propuestas/conflictos tienen implementación en `apps/api`; el modelado local y central reutiliza `apps/web/src/features/modeling` y `EditorView`. `ProjectCopies`, `OfflineProjectEditor` y `useProjectSynchronization` implementan proyectos preparados, creación/edición offline y envío de pendientes con el espacio web abierto. `features/ai` implementa el laboratorio 6A sin datos privados ni escrituras; integración de IA, Flutter, interoperabilidad y generación siguen pendientes.
 
 ### 3.4.1 Elección de Plataforma de Desarrollo de software
 
@@ -333,7 +349,7 @@ Al desarrollar, mantener un registro CU → módulo/endpoint/entidad → prueba 
 
 Resolver cada decisión antes de implementar la parte afectada, sin preguntar de nuevo por requisitos confirmados.
 
-Equipos de demostración: PC ASUS con Windows 11 y teléfono POCO X7 Pro, confirmados por el usuario. Inspección de la PC: ASUS ExpertBook B1400CEAEY/B1400CEAE, Core i7-1165G7, 15,7 GiB de RAM reportada e Intel Iris Xe Graphics; Edge y Chrome instalados. Pendientes: RAM y versión de Android del teléfono, almacenamiento libre, disponibilidad efectiva de WebGPU y criterios/mediciones de IA. Las especificaciones no acreditan viabilidad ni pruebas de inferencia.
+Equipos de demostración: PC ASUS con Windows 11 y teléfono POCO X7 Pro, confirmados por el usuario. Inspección de la PC: ASUS ExpertBook B1400CEAEY/B1400CEAE, Core i7-1165G7, 15,7 GiB de RAM e Intel Iris Xe Graphics. 6A verificó WebGPU Intel gen-12lp en Edge 153, carga e inferencia local offline, con precisión insuficiente del modelo inicial. Pendientes: RAM/Android/espacio del teléfono, consumo total de memoria de IA, evaluación de voz/visión y mejora de interpretación. Los resultados del laboratorio no acreditan integración completa de CU14 ni viabilidad móvil.
 
 `docs/REVISION_INICIAL.md` conserva el contraste inicial con el Word; `docs/TRAZABILIDAD.md` registra CU → código/datos → pruebas y evidencia. Se verificaron texto, tablas y las imágenes de paquetes/arquitectura; no toda la maquetación del Word. Las decisiones técnicas posteriores están en `docs/decisiones/`. Deben reflejarse en el Word al completar los apartados de implementación y pruebas.
 
@@ -355,7 +371,8 @@ Etapa 5B (estado vigente, quinta parte web completa): preparar proyectos incluso
 
 | Pendiente | Momento recomendado |
 | --- | --- |
-| Equipos objetivo y prueba local de texto, voz e imágenes en navegador/Flutter | Primero: es el riesgo técnico principal |
+| Equipos objetivo y prueba local de texto y voz en navegador/Flutter | Antes de integrar esas capacidades; imágenes excluidas de esta prioridad inicial |
+| CU15: visión, reconocimiento e integración de modelos de imagen | Última etapa, tras completar y estabilizar funcionalidades principales; solo si queda tiempo y previa consulta y autorización explícita del usuario |
 | Validar motores/modelos seleccionados, fijar recursos, descarga e integración; almacenamiento móvil | Antes de incorporar IA al producto; apertura web offline inicial implementada |
 | Client ID y validación real de Google; vinculación externa no autoritativa; permisos de exportación/generación | Acceso base definido en ADR 003; ampliar antes de esas funciones |
 | Recuperación de formularios todavía sin Guardar y envío con toda la aplicación cerrada | Posibles ampliaciones; no forman parte de la quinta parte web. La creación/edición offline y el envío de copias cerradas con el espacio abierto están implementados |
@@ -368,11 +385,17 @@ Etapa 5B (estado vigente, quinta parte web completa): preparar proyectos incluso
 
 Si una prueba demuestra que un requisito no puede cumplirse en el equipo objetivo, comunicar la evidencia y acordar una adaptación. No cambiar silenciosamente IA local por remota ni eliminar funciones para acelerar.
 
-Orden de trabajo recomendado, sin alterar los ciclos académicos: validar pronto IA local; definir contratos/datos; implementar acceso y proyectos; editor; colaboración/offline; integrar IA y asistencia; intercambio y generación; prueba end-to-end y despliegue. Las pruebas técnicas iniciales no equivalen a funcionalidades completas.
+Orden de trabajo recomendado: validar IA local de texto/voz; definir contratos/datos; implementar acceso y proyectos; editor; colaboración/offline; integrar IA de edición y asistencia; intercambio y generación; prueba end-to-end y despliegue. Completar y estabilizar primero estas funcionalidades principales. CU15 queda al final, únicamente si el tiempo lo permite y después de consultar al usuario y obtener autorización. Los ciclos académicos del Word se conservan como referencia histórica, no como autorización para adelantar visión. Las pruebas técnicas iniciales no equivalen a funcionalidades completas.
+
+Etapa 6A: laboratorio local `/ai-lab`, preparación de recursos con SHA-256, Worker WebGPU, simulación validada de propuestas y corpus de 30 instrucciones. Datos ficticios sin persistencia ni acceso a proyectos. Se verificó inferencia offline en Edge/Intel; la precisión del modelo inicial no permite recomendar integración. Próximo incremento: mejorar interpretación estructurada o comparar otro modelo local con el mismo corpus y criterios, añadiendo casos nuevos para evitar ajustar solo a los ejemplos conocidos. Ver ADR 010 y ETAPA_06A; no declarar CU14 completo. Incorporar también esta evidencia al Word.
+
+Etapa 6B: se ejecutó la comparación propuesta en 6A. Selector de modelos, prompt versionado con plantillas JSON, una corrección por validación y suite adicional de 20 casos. Resultado original 20/30, insuficiente; el modelo mayor falla al cargar. Ver ETAPA_06B para métricas/evidencia y ADR 011 para las decisiones. Las pruebas de software pasan, pero no sustituyen la precisión de IA. Continúan pendientes una solución de interpretación fiable y luego integración supervisada, permisos y persistencia. Incorporar ADR 011 y esta evaluación al Word; no se modificó el documento académico.
+
+Etapa 6C: se resolvi? la carga del modelo mayor mediante pesos separados, conservando cuantizaci?n y valores. Segundo experimento: validaci?n 6C-grounded-v1 de identificadores, tipos y multiplicidades respaldados por la solicitud, con prompt 6B-v3 intacto. No se traduce la instrucci?n mediante reglas ni se repara JSON; el modelo sigue generando y corrigiendo. Tres suites, evidencias previas/finales y l?mites en ETAPA_06C; decisiones antes de implementar en ADR 012?013. Contin?an pendientes la precisi?n requerida, revisi?n/aplicaci?n, permisos, persistencia y resto de IA/m?vil.
 
 ## 15. Estado de la documentación y trabajo pendiente
 
-El Word no fue editado durante estas etapas de código. Incorporar ADR 001–009, esquema real y evidencia en 3.4/3.5, distinguiendo colaboración online y creación/edición/sincronización offline web ya construidas de IA y Flutter pendientes. El README contiene instrucciones de ejecución/uso y configuración Google; no sustituye el manual y los tutoriales de la entrega completa.
+El Word no fue editado durante estas etapas de código. Incorporar ADR 001–010, esquema real y evidencia en 3.4/3.5, distinguiendo colaboración y offline web construidos, laboratorio de texto 6A evaluado e integración de IA y Flutter pendientes. El README contiene instrucciones de ejecución/uso y configuración Google; no sustituye el manual y los tutoriales de la entrega completa.
 
 Verificación de este traspaso:
 - Word guardado a las 22:32:03 del 19/09/2026; 18 tablas y 40 imágenes en línea.

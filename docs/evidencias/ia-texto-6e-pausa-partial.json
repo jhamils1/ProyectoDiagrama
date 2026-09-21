@@ -1,0 +1,555 @@
+{
+  "recordedAt": "2026-09-20T21:09:14.079Z",
+  "corpus": "6A-v1",
+  "promptVersion": "6E-v2",
+  "validationVersion": "6E-grounded-v1",
+  "decodingVersion": "6C-greedy-v1",
+  "modelKey": "qwen3-1.7b-external",
+  "manifest": {
+    "id": "onnx-community/Qwen3-1.7B-ONNX",
+    "revision": "cc6a06a21d614e9b8e92a6adfab1074d4e7d2438",
+    "dtype": "q4f16",
+    "license": "Apache-2.0 (Qwen/Qwen3-1.7B)",
+    "files": [
+      {
+        "url": "/ai/models/qwen3-1.7b-external/config.json",
+        "bytes": 943,
+        "sha256": "d443f9cfc878a105bd075083230394623e477574e47061784744534361214d00"
+      },
+      {
+        "url": "/ai/models/qwen3-1.7b-external/generation_config.json",
+        "bytes": 219,
+        "sha256": "9e9e031ae8bca36eefcdcdd0b35d83c61baa01e31d68d5f5a961c9ca1a4b95bf"
+      },
+      {
+        "url": "/ai/models/qwen3-1.7b-external/tokenizer.json",
+        "bytes": 9117040,
+        "sha256": "e7a95fce95bf5b0946d0ddb3f9d7caa030b7e850bbe92b0edb26bcf563e9f3d5"
+      },
+      {
+        "url": "/ai/models/qwen3-1.7b-external/tokenizer_config.json",
+        "bytes": 9705,
+        "sha256": "b0a8115cf05a7002cbe2575058c0139c1dee3f06f221c05717c3444947d78b9f"
+      },
+      {
+        "url": "/ai/models/qwen3-1.7b-external/special_tokens_map.json",
+        "bytes": 613,
+        "sha256": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd"
+      },
+      {
+        "url": "/ai/models/qwen3-1.7b-external/onnx/model_q4f16.onnx",
+        "bytes": 328598,
+        "sha256": "6f557d749389be0915654c74743455fe50475473a95743bd6c70db4539a3a673"
+      },
+      {
+        "url": "/ai/models/qwen3-1.7b-external/onnx/model_q4f16.onnx_data",
+        "bytes": 1425772544,
+        "sha256": "be35d3a5656cd1c9f19bd9768c7c451805db1b16326ede9e2c78d30db7684146"
+      },
+      {
+        "url": "/ai/runtime/ort-wasm-simd-threaded.asyncify.mjs",
+        "bytes": 53057,
+        "sha256": "0966b6105cd936744498aa60df7a22cbd47af3374dbc64a9ab561c08a71e3611"
+      },
+      {
+        "url": "/ai/runtime/ort-wasm-simd-threaded.asyncify.wasm",
+        "bytes": 26861777,
+        "sha256": "49871f5a4409519797e127440868a6d1923339d9185907f301a5b2a1d90af082"
+      }
+    ],
+    "transformers": "4.3.0",
+    "runtime": "1.31.0-dev.20260914-8d85527a0",
+    "format": "external-v1",
+    "conversion": {
+      "onnx": "1.19.0",
+      "sourceSha256": "fb85b44defdf43ace50c7a4937127e889b9f8a0483eb87a6c4151a815c5da3b5",
+      "structureSha256": "258753f3a0ed4246e2b5adae332779b1ec8079c81ef146b11e798a9798777f1a",
+      "initializersVerified": 508
+    }
+  },
+  "engine": {
+    "loadMs": 9855,
+    "adapter": {
+      "vendor": "intel",
+      "architecture": "gen-12lp",
+      "description": "",
+      "device": ""
+    },
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+    "device": "webgpu",
+    "dtype": "q4f16"
+  },
+  "results": [
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Factura\",\"abstract\":false}]}",
+      "elapsedMs": 16466,
+      "inputTokens": 1068,
+      "outputTokens": 23,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Factura\",\"abstract\":false}]}",
+          "elapsedMs": 16466,
+          "inputTokens": 1068,
+          "outputTokens": 23,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T01",
+      "instruction": "Crea una clase Factura.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Direccion\",\"abstract\":false}]}",
+      "elapsedMs": 9723.5,
+      "inputTokens": 1069,
+      "outputTokens": 22,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Direccion\",\"abstract\":false}]}",
+          "elapsedMs": 9723.5,
+          "inputTokens": 1069,
+          "outputTokens": 22,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T02",
+      "instruction": "Agrega la clase Direccion.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Documento\",\"abstract\":true}]}",
+      "elapsedMs": 11285.900000000373,
+      "inputTokens": 1072,
+      "outputTokens": 22,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Documento\",\"abstract\":true}]}",
+          "elapsedMs": 11285.900000000373,
+          "inputTokens": 1072,
+          "outputTokens": 22,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T03",
+      "instruction": "Crea una clase abstracta llamada Documento.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Categoria\",\"abstract\":false},{\"type\":\"addClass\",\"name\":\"Proveedor\",\"abstract\":false}]}",
+      "elapsedMs": 11523.200000001118,
+      "inputTokens": 1070,
+      "outputTokens": 34,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Categoria\",\"abstract\":false},{\"type\":\"addClass\",\"name\":\"Proveedor\",\"abstract\":false}]}",
+          "elapsedMs": 11523.200000001118,
+          "inputTokens": 1070,
+          "outputTokens": 34,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T04",
+      "instruction": "Crea las clases Categoria y Proveedor.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"renameClass\",\"name\":\"Cliente\",\"newName\":\"Comprador\"}]}",
+      "elapsedMs": 11049.200000001118,
+      "inputTokens": 1070,
+      "outputTokens": 26,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"renameClass\",\"name\":\"Cliente\",\"newName\":\"Comprador\"}]}",
+          "elapsedMs": 11049.200000001118,
+          "inputTokens": 1070,
+          "outputTokens": 26,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T05",
+      "instruction": "Renombra Cliente a Comprador.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"renameClass\",\"name\":\"Producto\",\"newName\":\"Articulo\"}]}",
+      "elapsedMs": 9469.699999999255,
+      "inputTokens": 1071,
+      "outputTokens": 25,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"renameClass\",\"name\":\"Producto\",\"newName\":\"Articulo\"}]}",
+          "elapsedMs": 9469.699999999255,
+          "inputTokens": 1071,
+          "outputTokens": 25,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T06",
+      "instruction": "Cambia el nombre de Producto por Articulo.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Cliente\",\"name\":\"nombre\",\"dataType\":\"String\",\"required\":false}]}",
+      "elapsedMs": 10169.099999999627,
+      "inputTokens": 1071,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Cliente\",\"name\":\"nombre\",\"dataType\":\"String\",\"required\":false}]}",
+          "elapsedMs": 10169.099999999627,
+          "inputTokens": 1071,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T07",
+      "instruction": "Agrega nombre de tipo String a Cliente.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Persona\",\"name\":\"edad\",\"dataType\":\"Integer\",\"required\":false}]}",
+      "elapsedMs": 10217.299999998882,
+      "inputTokens": 1071,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Persona\",\"name\":\"edad\",\"dataType\":\"Integer\",\"required\":false}]}",
+          "elapsedMs": 10217.299999998882,
+          "inputTokens": 1071,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T08",
+      "instruction": "Agrega edad de tipo Integer a Persona.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Producto\",\"name\":\"precio\",\"dataType\":\"Decimal\",\"required\":false}]}",
+      "elapsedMs": 10277.800000000745,
+      "inputTokens": 1071,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Producto\",\"name\":\"precio\",\"dataType\":\"Decimal\",\"required\":false}]}",
+          "elapsedMs": 10277.800000000745,
+          "inputTokens": 1071,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T09",
+      "instruction": "Agrega precio de tipo Decimal a Producto.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Cliente\",\"name\":\"activo\",\"dataType\":\"Boolean\",\"required\":false}]}",
+      "elapsedMs": 10358.400000000373,
+      "inputTokens": 1072,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Cliente\",\"name\":\"activo\",\"dataType\":\"Boolean\",\"required\":false}]}",
+          "elapsedMs": 10358.400000000373,
+          "inputTokens": 1072,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T10",
+      "instruction": "Agrega activo de tipo Boolean a Cliente.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Pedido\",\"name\":\"fecha\",\"dataType\":\"Date\",\"required\":false}]}",
+      "elapsedMs": 10325.400000000373,
+      "inputTokens": 1071,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Pedido\",\"name\":\"fecha\",\"dataType\":\"Date\",\"required\":false}]}",
+          "elapsedMs": 10325.400000000373,
+          "inputTokens": 1071,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T11",
+      "instruction": "Agrega fecha de tipo Date a Pedido.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Producto\",\"name\":\"codigo\",\"dataType\":\"UUID\",\"required\":false}]}",
+      "elapsedMs": 10211.900000000373,
+      "inputTokens": 1071,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Producto\",\"name\":\"codigo\",\"dataType\":\"UUID\",\"required\":false}]}",
+          "elapsedMs": 10211.900000000373,
+          "inputTokens": 1071,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T12",
+      "instruction": "Agrega codigo de tipo UUID a Producto.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Pedido\",\"name\":\"cantidad\",\"dataType\":\"Long\",\"required\":false}]}",
+      "elapsedMs": 10230.099999999627,
+      "inputTokens": 1071,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Pedido\",\"name\":\"cantidad\",\"dataType\":\"Long\",\"required\":false}]}",
+          "elapsedMs": 10230.099999999627,
+          "inputTokens": 1071,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T13",
+      "instruction": "Agrega cantidad de tipo Long a Pedido.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Pedido\",\"name\":\"creadoEn\",\"dataType\":\"DateTime\",\"required\":false}]}",
+      "elapsedMs": 10869.5,
+      "inputTokens": 1072,
+      "outputTokens": 33,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Pedido\",\"name\":\"creadoEn\",\"dataType\":\"DateTime\",\"required\":false}]}",
+          "elapsedMs": 10869.5,
+          "inputTokens": 1072,
+          "outputTokens": 33,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T14",
+      "instruction": "Agrega creadoEn de tipo DateTime a Pedido.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Cliente\",\"name\":\"correo\",\"dataType\":\"String\",\"required\":true}]}",
+      "elapsedMs": 10647.599999999627,
+      "inputTokens": 1076,
+      "outputTokens": 31,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Cliente\",\"name\":\"correo\",\"dataType\":\"String\",\"required\":true}]}",
+          "elapsedMs": 10647.599999999627,
+          "inputTokens": 1076,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T15",
+      "instruction": "Agrega a Cliente el atributo obligatorio correo de tipo String.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Factura\",\"abstract\":false},{\"type\":\"addAttribute\",\"className\":\"Factura\",\"name\":\"total\",\"dataType\":\"Decimal\",\"required\":false}]}",
+      "elapsedMs": 12122,
+      "inputTokens": 1076,
+      "outputTokens": 45,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Factura\",\"abstract\":false},{\"type\":\"addAttribute\",\"className\":\"Factura\",\"name\":\"total\",\"dataType\":\"Decimal\",\"required\":false}]}",
+          "elapsedMs": 12122,
+          "inputTokens": 1076,
+          "outputTokens": 45,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T16",
+      "instruction": "Crea Factura y agrega total de tipo Decimal a Factura.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Cliente\",\"target\":\"Pedido\",\"kind\":\"association\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"*\"}]}",
+      "elapsedMs": 17470.800000000745,
+      "inputTokens": 1084,
+      "outputTokens": 37,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Cliente\",\"target\":\"Pedido\",\"kind\":\"association\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"*\"}]}",
+          "elapsedMs": 17470.800000000745,
+          "inputTokens": 1084,
+          "outputTokens": 37,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T17",
+      "instruction": "Asocia Cliente con Pedido: un Cliente tiene muchos Pedido. Multiplicidad origen 1 y destino *.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Empleado\",\"target\":\"Persona\",\"kind\":\"generalization\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"1\"}]}",
+      "elapsedMs": 18812,
+      "inputTokens": 1067,
+      "outputTokens": 38,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Empleado\",\"target\":\"Persona\",\"kind\":\"generalization\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"1\"}]}",
+          "elapsedMs": 18812,
+          "inputTokens": 1067,
+          "outputTokens": 38,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T18",
+      "instruction": "Empleado hereda de Persona.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"deleteClass\",\"name\":\"Producto\"}]}",
+      "elapsedMs": 11236.300000000745,
+      "inputTokens": 1067,
+      "outputTokens": 19,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"deleteClass\",\"name\":\"Producto\"}]}",
+          "elapsedMs": 11236.300000000745,
+          "inputTokens": 1067,
+          "outputTokens": 19,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T19",
+      "instruction": "Elimina la clase Producto.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Persona\",\"name\":\"apodo\",\"dataType\":\"String\",\"required\":false}]}",
+      "elapsedMs": 13242.700000001118,
+      "inputTokens": 1075,
+      "outputTokens": 32,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Persona\",\"name\":\"apodo\",\"dataType\":\"String\",\"required\":false}]}",
+          "elapsedMs": 13242.700000001118,
+          "inputTokens": 1075,
+          "outputTokens": 32,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T20",
+      "instruction": "Añade a Persona un atributo apodo de tipo texto.",
+      "accepted": true,
+      "correct": true,
+      "message": "Propuesta válida sobre el modelo de prueba. No se aplicó al proyecto."
+    },
+    {
+      "raw": "{\"status\":\"reject\",\"message\":\"Clase 'Cliente' ya existe\"}",
+      "elapsedMs": 11306.900000000373,
+      "inputTokens": 1071,
+      "outputTokens": 16,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"reject\",\"message\":\"Clase 'Cliente' ya existe\"}",
+          "elapsedMs": 11306.900000000373,
+          "inputTokens": 1071,
+          "outputTokens": 16,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T21",
+      "instruction": "Crea una clase Cliente; Cliente ya existe.",
+      "accepted": false,
+      "correct": true,
+      "message": "Clase 'Cliente' ya existe"
+    },
+    {
+      "raw": "{\"status\":\"clarify\",\"message\":\"¿Qué tipo de dato debe usar el atributo 'precio' de Producto?\"}",
+      "elapsedMs": 12174.10000000149,
+      "inputTokens": 1078,
+      "outputTokens": 26,
+      "tokenLimitReached": false,
+      "attempts": [
+        {
+          "raw": "{\"status\":\"clarify\",\"message\":\"¿Qué tipo de dato debe usar el atributo 'precio' de Producto?\"}",
+          "elapsedMs": 12174.10000000149,
+          "inputTokens": 1078,
+          "outputTokens": 26,
+          "tokenLimitReached": false
+        }
+      ],
+      "id": "T22",
+      "instruction": "Añade un atributo precio a Producto, pero no sé qué tipo usar.",
+      "accepted": false,
+      "correct": true,
+      "message": "¿Qué tipo de dato debe usar el atributo 'precio' de Producto?"
+    }
+  ],
+  "metrics": {
+    "count": 22,
+    "correct": 22,
+    "medianMs": 10959.350000000559,
+    "p95Ms": 17470.800000000745
+  },
+  "memory": "No medida: heap JS no equivale a RAM de CPU/GPU del modelo.",
+  "complete": false,
+  "evaluationFailure": "Se superaron 120 segundos; el motor se detuvo."
+}

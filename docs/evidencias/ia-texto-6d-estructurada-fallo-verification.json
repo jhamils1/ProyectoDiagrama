@@ -1,0 +1,7 @@
+{
+  "initialLoad": "Modelo listo. Carga local: 8.3 s.",
+  "offlineLoad": "Modelo listo. Carga local: 6.4 s.",
+  "cancelledInFlight": true,
+  "reopenedOffline": false,
+  "error": "Token 0 does not satisfy the constraint."
+}

@@ -1,0 +1,178 @@
+{
+  "recordedAt": "2026-09-21T01:35:47.325Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6F-v1",
+  "editorValidation": "6G-limited-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Agrega el atributo modelo de tipo String en la clase vehiculo.",
+      "elapsedMs": 44254,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar vehiculo.modelo: String, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"modelo\",\"dataType\":\"String\",\"required\":false}]}",
+          "elapsedMs": 43952.800000000745,
+          "inputTokens": 1425,
+          "outputTokens": 32,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Agrega el atributo ruedas de tipo int en la clase vehiculo.",
+      "elapsedMs": 35745,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar vehiculo.ruedas: Integer, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"ruedas\",\"dataType\":\"Integer\",\"required\":false}]}",
+          "elapsedMs": 35511,
+          "inputTokens": 1435,
+          "outputTokens": 34,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Agrega el atributo activo de tipo boolean en la clase vehiculo.",
+      "elapsedMs": 19840,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar vehiculo.activo: Boolean, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"activo\",\"dataType\":\"Boolean\",\"required\":false}]}",
+          "elapsedMs": 19629.199999999255,
+          "inputTokens": 1444,
+          "outputTokens": 32,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Agrega el atributo peso de tipo float en la clase vehiculo.",
+      "elapsedMs": 20563,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar vehiculo.peso: Float, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"peso\",\"dataType\":\"Float\",\"required\":false}]}",
+          "elapsedMs": 20208.89999999851,
+          "inputTokens": 1451,
+          "outputTokens": 33,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Agrega el atributo distancia de tipo double en la clase vehiculo.",
+      "elapsedMs": 16047,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar vehiculo.distancia: Double, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"distancia\",\"dataType\":\"Double\",\"required\":false}]}",
+          "elapsedMs": 15555.800000000745,
+          "inputTokens": 1460,
+          "outputTokens": 33,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "3ca8c2d2-99cd-4457-99f7-4ddc7f6f364d",
+    "name": "Presentacion IA 1789954549758",
+    "localRevision": 3,
+    "updatedAt": "2026-09-21T01:35:50.118Z",
+    "classes": [
+      {
+        "id": "15a2e9ac-b0e7-4b22-95fa-fe9e716048f9",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "3ca8c2d2-99cd-4457-99f7-4ddc7f6f364d",
+    "name": "Presentacion IA 1789954549758",
+    "localRevision": 8,
+    "updatedAt": "2026-09-21T01:38:21.442Z",
+    "classes": [
+      {
+        "id": "15a2e9ac-b0e7-4b22-95fa-fe9e716048f9",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": [
+          {
+            "id": "aec63a40-01f8-498c-a294-e21aa79ed14d",
+            "name": "modelo",
+            "dataType": "String",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          },
+          {
+            "id": "b35334ac-7c7e-4c73-bea7-51f155e7d72b",
+            "name": "ruedas",
+            "dataType": "Integer",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          },
+          {
+            "id": "6d211be8-a07e-4b6d-99ac-dad0eed96662",
+            "name": "activo",
+            "dataType": "Boolean",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          },
+          {
+            "id": "90141ba7-dda9-41b1-ab41-218a584c59af",
+            "name": "peso",
+            "dataType": "Float",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          },
+          {
+            "id": "1714b494-ff1a-4c0c-8e2c-e57e0ee0fc8c",
+            "name": "distancia",
+            "dataType": "Double",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      }
+    ],
+    "relations": []
+  }
+}

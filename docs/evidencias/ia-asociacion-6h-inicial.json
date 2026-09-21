@@ -1,0 +1,195 @@
+{
+  "recordedAt": "2026-09-21T00:22:01.958Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6H-association-v1",
+  "editorValidation": "6H-association-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Crear una asociación entre Cliente y Pedido, donde un Cliente puede tener muchos Pedidos y cada Pedido pertenece a un solo Cliente.",
+      "elapsedMs": 9125,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAsociación UML: Cliente 1 — 0..* Pedido. Se relacionan clases existentes.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    },
+    {
+      "instruction": "Un Usuario puede tener muchos Proyectos y cada Proyecto pertenece a un Usuario.",
+      "elapsedMs": 6045,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAsociación UML: Usuario 1 — 0..* Proyecto. Se relacionan clases existentes.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true
+    },
+    {
+      "instruction": "Un Departamento tiene muchos Empleados y cada Empleado pertenece a un Departamento.",
+      "elapsedMs": 11713,
+      "message": "La propuesta no coincide con los cambios solicitados. No se aplicó nada; puedes intentar nuevamente.",
+      "preview": null,
+      "unchangedBeforeConfirmation": true,
+      "saved": false
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "7428b2ef-7b4e-475a-8302-8eb7403332de",
+    "name": "Presentacion IA 1789950123296",
+    "localRevision": 13,
+    "updatedAt": "2026-09-21T00:22:04.465Z",
+    "classes": [
+      {
+        "id": "382eeb99-a153-41e9-9403-bee8ac926350",
+        "name": "Cliente",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "951922a7-564a-4990-84ba-ee22e6477c09",
+        "name": "Pedido",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "ba863b99-6cf5-49ab-a21a-a0d2ea690e55",
+        "name": "Usuario",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "22534cf6-33e1-470d-a3b4-afd82a51c200",
+        "name": "Proyecto",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "9743430c-052f-4d0f-9a01-720b918b257e",
+        "name": "Departamento",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "7ced4214-6b76-43df-b95c-6edf3ab75907",
+        "name": "Empleado",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 370
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "7428b2ef-7b4e-475a-8302-8eb7403332de",
+    "name": "Presentacion IA 1789950123296",
+    "localRevision": 15,
+    "updatedAt": "2026-09-21T00:22:29.608Z",
+    "classes": [
+      {
+        "id": "382eeb99-a153-41e9-9403-bee8ac926350",
+        "name": "Cliente",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "951922a7-564a-4990-84ba-ee22e6477c09",
+        "name": "Pedido",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "ba863b99-6cf5-49ab-a21a-a0d2ea690e55",
+        "name": "Usuario",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "22534cf6-33e1-470d-a3b4-afd82a51c200",
+        "name": "Proyecto",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "9743430c-052f-4d0f-9a01-720b918b257e",
+        "name": "Departamento",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "7ced4214-6b76-43df-b95c-6edf3ab75907",
+        "name": "Empleado",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 370
+        },
+        "attributes": []
+      }
+    ],
+    "relations": [
+      {
+        "id": "d0a230aa-5a5a-4c7d-96ba-2ccaaa5e3f3e",
+        "type": "association",
+        "sourceId": "382eeb99-a153-41e9-9403-bee8ac926350",
+        "targetId": "951922a7-564a-4990-84ba-ee22e6477c09",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..*"
+      },
+      {
+        "id": "e5343f52-26cf-482e-a807-2f11ebb63355",
+        "type": "association",
+        "sourceId": "ba863b99-6cf5-49ab-a21a-a0d2ea690e55",
+        "targetId": "22534cf6-33e1-470d-a3b4-afd82a51c200",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..*"
+      }
+    ]
+  }
+}

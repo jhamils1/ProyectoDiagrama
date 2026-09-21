@@ -22,7 +22,11 @@ public record DiagramDocument(
       String dataType,
       String visibility,
       Boolean identifier,
-      Boolean required) {}
+      Boolean required) {
+    public AttributeData {
+      if (dataType == null) dataType = "";
+    }
+  }
 
   public record ClassData(
       UUID id,
@@ -56,7 +60,7 @@ public record DiagramDocument(
   }
 
   private static boolean name(String value) {
-    return value != null && value.length() <= 80 && value.matches("[A-Za-z_][A-Za-z0-9_]*");
+    return value != null && value.length() <= 80 && value.matches("[A-Za-zÁÉÍÓÚÜÑáéíóúüñ_][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9_]*");
   }
 
   private static boolean multiplicity(String value) {
@@ -86,7 +90,7 @@ public record DiagramDocument(
     Set<UUID> classIds = new HashSet<>();
     Set<String> classNames = new HashSet<>();
     var types =
-        Set.of("String", "Integer", "Long", "Decimal", "Boolean", "Date", "DateTime", "UUID");
+        Set.of("String", "Integer", "Long", "Decimal", "Float", "Double", "Boolean", "Date", "DateTime", "UUID");
     var visibility = Set.of("private", "public", "protected", "package");
     for (var c : classes) {
       require(
@@ -119,7 +123,7 @@ public record DiagramDocument(
             "Nombre de atributo inválido o duplicado.");
         require(
             a.dataType != null
-                && types.contains(a.dataType)
+                && (a.dataType.isEmpty() || types.contains(a.dataType))
                 && a.visibility != null
                 && visibility.contains(a.visibility),
             "Tipo o visibilidad inválidos.");

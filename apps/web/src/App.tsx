@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import {
   Box,
@@ -16,6 +17,8 @@ import {
   Pencil,
   LoaderCircle,
   PanelRightClose,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { useEditor } from './features/modeling/application/useEditor'
 import { createClass, type UmlRelation, type Diagram } from './features/modeling/domain/model'
@@ -24,6 +27,8 @@ import { Inspector } from './features/modeling/ui/Inspector'
 import { RelationDialog } from './features/modeling/ui/RelationDialog'
 import type { Presence, ConnectionStatus } from './features/modeling/infrastructure/diagramLive'
 import '@xyflow/react/dist/style.css'
+
+const EditorAssistant = lazy(() => import('./features/ai/ui/EditorAssistant'))
 
 function DeleteDialog({
   name,
@@ -78,6 +83,7 @@ export function EditorView({
     backHref: string
     readOnly: boolean
     reload: () => void
+    offlineAction?: ReactNode
     setEditing: (area: string, pending: boolean) => void
     syncMessage: string
     presence: Presence
@@ -90,14 +96,25 @@ export function EditorView({
   const { active, loading, saving, loadFailed } = editor
   const locked = saving || !!remote?.readOnly
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const newClassPosition = useRef<(() => { x: number; y: number }) | null>(null)
   const [relation, setRelation] = useState<UmlRelation | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(false)
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [sidebarVisible, setSidebarVisible] = useState(true)
   const notifyEditing = remote?.setEditing
+  const [pendingFields, setPendingFields] = useState(false)
+  const trackInspector = useCallback(
+    (area: string, pending: boolean) => {
+      setPendingFields(pending)
+      notifyEditing?.(area, pending)
+    },
+    [notifyEditing],
+  )
   useLayoutEffect(() => {
-    notifyEditing?.('dialog', renaming || !!relation || deleting)
+    notifyEditing?.('dialog', renaming || !!relation || deleting || assistantOpen)
     return () => notifyEditing?.('dialog', false)
-  }, [notifyEditing, renaming, relation, deleting])
+  }, [notifyEditing, renaming, relation, deleting, assistantOpen])
   const [online, setOnline] = useState(navigator.onLine)
   const {
     offlineReady: [offlineReady],
@@ -117,6 +134,7 @@ export function EditorView({
   async function addClass() {
     if (!active) return
     const value = createClass(active)
+    if (newClassPosition.current) value.position = newClassPosition.current()
     if (await editor.execute({ type: 'addClass', value })) setSelectedId(value.id)
   }
   function newRelation(sourceId?: string, targetId?: string) {
@@ -139,7 +157,7 @@ export function EditorView({
   }
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <aside id="editor-sidebar" className="sidebar" hidden={!sidebarVisible}>
         <a className="brand" href="/" aria-label="Modela, inicio">
           <span className="brand-mark">
             <GitBranch size={23} />
@@ -214,12 +232,8 @@ export function EditorView({
           <div className="ai-note">
             <Sparkles size={20} />
             <strong>Asistencia local</strong>
-            <span>
-              Texto, voz e imágenes.
-              <br />
-              Se integrará en una próxima etapa.
-            </span>
-            <span className="upcoming-badge">En preparación</span>
+            <span>Comandos de texto con vista previa y confirmación.</span>
+            <span className="upcoming-badge">Edición acotada</span>
           </div>
           <div className="sidebar-foot">
             <span className="status-dot" />
@@ -230,6 +244,17 @@ export function EditorView({
       <main className="workspace">
         <header className="topbar">
           <div className="breadcrumb">
+            <button
+              type="button"
+              className="icon-button sidebar-toggle"
+              aria-label={sidebarVisible ? 'Ocultar menú izquierdo' : 'Mostrar menú izquierdo'}
+              title={sidebarVisible ? 'Ocultar menú izquierdo' : 'Mostrar menú izquierdo'}
+              aria-expanded={sidebarVisible}
+              aria-controls="editor-sidebar"
+              onClick={() => setSidebarVisible((visible) => !visible)}
+            >
+              {sidebarVisible ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
+            </button>
             <FolderOpen size={16} />
             <span>{remote?.projectName ?? 'Espacio local'}</span>
             <ChevronRight size={14} />
@@ -305,7 +330,7 @@ export function EditorView({
             ) : (
               <h1>Diseña tu próximo sistema</h1>
             )}
-            <p className="document-subtitle">Organiza tus ideas, clase por clase.</p>
+            {!active && <p className="document-subtitle">Organiza tus ideas, clase por clase.</p>}
           </div>
           {active && (
             <span className={`save-status ${saving ? 'saving' : ''}`} role="status">
@@ -348,6 +373,7 @@ export function EditorView({
             <button disabled={saving} onClick={remote.reload}>
               {remote.localCopy ? 'Actualizar y sincronizar' : 'Recargar diagrama'}
             </button>
+            {remote.offlineAction}
           </div>
         )}
         {needRefresh && (
@@ -407,9 +433,17 @@ export function EditorView({
           <>
             <div className="editor-toolbar">
               <div className="toolbar-group">
-                <button className="primary" onClick={() => void addClass()} disabled={locked}>
-                  <Plus size={16} />
-                  Nueva clase
+                <button
+                  className="secondary"
+                  disabled={locked || pendingFields || renaming}
+                  title={
+                    pendingFields || renaming
+                      ? 'Guarda o cancela los campos abiertos antes de usar IA.'
+                      : 'Editar mediante instrucciones concretas'
+                  }
+                  onClick={() => setAssistantOpen(true)}
+                >
+                  <Sparkles size={16} /> Asistente IA
                 </button>
                 <button
                   className="secondary"
@@ -419,11 +453,10 @@ export function EditorView({
                   <GitBranch size={16} />
                   Relación
                 </button>
-                <span className="toolbar-divider" />
-                <span className="toolbar-help">
-                  <MousePointer2 size={14} />
-                  Arrastra para organizar
-                </span>
+                <button className="primary" onClick={() => void addClass()} disabled={locked}>
+                  <Plus size={16} />
+                  Nueva clase
+                </button>
               </div>
               <span className="toolbar-label">
                 UML <span className="status-dot" />
@@ -431,9 +464,16 @@ export function EditorView({
             </div>
             <div className="editor-body">
               <DiagramCanvas
+                newClassPosition={newClassPosition}
                 key={active.id}
                 diagram={active}
                 selectedId={selectedId}
+                deleteClass={(id) => {
+                  if (!locked) {
+                    setSelectedId(id)
+                    setDeleting(true)
+                  }
+                }}
                 select={setSelectedId}
                 busy={locked}
                 setEditing={notifyEditing}
@@ -449,7 +489,7 @@ export function EditorView({
                   value={selected}
                   busy={locked}
                   readOnly={!!remote?.readOnly}
-                  setEditing={notifyEditing}
+                  setEditing={trackInspector}
                   execute={editor.execute}
                   onDelete={() => setDeleting(true)}
                 />
@@ -507,6 +547,17 @@ export function EditorView({
           </>
         )}
       </main>
+      {assistantOpen && active && !remote?.readOnly && (
+        <Suspense fallback={<div role="status">Abriendo asistente…</div>}>
+          <EditorAssistant
+            key={active.id}
+            diagram={active}
+            saving={saving}
+            execute={editor.execute}
+            close={() => setAssistantOpen(false)}
+          />
+        </Suspense>
+      )}
       {relation && active && (
         <RelationDialog
           diagram={active}

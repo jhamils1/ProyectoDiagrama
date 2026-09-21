@@ -1,0 +1,15 @@
+{
+  "scope": "6D primer incremento, prueba de compatibilidad; no benchmark completo",
+  "modelKey": "qwen3-1.7b-external",
+  "promptVersion": "6B-v3",
+  "validationVersion": "6C-grounded-v1",
+  "structuredVersion": "6D-json-schema-v1",
+  "instruction": "Agrega datos de tipo JSONB a Cliente.",
+  "structuredVerification": "ia-texto-6d-estructurada-fallo-verification.json",
+  "legacyReport": "ia-texto-6d-control-legacy.json",
+  "structuredCommand": "node scripts/ai/evaluate.mjs --model=qwen3-1.7b-external --smoke \"--instruction=Agrega datos de tipo JSONB a Cliente.\"",
+  "legacyCommand": "node scripts/ai/evaluate.mjs --model=qwen3-1.7b-external --legacy --smoke \"--instruction=Agrega datos de tipo JSONB a Cliente.\"",
+  "initialSuite": "Recorrido original interrumpido manualmente en T28 despu?s del mismo error; sin informe completo exportado. No se publica precisi?n de ese recorrido.",
+  "remainingSuites": "No ejecutadas al reproducirse el fallo de compatibilidad; D01-D20 siguen reservados.",
+  "decision": "Mantener legacy predeterminado; structured solo diagn?stico experimental. No adoptar ni integrar en proyectos."
+}

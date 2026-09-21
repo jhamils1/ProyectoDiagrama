@@ -1,0 +1,99 @@
+{
+  "recordedAt": "2026-09-21T01:46:53.803Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6F-v1",
+  "editorValidation": "6G-limited-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "La clase automóvil hereda de vehiculo",
+      "elapsedMs": 11095,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nautomóvil hereda de vehiculo.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"automóvil\",\"target\":\"vehiculo\",\"kind\":\"generalization\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"1\"}]}",
+          "elapsedMs": 10532.39999999851,
+          "inputTokens": 233,
+          "outputTokens": 41,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "dc460617-8b2f-41e5-8dbf-afddda29aef0",
+    "name": "Presentacion IA 1789955215824",
+    "localRevision": 5,
+    "updatedAt": "2026-09-21T01:46:56.277Z",
+    "classes": [
+      {
+        "id": "9c953839-5962-47fe-9e79-9789af7c52b4",
+        "name": "automóvil",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "fcc63053-d0bc-42d0-8803-86866ea63621",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "dc460617-8b2f-41e5-8dbf-afddda29aef0",
+    "name": "Presentacion IA 1789955215824",
+    "localRevision": 6,
+    "updatedAt": "2026-09-21T01:47:24.531Z",
+    "classes": [
+      {
+        "id": "9c953839-5962-47fe-9e79-9789af7c52b4",
+        "name": "automóvil",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "fcc63053-d0bc-42d0-8803-86866ea63621",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": [
+      {
+        "id": "3eebe4ea-a6b0-403e-ae63-33174eb25480",
+        "type": "generalization",
+        "sourceId": "9c953839-5962-47fe-9e79-9789af7c52b4",
+        "targetId": "fcc63053-d0bc-42d0-8803-86866ea63621",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "1"
+      }
+    ]
+  }
+}

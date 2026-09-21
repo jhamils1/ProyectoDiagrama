@@ -1,0 +1,128 @@
+{
+  "recordedAt": "2026-09-21T01:27:08.070Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6I-untyped-v1",
+  "editorValidation": "6I-untyped-v1",
+  "mode": "structured",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Crea la clase vehiculo con atributo marca",
+      "elapsedMs": 22584,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase vehiculo.\nAgregar vehiculo.marca: sin tipo, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"vehiculo\",\"abstract\":false},{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"marca\",\"dataType\":\"\",\"required\":false}]}",
+          "elapsedMs": 22315.800000000745,
+          "inputTokens": 441,
+          "outputTokens": 43,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "335c7799-8178-48a7-8df6-c79d3992eadb",
+    "name": "Presentacion IA 1789954029773",
+    "localRevision": 7,
+    "updatedAt": "2026-09-21T01:27:10.464Z",
+    "classes": [
+      {
+        "id": "6a077413-d185-4c72-8f7f-bf21d015ca19",
+        "name": "Lancha",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "763875de-7a19-4404-8d3b-92ee2dc88074",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "9498d113-c6c4-47db-a9f9-91b4169ab8cd",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "335c7799-8178-48a7-8df6-c79d3992eadb",
+    "name": "Presentacion IA 1789954029773",
+    "localRevision": 8,
+    "updatedAt": "2026-09-21T01:27:43.183Z",
+    "classes": [
+      {
+        "id": "6a077413-d185-4c72-8f7f-bf21d015ca19",
+        "name": "Lancha",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "763875de-7a19-4404-8d3b-92ee2dc88074",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "9498d113-c6c4-47db-a9f9-91b4169ab8cd",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "8c757e6a-9357-47bc-9109-b285fbfe9764",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": [
+          {
+            "id": "b993b1b1-37bb-4b15-be8c-bd95fe4e47e9",
+            "name": "marca",
+            "dataType": "",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      }
+    ],
+    "relations": []
+  }
+}

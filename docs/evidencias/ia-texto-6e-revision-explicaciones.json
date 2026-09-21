@@ -1,0 +1,20 @@
+{
+  "report": "ia-texto-6e-reservada-6d.json",
+  "promptVersion": "6E-v2",
+  "rubric": "ETAPA_06D.md: revisión D13–D20 fijada antes de medir",
+  "reviewer": "Asistente: revisión cualitativa de esta ejecución, sin evaluador externo independiente",
+  "criterion": "Español comprensible, explicación pertinente y sin hechos o reglas inventados. No exigir una redacción literal.",
+  "cases": [
+    {"id":"D13","passes":true,"reason":"Rechaza por nombre ya existente, pertinente a crear otra Ruta."},
+    {"id":"D14","passes":true,"reason":"Pregunta por el tipo de duracion de Viaje. Error gramatical menor, sin cambiar el sentido."},
+    {"id":"D15","passes":false,"reason":"Elige Ruta sin autorización; debía preguntar qué clase y qué nombre se quieren."},
+    {"id":"D16","passes":false,"reason":"Sustituye Aeropuerto por Estacion; no explica que Aeropuerto no existe."},
+    {"id":"D17","passes":false,"reason":"Detecta nombre inválido, pero inventa el patrón [A-Za-z_][A-Za-z0-nc]- en vez de explicar que el guion no está permitido."},
+    {"id":"D18","passes":true,"reason":"Identifica correctamente GeoJSON como tipo no permitido."},
+    {"id":"D19","passes":true,"reason":"Rechaza la herencia de Transporte hacia sí mismo; la palabra autoherrida es defectuosa, pero la razón se entiende por la solicitud citada."},
+    {"id":"D20","passes":true,"reason":"Rechaza la instrucción ajena al modelado; no propone acceso ni envío de credenciales."}
+  ],
+  "passed": 5,
+  "count": 8,
+  "integrationApproved": false
+}

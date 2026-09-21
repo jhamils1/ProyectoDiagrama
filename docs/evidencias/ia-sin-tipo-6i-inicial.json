@@ -1,0 +1,140 @@
+{
+  "recordedAt": "2026-09-21T01:07:05.455Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6I-untyped-v1",
+  "editorValidation": "6I-untyped-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Agrega modelo a Lancha.",
+      "elapsedMs": 31790,
+      "message": "La IA no produjo una respuesta válida. No se aplicó nada. Inténtalo nuevamente.",
+      "preview": null,
+      "unchangedBeforeConfirmation": true,
+      "saved": false,
+      "generations": [
+        {
+          "raw": "{\n  \"classes\": [\n    {\n      \"name\": \"Lancha\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Capitan\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Embarcacion\",\n      \"attributes\": []\n    }\n  ],\n  \"instruction\": \"Agrega modelo a Lancha.\"\n}",
+          "elapsedMs": 15711.89999999851,
+          "inputTokens": 211,
+          "outputTokens": 78,
+          "tokenLimitReached": false
+        },
+        {
+          "raw": "{\n  \"classes\": [\n    {\n      \"name\": \"Lancha\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Capitan\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Embarcacion\",\n      \"attributes\": []\n    }\n  ],\n  \"instruction\": \"Agrega modelo a Lancha.\"\n}",
+          "elapsedMs": 15772.89999999851,
+          "inputTokens": 635,
+          "outputTokens": 78,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Crea Vehiculo y agrega marca a Vehiculo.",
+      "elapsedMs": 28442,
+      "message": "La IA no produjo una respuesta válida. No se aplicó nada. Inténtalo nuevamente.",
+      "preview": null,
+      "unchangedBeforeConfirmation": true,
+      "saved": false,
+      "generations": [
+        {
+          "raw": "{\n  \"classes\": [\n    {\n      \"name\": \"Lancha\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Capitan\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Embarcacion\",\n      \"attributes\": []\n    }\n  ],\n  \"instruction\": \"Crea Vehiculo y agrega marca a Vehiculo.\"\n}",
+          "elapsedMs": 11315.800000000745,
+          "inputTokens": 216,
+          "outputTokens": 83,
+          "tokenLimitReached": false
+        },
+        {
+          "raw": "{\n  \"classes\": [\n    {\n      \"name\": \"Lancha\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Capitan\",\n      \"attributes\": []\n    },\n    {\n      \"name\": \"Embarcacion\",\n      \"attributes\": []\n    }\n  ],\n  \"instruction\": \"Crea Vehiculo y agrega marca a Vehiculo.\"\n}",
+          "elapsedMs": 17023.39999999851,
+          "inputTokens": 645,
+          "outputTokens": 83,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "b9e5b90d-a6ec-45a7-b1c6-185f08839e94",
+    "name": "Presentacion IA 1789952828171",
+    "localRevision": 7,
+    "updatedAt": "2026-09-21T01:07:08.893Z",
+    "classes": [
+      {
+        "id": "cce4f060-2c14-4b75-8076-703c19625f68",
+        "name": "Lancha",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "7fd45b48-0832-40b7-bed8-7fa887d8ff59",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "32c984f5-34e1-40dd-9746-8b50177ddef0",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "b9e5b90d-a6ec-45a7-b1c6-185f08839e94",
+    "name": "Presentacion IA 1789952828171",
+    "localRevision": 7,
+    "updatedAt": "2026-09-21T01:07:08.893Z",
+    "classes": [
+      {
+        "id": "cce4f060-2c14-4b75-8076-703c19625f68",
+        "name": "Lancha",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "7fd45b48-0832-40b7-bed8-7fa887d8ff59",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "32c984f5-34e1-40dd-9746-8b50177ddef0",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  }
+}

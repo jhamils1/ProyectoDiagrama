@@ -4,14 +4,14 @@ Actualizado: 20/09/2026. Proyecto: **Modela — Primer parcial de Ingeniería de
 
 ## 1. Punto de continuación
 
-La **quinta parte WEB está completa (5A y 5B)**. No está terminado el proyecto integral. El siguiente incremento recomendado y conversado es **validar el modelo de IA de texto local en la PC**, antes de conectarlo al editor. No se ha implementado ni medido inferencia de IA. El último pedido fue preparar este relevo; este archivo no significa que se haya empezado la sexta parte.
+La **quinta parte WEB está completa (5A y 5B)** y el laboratorio de texto avanzó a **6B**. No está terminado el proyecto integral. `/ai-lab` ejecuta Qwen3-0.6B en WebGPU sin red; con prompt 6B-v3 y una corrección limitada por validación alcanza **20/30** intenciones originales, frente a 13/30 en 6A, todavía por debajo de 27/30. El modelo 1.7B no logró cargar por `std::bad_alloc`. **Sigue pendiente conseguir precisión suficiente antes de conectar la IA al editor**. Leer primero `docs/ETAPA_06B.md` y ADR 011: contienen los resultados actuales, incluidos los casos nuevos.
 
 El usuario quiere avanzar por partes y cuidar sus tokens. Responder en español, inspeccionar lo necesario para la tarea y evitar reconstruir todo el historial. Delegó la elección técnica del motor de IA. Identificar y registrar las decisiones pendientes antes de implementar la parte afectada, resolver las decisiones rutinarias con criterio y consultar solo los datos o cambios de alcance que realmente falten.
 
 ## 2. Archivos que debe leer la nueva cuenta
 
 1. Este archivo y `CONTEXTO_PROYECTO.md`: estado, requisitos y restricciones vigentes.
-2. `docs/ETAPA_05B.md` y `docs/TRAZABILIDAD.md`: última entrega y correspondencia CU → código/datos → pruebas.
+2. `docs/ETAPA_06B.md`, `docs/ETAPA_06A.md`, `docs/ETAPA_05B.md` y `docs/TRAZABILIDAD.md`: entregas y correspondencia CU → código/datos → pruebas.
 3. `README.md`: ejecución y uso.
 4. Para el siguiente incremento: `docs/decisiones/ADR-001-ia-local.md` y el dominio en `apps/web/src/features/modeling/domain/`.
 5. `Primer Parcial Documentacion.docx`: fuente académica, contrastar los CU afectados por cada incremento. `docs/REVISION_INICIAL.md` conserva el contraste inicial.
@@ -29,6 +29,8 @@ Los ADR 002–009 explican las decisiones ya implementadas. Leer los que afecte 
 | 4C | Propuestas idempotentes, integración de cambios compatibles y resolución de conflictos por campo, conservadas en PostgreSQL. |
 | 5A | Preparar diagramas existentes, editarlos offline, recuperar al recargar, conservar pendientes por cuenta, bloquear por logout/caducidad/revocación y sincronizar sin sobrescrituras silenciosas. |
 | 5B | Preparar proyectos incluso vacíos, crear diagramas offline y sincronizar las copias pendientes con sus editores cerrados mientras el espacio de trabajo está abierto. Reintentos de creación sin duplicados; migración local sin borrar datos. |
+| 6A | Laboratorio de texto con Worker/WebGPU, descarga y caché verificadas por SHA-256, cancelación y 30 instrucciones evaluadas offline. Simulación sobre datos ficticios; precisión insuficiente para integración. |
+| 6B | Contrato explícito, corrección limitada por error real, selector con manifiestos separados y 20 casos adicionales. Mejora a 20/30 originales; aún no cumple el criterio de precisión. Evidencia y siguiente decisión en ETAPA_06B. |
 
 La quinta parte no incluye Flutter, IA, creación/eliminación offline de proyectos, eliminación offline del diagrama completo, recuperación de campos sin Guardar ni envío cuando toda la aplicación está cerrada. Esos límites no deben confundirse con fallos de una función prometida como implementada. Al reabrir se retoman los pendientes con sesión válida.
 
@@ -50,13 +52,15 @@ La quinta parte no incluye Flutter, IA, creación/eliminación offline de proyec
 
 Orden propuesto: validar IA de texto → integrarla al editor → voz/imagen/asistencia en incrementos → cliente móvil → interoperabilidad y generación → demostración, despliegue y cierre documental. El usuario puede cambiar el orden; documentar cada entrega sin alterar los ciclos académicos del Word.
 
-## 5. Siguiente incremento acotado: validar texto local
+## 5. Siguiente incremento acotado: resolver la precisión pendiente tras 6B
 
-**Objetivo:** demostrar si el modelo seleccionado puede ejecutar y producir operaciones útiles en esta PC. No intentar terminar toda la IA en una sola sesión.
+**Actualización 6B:** no repetir 6A ni descargar nuevamente recursos ya verificados. Se probó el ajuste de prompt y Qwen3-1.7B indicado abajo: el ajuste llega a 20/30; 1.7B falla al cargar. Los 20 casos de `holdout.ts`, una vez evaluados en 6B, pasan a ser conocidos: si se ajusta el modelo a partir de ellos, crear una nueva suite reservada. Revisar los fallos y decidir un cambio técnico acotado (generación restringida o alternativa compatible con memoria), con evidencia de compatibilidad antes de descargar. No aprobar integración por completar las pruebas unitarias. Las recomendaciones que siguen describen criterios todavía vigentes, no experimentos pendientes ya ejecutados.
 
-- Base: Transformers.js / ONNX Runtime Web, Worker, WebGPU preferido cuando sea compatible; evaluar WASM según capacidad. Modelo inicial: Qwen3-0.6B sin razonamiento extendido. Son selecciones para evaluación, no resultados garantizados.
+**Objetivo:** conseguir interpretaciones fiables antes de integrar con proyectos. La viabilidad de ejecución de Qwen3-0.6B ya se comprobó; no repetir desde cero la infraestructura ni volver a descargar archivos verificados.
+
+- Base implementada: Transformers.js 4.3.0 / ONNX Runtime Web, Worker, WebGPU y Qwen3-0.6B q4f16 sin razonamiento extendido. Examinar fallos de 6A: omisiones, confusión de operaciones y nombres inventados. Comparar mejoras de contrato/prompt o un modelo local de mayor capacidad; decidir con evidencia.
 - Antes de descargar: verificar documentación oficial, compatibilidad de exportación/cuántización, licencia, revisión fija, hashes y tamaño de recursos. Registrar la decisión y el alcance del experimento.
-- Preparar las 30 instrucciones en español previstas por ADR 001, incluidas entradas ambiguas o inválidas; fijar criterios de precisión y latencia antes de evaluar.
+- Conservar las 30 instrucciones y resultados esperados de `features/ai/domain/corpus.ts`. Agregar casos nuevos reservados para comprobar que la mejora no solo memoriza ejemplos. Criterios previos en ADR 010: ≥27/30, mediana ≤15 s, p95 ≤30 s, carga ≤60 s y ninguna propuesta inválida aceptada por el validador.
 - Medir carga, latencia, tamaño y memoria cuando sea observable; registrar navegador, dispositivo y versiones. No inventar métricas que el navegador no permita medir.
 - Probar recursos completos disponibles localmente, recarga y ausencia de red: pesos, tokenizador y runtime. Un indicador «offline» no acredita inferencia local.
 - Evaluar salida estructurada y rechazo de operaciones inválidas. Conservar la edición manual si el modelo falta, falla o se cancela.
@@ -64,7 +68,7 @@ Orden propuesto: validar IA de texto → integrarla al editor → voz/imagen/asi
 
 Para los incrementos posteriores se seleccionaron Whisper base multilingüe y SmolVLM-500M-Instruct. En Flutter, llama.cpp para texto/visión y whisper.cpp para voz mediante puente nativo. Ninguno está integrado o medido. No sustituir IA local por una API remota sin un cambio explícito del requisito.
 
-Equipo confirmado: ASUS Windows 11; inspección anterior: ExpertBook B1400CEAEY/B1400CEAE, i7-1165G7, 15,7 GiB RAM, Iris Xe; Chrome y Edge instalados. Falta medir WebGPU/recursos efectivos. Teléfono confirmado: POCO X7 Pro; RAM, Android y espacio libre del equipo concreto aún pendientes.
+Equipo confirmado: ASUS Windows 11; ExpertBook B1400CEAEY/B1400CEAE, i7-1165G7, 15,7 GiB RAM, Iris Xe. 6A comprobó WebGPU Intel gen-12lp en Edge 153. No se midió RAM total del modelo. Teléfono confirmado: POCO X7 Pro; RAM, Android y espacio libre del equipo concreto aún pendientes.
 
 ## 6. Mapa técnico y reglas que deben conservarse
 
@@ -107,6 +111,10 @@ Configuración privada en `.local/backend.json`, incluido el administrador inici
 
 **Última evidencia registrada de 5B, no una nueva ejecución realizada al escribir este relevo:** 60 pruebas backend, 38 unitarias frontend y 29 E2E distintos aprobados (25 anteriores + 4 nuevos en dos lotes); build y lint aprobados. Aviso conocido: bundle principal mayor de 500 kB. Evidencias locales en `.qa/etapa-05b`, ignoradas por Git.
 
+**Evidencia nueva de 6A:** 47 unitarias frontend y 10 E2E (cuatro de laboratorio + seis del editor) aprobados; build/lint correctos. Corpus real offline: 13/30, mediana 3,27 s, p95 4,88 s, carga offline 6,07 s. Cancelación y reapertura de página verificadas. Informe portable en `docs/evidencias/ia-texto-6a.json`; no repetir backend/API por haber cambiado solo este módulo web. Para probar IA: `npm.cmd run ai:prepare`, build/preview y `/ai-lab`; script `node scripts/ai/evaluate.mjs` usa perfil propio de QA. Un perfil nuevo debe preparar su caché; la preparación anterior no pertenece al perfil personal del usuario.
+
+**Evidencia actual 6B:** 51 unitarias frontend y 11 E2E (cinco de laboratorio + seis del editor) aprobados; build/lint correctos. Prompt 6B-v3: 20/30 originales, mediana 4,23 s y p95 10,76 s; 11/20 nuevos, mediana 4,99 s y p95 15,22 s. Ambos recorridos offline verifican cancelación y reapertura de página. 1.7B falla dos veces al cargar, también desde caché en otro proceso. Informes `docs/evidencias/ia-texto-6b-*.json`. Evaluador: `node scripts/ai/evaluate.mjs` y `--holdout`; salida `.qa/etapa-06b`. La precisión sigue pendiente; los dos corpus ahora son conocidos.
+
 ```powershell
 npm.cmd test
 npm.cmd run lint
@@ -125,7 +133,7 @@ Ejecutar las pruebas pertinentes al cambio; no repetir toda la suite solo para l
 
 ## 8. Continuidad entre cuentas y Git
 
-Repositorio conocido: `https://github.com/jhamils1/ProyectoDiagrama.git`. Al preparar este relevo, `git status --short` muestra numerosos cambios y archivos sin seguimiento de las etapas 3–5. **No asumir que GitHub contiene la última implementación.** No se hizo commit ni push durante este relevo.
+Repositorio conocido: `https://github.com/jhamils1/ProyectoDiagrama.git`. Al iniciar 6A se verificó el commit local `ffb3739` de etapas 3–5 y relevo, con árbol limpio. Las modificaciones de 6A y 6B están locales y no se hizo commit/push por el agente. **Comprobar git status y el remoto antes de asumir que GitHub contiene la última implementación.**
 
 - En la misma PC: abrir con la nueva cuenta esta misma carpeta, conservando código y archivos locales. No hace falta comenzar un proyecto nuevo.
 - Si se clona en otra PC: primero guardar/publicar los cambios que el usuario quiera trasladar. Revisar `git status` y lo preparado para commit; no incluir secretos. `.local`, `.tools`, `.qa`, node_modules y salidas de compilación están ignorados.
@@ -134,6 +142,6 @@ Repositorio conocido: `https://github.com/jhamils1/ProyectoDiagrama.git`. Al pre
 
 ## 9. Mensaje para pegar en la nueva cuenta
 
-> Continúa este proyecto en la carpeta abierta. Lee primero CONTINUAR_AQUI.md, CONTEXTO_PROYECTO.md, docs/ETAPA_05B.md y docs/TRAZABILIDAD.md. La quinta parte web está completa. Quiero avanzar solo con el siguiente incremento: validar la IA de texto local en mi PC, conforme a ADR-001, antes de integrarla al editor. Inspecciona el código existente y contrasta los requisitos afectados con Primer Parcial Documentacion.docx. Identifica las decisiones pendientes antes de implementar; toma las decisiones técnicas rutinarias y registra la evidencia. Trabaja por partes para cuidar tokens. Conserva mis cambios locales, las migraciones y los datos; mantén correspondencia entre requisitos, código y pruebas. Al terminar actualiza este relevo y el contexto con lo realizado y el siguiente paso.
+> Continúa este proyecto en la carpeta abierta. Lee CONTINUAR_AQUI.md, CONTEXTO_PROYECTO.md, docs/ETAPA_06B.md, ADR 011 y docs/TRAZABILIDAD.md. Quinta parte web completa; laboratorio 6B ejecuta texto local offline, pero Qwen3-0.6B acierta 20/30 originales y 11/20 nuevos; Qwen3-1.7B falla al cargar con std::bad_alloc. Avanza con una alternativa acotada que mejore precisión y sea compatible con memoria antes de integrar al editor. Conserva las evidencias y los corpus; crea otra suite reservada si ajustas sobre estos fallos. Identifica decisiones pendientes, toma decisiones técnicas rutinarias y registra evidencia. Contrasta CU14 con Primer Parcial Documentacion.docx. Trabaja por partes, conserva código/datos/migraciones y actualiza requisitos, pruebas, contexto y relevo al terminar.
 
 La nueva cuenta debe seguir las instrucciones y permisos de su propio entorno; este archivo proporciona contexto del proyecto, no credenciales ni acceso automático a la sesión anterior.

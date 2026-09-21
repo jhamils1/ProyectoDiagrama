@@ -1,0 +1,7 @@
+{
+  "initialLoad": "",
+  "offlineLoad": "",
+  "cancelledInFlight": false,
+  "reopenedOffline": false,
+  "error": "Can't create a session. ERROR_CODE: 6, ERROR_MESSAGE: std::bad_alloc"
+}

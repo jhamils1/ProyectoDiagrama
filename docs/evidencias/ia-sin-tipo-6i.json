@@ -1,0 +1,154 @@
+{
+  "recordedAt": "2026-09-21T01:09:44.830Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6I-untyped-v1",
+  "editorValidation": "6I-untyped-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Agrega modelo a Lancha.",
+      "elapsedMs": 11492,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar Lancha.modelo: sin tipo, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"Lancha\",\"name\":\"modelo\",\"dataType\":\"\",\"required\":false}]}",
+          "elapsedMs": 11032.29999999702,
+          "inputTokens": 402,
+          "outputTokens": 31,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Crea Vehiculo y agrega marca a Vehiculo.",
+      "elapsedMs": 9822,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nCrear clase Vehiculo.\nAgregar Vehiculo.marca: sin tipo, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addClass\",\"name\":\"Vehiculo\",\"abstract\":false},{\"type\":\"addAttribute\",\"className\":\"Vehiculo\",\"name\":\"marca\",\"dataType\":\"\",\"required\":false}]}",
+          "elapsedMs": 9427.5,
+          "inputTokens": 462,
+          "outputTokens": 45,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "96b584d2-c5ec-467a-bffb-5c8bce98964b",
+    "name": "Presentacion IA 1789952986893",
+    "localRevision": 7,
+    "updatedAt": "2026-09-21T01:09:47.586Z",
+    "classes": [
+      {
+        "id": "dd48a8ca-3df5-4bb3-bfe4-47e1ba5bee4b",
+        "name": "Lancha",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "424c45b6-d36d-407b-b2dd-f2484e79780f",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "63cc7e45-205b-43cc-8195-2ac7e9838245",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "96b584d2-c5ec-467a-bffb-5c8bce98964b",
+    "name": "Presentacion IA 1789952986893",
+    "localRevision": 9,
+    "updatedAt": "2026-09-21T01:10:25.703Z",
+    "classes": [
+      {
+        "id": "dd48a8ca-3df5-4bb3-bfe4-47e1ba5bee4b",
+        "name": "Lancha",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": [
+          {
+            "id": "a4734427-817d-4849-8096-0a60da8126c9",
+            "name": "modelo",
+            "dataType": "",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "424c45b6-d36d-407b-b2dd-f2484e79780f",
+        "name": "Capitan",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "63cc7e45-205b-43cc-8195-2ac7e9838245",
+        "name": "Embarcacion",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "77b1cdd7-65f2-4d47-9b6b-8d6862bc1ed5",
+        "name": "Vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": [
+          {
+            "id": "38517272-4f97-4fe9-bcea-a85dd6b06e4c",
+            "name": "marca",
+            "dataType": "",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      }
+    ],
+    "relations": []
+  }
+}

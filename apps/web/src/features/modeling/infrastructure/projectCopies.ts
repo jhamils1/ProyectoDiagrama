@@ -10,6 +10,11 @@ import {
 import type { DiagramEnvelope, ProposalResponse } from '../application/useProjectEditor'
 
 const DAY = 24 * 60 * 60 * 1000
+// Server acknowledgements change revision/time without changing the editable graph.
+function sameContent(a: Diagram, b: Diagram) {
+  const content = ({ localRevision: _revision, updatedAt: _time, ...rest }: Diagram) => rest
+  return JSON.stringify(content(a)) === JSON.stringify(content(b))
+}
 export type LocalSession = {
   user: User
   until: number
@@ -302,15 +307,21 @@ export class ProjectCopies {
   }
   async edit(copy: ProjectCopy, command: ModelCommand) {
     return this.update(copy.key, (old) => {
-      if (old.counter !== copy.counter)
+      if (old.counter !== copy.counter && !sameContent(old.document, copy.document))
         throw new Error(
-          'Otra pestaña modificó esta copia. Actualiza antes de guardar; tus campos siguen abiertos.',
+          'El contenido del diagrama cambió desde que empezaste a editar. Actualiza para revisar esos cambios; tus campos siguen abiertos.',
         )
       if (old.denied || old.until <= Date.now() || old.base.permiso === 'CONSULTA')
         throw new Error('No hay permiso local de edición vigente.')
       if (old.pending?.attempted || old.conflict)
         throw new Error('Resuelve o sincroniza la propuesta pendiente antes de seguir editando.')
-      const document = applyCommand(old.document, command)
+      // A reviewed AI preview must still match the exact snapshot it reviewed.
+      // Only rebase its bookkeeping after proving the editable content is unchanged.
+      if (command.type === 'applyReviewedEdit' && command.expectedSnapshot !== JSON.stringify(copy.document))
+        throw new Error('El diagrama cambió desde la vista previa. Genera una nueva propuesta.')
+      const document = applyCommand(old.document, command.type === 'applyReviewedEdit'
+        ? { ...command, expectedSnapshot: JSON.stringify(old.document) }
+        : command)
       return {
         ...old,
         document,

@@ -2,7 +2,98 @@
 
 Base: `CONTEXTO_PROYECTO.md` §6–13 y Word §3.1.4–3.1.5. Actualizado: 20 de septiembre de 2026.
 
-Estado: **editor local, acceso/proyectos, diagramas centrales, colaboración online y quinta parte web implementados**. 5A–5B cubren creación/edición offline por cuenta, recuperación, envío de copias pendientes aunque sus editores estén cerrados y resolución de conflictos. El espacio web debe permanecer abierto para enviar. Móvil, Google real, IA e interoperabilidad/generación siguen pendientes. V3 conserva diez entidades; IndexedDB 2 agrega proyectos preparados. La tabla define aceptación integral, no cobertura completa móvil. Los incrementos anteriores conservan su alcance histórico y el ciclo académico del Word.
+Estado: **quinta parte web completa e integración de IA limitada para presentación (6G)**, autorizada por el usuario con los comandos demostrados. Cuatro operaciones y seis formas de instrucción, vista previa y confirmación; comprobación exacta adicional de intención. Ensayo real offline: 6/6 guardados y recuperados. El benchmark general 6F sigue en 9/20; no se aprueba lenguaje libre ni se declara completado CU14. Métodos, voz/móvil/asistencia, Google real e interoperabilidad/generación siguen pendientes. CU15 al final y previa consulta/autorización. V3 conserva diez entidades; IndexedDB de proyectos sigue en 2. Los incrementos anteriores conservan su alcance histórico.
+
+## Incremento 6G — comandos de presentación en el editor
+
+**Ampliación vigente 6I, CU08/CU14 y RT01:** tipo de atributo opcional por instrucción del usuario. `model.ts`, `Inspector.tsx`, `ClassNode.tsx`: vacío y Sin tipo; `editorProposal.ts`, `untyped.ts`, `proposal.ts`: omisión admitida sin tipo inventado; `DiagramDocument` y migración V4: vacío persistido en `atributo_uml.tipo_dato`, referencias e historial conservados. `untyped.test.ts`, E2E en `ai-editor.spec.ts` y `DiagramIntegrationTest.untypedAttributePersistsCanBeTypedAndKeepsHistory` verifican agregar, recuperar, definir/quitar tipo, historial y rechazo de tipos inválidos. 130 unitarias frontend, 21 E2E y 61 backend aprobadas. [Etapa 6I](ETAPA_06I.md), [ADR 019](decisiones/ADR-019-atributos-sin-tipo.md). Las anteriores exigencias de tipo al crear ya no son vigentes; futura generación debe pedir los tipos que necesite.
+
+**Ampliación vigente 6H:** asociación simple uno a muchos en CU14. `ai/domain/association.ts` reconoce las tres formulaciones del usuario y multiplicidades explícitas; verifica existencia sin crear clases. `editorProposal.ts` contrasta tipo, extremos y cardinalidades; `interpret.ts` permite corregir discrepancias con el mismo motor. `EditorAssistant.tsx` muestra extremos y multiplicidades antes de confirmar. Se reutilizan RelacionUML, versiones y permisos. `association.test.ts` y `ai-association.spec.ts` cubren aclaraciones, ausencia de clases, errores del modelo, revisión y persistencia. Ensayo local real: 3/3 ejemplos guardados y recuperados offline; uno corregido tras invertir extremos. [ADR 018](decisiones/ADR-018-asociacion-texto.md), [etapa 6H](ETAPA_06H.md), [informe](evidencias/ia-asociacion-6h.json). Composición/agregación fuera de alcance; resultados generales de 6F no sustituidos por este ensayo limitado.
+
+Decisión del usuario y alcance: [ADR 017](decisiones/ADR-017-ia-edicion-demo.md). Sustituye la condición anterior de aprobar todo el benchmark para integrar este subconjunto.
+
+| Requisito | Código y prueba | Evidencia y límite |
+| --- | --- | --- |
+| CU14 parcial: instrucción concreta → propuesta revisada | `ai/domain/editorProposal.ts`, `EditorAssistant.tsx`; pruebas unitarias de intención | Solo formas visibles; bloquea métodos, asociaciones, borrado y sustituciones de operación/tipo/obligatoriedad. No es lenguaje general |
+| CU07/08: aplicar al confirmar sin escrituras parciales | `modeling/domain/model.ts: applyReviewedEdit`, `App.tsx`, execute existente; `editorProposal.test.ts`, `ai-editor.spec.ts` | Vista previa/descarte, una revisión por propuesta compuesta, UUID estables, conflicto entre pestañas y recuperación offline |
+| CU05/12: conservar autorización y cola | `EditorView` respeta readOnly, controllers existentes, `projectCopies.test.ts` | Copia offline conserva propuesta y rechaza consulta/bloqueo/envío congelado; no hay endpoints nuevos. Backend no revalidado en este incremento |
+| Presentación real local | `scripts/ai/editor-demo.mjs` | 6/6 con Qwen3-1.7B externo, aplicación recargada offline y guardado confirmado; 14–31 s. No acredita Flutter ni precisión fuera del guion |
+
+113 unitarias y 19 E2E aprobadas; compilación/lint correctos. [Guion, resultado y límites](ETAPA_06G.md), [evidencia real](evidencias/ia-editor-6g.json). CONTINUAR_AQUI.md intacto.
+
+## Incremento 6F inicial — alcance y respuestas verificables (CU14 parcial)
+
+**Decisión de alcance posterior del usuario:** CU15 queda documentado como pendiente y última etapa de implementación, condicionado al tiempo disponible. Primero completar y estabilizar las funcionalidades principales. No iniciar desarrollo de visión artificial, reconocimiento de imágenes ni integración de modelos de imagen sin consultar al usuario y obtener autorización previa. No hay implementación ni pruebas de CU15 acreditadas; los escenarios siguientes son criterios futuros. La prioridad/ciclo del Word son históricos y deben actualizarse en la documentación académica.
+
+Requisito precisado por el usuario: editar el diagrama con instrucciones concretas; no inferir diagramas completos desde un dominio. Decisión previa: [ADR 016](decisiones/ADR-016-asistente-edicion-y-respuestas.md). Rutas de código siguientes relativas a `apps/web/src/features/ai/`.
+
+| Requisito | Código y pruebas | Evidencia y límite |
+| --- | --- | --- |
+| Asistencia concreta sin generar sistemas completos | `responses.ts`, `interpret.ts`, prompt en `proposal.ts`; `responses.test.ts`, E2E laboratorio | Tres formulaciones generales probadas sin invocar motor; F19/F20 reales se resuelven por política. Protección léxica no exhaustiva |
+| Motivos y referencias verificables | `responses.ts`, `validation.ts`, `responses.test.ts` | Rechaza clase supuestamente inexistente que sí existe, referencias inventadas, falsos duplicados y tipos válidos rechazados. Mensajes controlados; no certifica pertinencia del motivo |
+| Igual validación en corrección y aceptación final | `interpret.ts`, `AiLab.tsx`, E2E con motor simulado | Un reintento; rechazo final sin modificar modelo. F17 real demuestra que validez estructural no comprueba método frente a atributo |
+| Métodos incluidos en alcance pero pendientes | Motivo `unsupported_operation` / `methods`, mensaje de capacidad pendiente | Contrato y presentación probados con salida simulada; F17 real falla. No hay soporte de métodos ni cambios de datos para ellos |
+| Evaluación con criterio negativo explícito | `holdout6f.ts`, `AiLab.tsx`, `scripts/ai/evaluate.mjs` | 6/8 positivos, 1/10 negativas inferidas, 2/2 política. Tiempos excluyen política; mediana 24,31 s, p95 43,00 s. Sin ajustar esperados ni prompt después de medir |
+
+**98 pruebas unitarias y 15 E2E aprobadas**, compilación/lint correctos. Inferencia local, cancelación, recarga y reapertura offline verificadas. Informes, fallos y límites en [ETAPA_06F](ETAPA_06F.md). Backend, API, tablas y permisos sin cambios; Word pendiente de actualizar la precisión de alcance. No se certifica integración, voz ni móvil.
+
+## Incremento 6E — interpretación con modo estable (CU14 parcial)
+
+Decisiones previas y revisión del primer candidato: [ADR 015](decisiones/ADR-015-interpretacion-texto-6e.md).
+
+| Requisito | Código | Evidencia y límite |
+| --- | --- | --- |
+| Interpretar herencia y operaciones compuestas | `proposal.ts`, prompt 6E-v2; `interpret.ts`, una corrección | Inferencia real: T18/C10/D10 y T16/C09/D09 correctos; H09 sigue fallando. Se mantienen fallos en referencias y multiplicidades, sin cambiar esperados |
+| Evitar obligatoriedad no solicitada | `grounding.ts`, versión 6E-grounded-v1; `grounding.test.ts`, `interpret.test.ts` | Rechaza required=true sin mención; no repara salida ni escribe. E2E con motor simulado verifica rechazo final. C08/D06 reales correctos; condición léxica no certifica alcance ni toda negación |
+| Aclaraciones útiles y resultados transparentes | Prompt/corrección en español, `AiLab.tsx` distingue coincidencia automática de pertinencia | T22/C14/D14 preguntan el tipo; revisión reservada 5/8, con fallos D15/D16/D17. No confundir ausencia de propuesta con comprensión correcta |
+| Evaluación reproducible offline | `evaluate.mjs`, `check-prompt.mjs`, `evaluate-windows.ps1` | Cuatro recorridos completos, cancelación y reapertura offline; informe parcial por espera de Windows separado. Casos reservados intactos y usados por primera vez; ahora requieren reemplazo en futuros ajustes |
+
+75 pruebas unitarias y 15 E2E aprobadas, compilación/lint correctos; resultados reales y límites en [ETAPA_06E](ETAPA_06E.md). Sin cambios de API, tablas, permisos o almacenamiento privado. La variante estructurada de 6D sigue sin adoptarse.
+
+## Incremento 6D inicial — generación estructurada experimental (CU14 parcial)
+
+Decisión previa: [ADR 014](decisiones/ADR-014-generacion-estructurada-local.md). Resultado: variante no aprobada por fallo reproducible; modo 6C predeterminado. El benchmark completo de 6C sigue vigente, sin nuevos porcentajes de precisión.
+
+| Requisito | Código | Verificación y límite |
+| --- | --- | --- |
+| Operaciones en contrato estructurado | `domain/decoding.ts`, `infrastructure/text.worker.ts` | `decoding.test.ts`: procesador real con logits sintéticos; tipos/operaciones no admitidos, máximo ocho, EOS y validación posterior. Prueba GPU sencilla offline válida; JSONB provoca fallo reproducible, por lo que no se adopta |
+| Comparación sin mezclar resultados | `AiLab.tsx`, `textClient.ts`, `evaluate.mjs` | E2E con motor simulado verifica modo transmitido, rechazo final en ambos modos, reinicio de resultados y error sin propuesta. Informe con `decodingVersion`; evaluador detecta fallo y conserva evidencia parcial |
+| Evaluación independiente | `holdout6d.ts` | 20 casos definidos, comprobados por dominio y todavía sin inferencia. Suspensión de suites al fallar compatibilidad; no se contabilizan como aprobados |
+
+71 pruebas unitarias y 15 E2E aprobadas (nueve del laboratorio, seis del editor). Evidencia real, comandos, contraste con CU14 del Word y límites en [ETAPA_06D](ETAPA_06D.md). Ningún cambio en API, tablas, permisos o persistencia privada.
+
+## Incremento 6C — carga del modelo mayor y validación de datos (CU14 parcial)
+
+| Requisito | Código / datos | Verificación |
+| --- | --- | --- |
+| Inferencia local viable en PC | `externalize.py`, `model-external-lock.json`, `modelCatalog.ts`, `resources.ts`, `text.worker.ts` | SHA-256 del original y derivado, equivalencia de estructura y 508 inicializadores; carga e inferencia reales en WebGPU y después de recarga/reapertura offline |
+| No aceptar datos inventados en propuestas | `grounding.ts`, `interpret.ts`, comprobación final en `AiLab.tsx` | Unitarias: palabras completas, identificadores inventados, tipos sin evidencia, multiplicidades, no-op; límites semánticos y esperados de los tres corpus preservados. E2E final con motor simulado comprueba rechazo tras corrección agotada |
+| Recursos completos y formatos separados | Catálogo con formato/cantidad de archivos, `.onnx_data` en manifiesto y caché | E2E rechaza manifiesto monolítico en variante externa y caché sin pesos externos; conserva pruebas de hash, cancelación y recursos ausentes |
+| Evaluación independiente y reproducible | `holdout6c.ts`, `evaluate.mjs`, informes con `validationVersion` | 30 originales + 20 de 6B + 20 nuevos fijados antes de evaluar; misma versión del prompt. Informes previos/finales y limitaciones en ETAPA_06C |
+
+60 pruebas unitarias frontend y 14 E2E aprobadas (ocho del laboratorio, seis del editor); compilación/lint correctos. Precisión final: 28/30 originales, 17/20 de regresión y 15/20 nuevos. Evidencias y límites en [ETAPA_06C](ETAPA_06C.md). No hay cambios de API, base de datos, permisos ni persistencia. ADR 012–013 registran decisiones antes de cada experimento. La precisión sigue pendiente y no se declara CU14 completo.
+
+## Incremento 6B — mejora y comparación de texto local (CU14 parcial)
+
+| Requisito | Código / datos | Verificación |
+| --- | --- | --- |
+| Interpretar texto local y medir intención | `proposal.ts` versión 6B-v3; `corpus.ts`, `holdout.ts`, `AiLab.tsx` | 30 casos originales intactos + 20 casos definidos antes de evaluar; evidencia cruda, contexto ficticio, tiempos y resultados en ETAPA_06B |
+| Corrección limitada sin aplicar salidas inválidas | `interpret.ts`, esquema Zod y simulación compartida | `interpret.test.ts`: una corrección con error real, coste acumulado, límite de intentos, cancelación/error, propuesta válida incorrecta no corregida con respuestas esperadas |
+| Preparación y selección reproducible de modelo | `modelCatalog.ts`, manifiestos separados, `model-1.7b-lock.json`, Worker | E2E rechaza manifiesto del modelo equivocado; modelo mayor verificado pero carga falla con `std::bad_alloc` |
+| Mantener edición disponible y evaluar offline | Laboratorio aislado, cancelación, `scripts/ai/evaluate.mjs` | Cancelación real, recarga y reapertura de página offline; informe obtenido del Blob de exportación; recursos ausentes/hash incorrecto siguen rechazados |
+
+51 pruebas unitarias frontend y 11 E2E aprobadas (cinco del laboratorio, seis del editor). Compilación y lint correctos. Precisión: 20/30 originales y 11/20 nuevos; ver ETAPA_06B. Backend no modificado ni revalidado en este incremento. Los resultados de precisión no cumplen aceptación integral de CU14; ningún proyecto se modifica con estas propuestas.
+
+## Incremento 6A — evaluación local de texto (CU14 parcial)
+
+| Requisito | Código / datos | Verificación |
+| --- | --- | --- |
+| Texto local, sin servicio de inferencia | `features/ai/infrastructure/text.worker.ts`, `textClient.ts`; Transformers.js 4.3.0 y WebGPU | Ejecución real en Edge/Intel gen-12lp, corpus de 30 instrucciones; informe en ETAPA_06A. La precisión insuficiente impide declarar integración completa |
+| Recursos preparados y apertura offline | `scripts/ai/model-lock.json`, `prepare.mjs`, `resources.ts`, caché PWA separada | SHA-256/tamaño en disco y navegador; carga e inferencia tras recarga sin red; E2E rechaza recursos ausentes y hash incorrecto |
+| Validar propuestas antes de modificar | `proposal.ts` reutiliza `applyCommand`/`validateDiagram` sobre copias en memoria | Nueve verificaciones unitarias nuevas; formato estricto, referencias, ciclos, límites y lote inválido sin mutación |
+| Cancelación y conservación del trabajo | Worker terminado, generación de solicitud y laboratorio aislado sin API/IndexedDB de proyectos | E2E cancela preparación con respuesta tardía; evaluación real cancela inferencia. No modifica proyectos |
+
+Evidencia: [ETAPA_06A](ETAPA_06A.md), [ADR 010](decisiones/ADR-010-validacion-texto-local.md). Total frontend: 47 unitarias. E2E de este incremento: cuatro de laboratorio y seis de regresión del editor, todos aprobados. Los totales de backend/API anteriores son históricos, no una nueva ejecución en 6A. Pendientes: precisión, integración autorizada y revisable, voz, visión, asistencia y Flutter.
 
 ## Incremento 5B — quinta parte web completa
 
@@ -81,7 +172,7 @@ Contrato, límites y resultados: [etapa 4A](ETAPA_04A.md). Decisiones previas: [
 | CU12 / C3 | Sincronización/offline; Cambio, VersionDiagrama, Conflicto y permisos actuales. | P-CU12: dos clientes integran cambios compatibles; conservan ambas propuestas incompatibles y permiten elegir/nuevo valor; conflicto no resuelto permanece; reintento no duplica; resolución con versión desactualizada no sobrescribe; cubrir eliminación concurrente, revocación y creación offline. | D04–D07 |
 | CU13 / C1 | Usuarios: cierre de sesión y datos locales. | P-CU13: sesión invalidada y acceso cerrado; cubrir pérdida de conexión, expiración y cambios pendientes según política; otra cuenta no accede a datos locales ajenos. | D05 |
 | CU14 / C3 | IA local texto/voz → operaciones UML validadas; modelo y Cambio. | P-CU14: texto y voz modifican diagrama en web y móvil sin red, con recursos previamente descargados; instrucción ambigua/inválida no altera modelo; permisos se cumplen; informar recursos ausentes o incompatibilidad. | D01, D02, D04, D07, D08 |
-| CU15 / C3 | Visión local → modelo editable revisado; entidades UML y Cambio. | P-CU15: cargar/capturar imagen, reconstruir, revisar, editar y guardar sin red en ambos clientes; sincronizar después; cubrir mala calidad, ambigüedad, falta de modelo y permisos. | D01, D02, D04, D07, D08 |
+| CU15 / C3 histórico; última etapa pendiente | Visión local → modelo editable revisado; entidades UML y Cambio. Desarrollo condicionado al tiempo y a consulta/autorización previa del usuario. | P-CU15 futuro, no ejecutado: cargar/capturar imagen, reconstruir, revisar, editar y guardar sin red en ambos clientes; sincronizar después; cubrir mala calidad, ambigüedad, falta de modelo y permisos. | D01, D02, D04, D07, D08; decisión de alcance posterior a 6F |
 | CU16 / C3 | Asistencia contextual local sobre estado del editor. | P-CU16: situación acordada dispara orientación en ambos clientes; consultar/descartar; desactivar detiene monitoreo; sugerencias y errores no modifican modelo; funcionamiento offline con recursos disponibles. | D01, D02, D12 |
 
 ## Requisitos transversales
@@ -141,3 +232,16 @@ Decisiones antes de implementar: [ADR 004](decisiones/ADR-004-diagramas-centrale
 | Protección frente a escritura antigua, parte preparatoria de CU12 | Revisión esperada, bloqueo transaccional, `@Version`; GET con REPEATABLE READ | Dos peticiones concurrentes: un 200 y un 409. Dos pestañas no sobrescriben; caída de red mantiene formulario | No acredita CU12 completo ni cola offline |
 
 Verificación de este incremento: **38 pruebas backend** (27 previas + 11 de diagramas), **25 frontend** y **11 E2E** aprobadas. Compilación y lint correctos. Mismo PostgreSQL 17.6 real, Java 21 y navegador Edge. Ninguna simulación de PostgreSQL; E2E de diagramas usa sesión real de Administrador. La identidad Colaborador de las pruebas de integración es controlada por Spring Security Test, no Google real.
+# Ampliación CU14: frase de atributo sin tipo
+
+CU08 / compatibilidad CU14: [Inspector UML](INSPECTOR_UML.md). `Inspector.tsx` y `styles.css` presentan clase, abstracción y atributos mediante edición contextual; los comandos y la persistencia siguen vigentes. Prueba nueva en `editor.spec.ts` más regresiones IA y servidor real: 16 E2E aprobadas.
+
+CU08/CU12, sincronización durante edición individual: [corrección y pruebas](CORRECCION_SINCRONIZACION_EDICION.md). `OfflineProjectEditor` coordina espera y formularios; `ProjectCopies.edit` distingue cambios de metadatos de cambios reales de contenido. Pruebas de repositorio y dos regresiones E2E con API real y respuesta demorada.
+
+Estabilización del flujo de presentación: [guion y evidencia](PRUEBA_PRESENTACION_IA.md). `editor-demo.mjs --presentation` verifica ocho instrucciones sobre un diagrama vacío, confirmación antes de guardar, referencias, tipos y recuperación offline. `typed.ts` refuerza los tipos canónicos cuando ya hay atributos. Las pruebas con API real se ejecutan separadamente para no confundir persistencia local con central.
+
+Herencia con prefijo y nombres del español: [ETAPA_06K](ETAPA_06K.md). `editorProposal.ts` reconoce «La clase automóvil hereda de vehiculo»; `inheritance.ts` proporciona el prompt específico y `EditorAssistant.tsx` valida la intención antes de mostrar la propuesta. V6, `DiagramDocument` y los esquemas frontend conservan tildes/ñ. Pruebas de dirección, clases ausentes, ciclos y persistencia de nombres en PostgreSQL enlazadas en la etapa.
+
+Ampliación posterior de tipos: [ETAPA_06J](ETAPA_06J.md). `dataTypeAliases.ts` y `editorProposal.ts` normalizan int/bool y mayúsculas; `grounding.ts`, `responses.ts` y el prompt comparten el alcance; `model.ts`, `DiagramDocument` y V5 conservan Float/Double como tipos propios. Pruebas: 148 unitarias, 14 E2E y 62 backend aprobadas; cinco instrucciones con IA real guardadas y recuperadas offline. Ver evidencia y límites en la etapa.
+
+`Agrega el atributo modelo en la clase vehiculo` corresponde al reconocimiento en `editorProposal.ts`, al prompt de `untyped.ts` y a la generación estructurada de `EditorAssistant.tsx` solo para atributos sin tipo. `attributePhrase.test.ts` verifica nombres, tipo vacío y conservación del tipo explícito; `ai-editor.spec.ts` verifica el modo y el flujo de confirmación. Resultado: 135 pruebas unitarias y 21 E2E aprobadas; frase exacta real 1/1 y regresión real 2/2. Evidencias y límites en [ETAPA_06I](ETAPA_06I.md). No se crean clases inexistentes ni se asignan tipos por defecto.

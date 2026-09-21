@@ -1,5 +1,5 @@
-import { useLayoutEffect, useState, type FormEvent } from 'react'
-import { Plus, Trash2, Pencil, Box, X } from 'lucide-react'
+import { useLayoutEffect, useState, useRef, useEffect } from 'react'
+import { Plus, Trash2, Pencil, X } from 'lucide-react'
 import {
   dataTypes,
   visibilities,
@@ -27,7 +27,12 @@ export function Inspector({
   const [name, setName] = useState(value.name)
   const [abstract, setAbstract] = useState(value.abstract)
   const [editing, setEditing] = useState<UmlAttribute | null>(null)
-  const pending = name !== value.name || abstract !== value.abstract || !!editing
+  const classDirty = name !== value.name || abstract !== value.abstract
+  const pending = classDirty || !!editing
+  const locked = busy || readOnly
+  const classForm = useRef<HTMLFormElement>(null)
+  const attributeForm = useRef<HTMLFormElement>(null)
+  const committing = useRef(false)
   useLayoutEffect(() => {
     notifyEditing?.('inspector', pending)
     return () => notifyEditing?.('inspector', false)
@@ -36,29 +41,180 @@ export function Inspector({
     setEditing({
       id: crypto.randomUUID(),
       name: '',
-      dataType: 'String',
+      dataType: '',
       visibility: 'private',
       identifier: false,
       required: false,
     })
   }
-  async function saveClass(event: FormEvent) {
-    event.preventDefault()
-    await execute({ type: 'updateClass', id: value.id, name, abstract })
+  async function commit() {
+    if (committing.current || locked) return
+    if (!classDirty && !editing) return
+    if (editing && !editing.name.trim() && !value.attributes.some((a) => a.id === editing.id)) {
+      setEditing(null)
+      return
+    }
+    const form = editing ? attributeForm.current : classForm.current
+    if (!form?.reportValidity()) return
+    committing.current = true
+    try {
+      if (editing) {
+        const original = value.attributes.find((a) => a.id === editing.id)
+        if (
+          JSON.stringify(original) === JSON.stringify(editing) ||
+          (await execute({ type: 'upsertAttribute', classId: value.id, value: editing }))
+        )
+          setEditing(null)
+      } else await execute({ type: 'updateClass', id: value.id, name, abstract })
+    } finally {
+      committing.current = false
+    }
   }
-  return (
-    <aside className="inspector" aria-label="Propiedades de la clase">
-      <div className="panel-heading">
-        <span>PROPIEDADES</span>
-        <Box size={16} />
+  useEffect(() => {
+    const outside = (event: PointerEvent) => {
+      const form = editing ? attributeForm.current : classForm.current
+      if (!pending || form?.contains(event.target as Node)) return
+      // Keep the selected element and invalid fields until the asynchronous save finishes.
+      event.preventDefault()
+      event.stopPropagation()
+      const stopClick = (click: MouseEvent) => {
+        click.preventDefault()
+        click.stopPropagation()
+      }
+      document.addEventListener('click', stopClick, { capture: true, once: true })
+      window.setTimeout(() => document.removeEventListener('click', stopClick, true), 1000)
+      void commit()
+    }
+    document.addEventListener('pointerdown', outside, true)
+    return () => document.removeEventListener('pointerdown', outside, true)
+  })
+  const leaveForm = (event: React.FocusEvent<HTMLFormElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void commit()
+  }
+  const attributeEditor = editing ? (
+    <form
+      className="attribute-form"
+      ref={attributeForm}
+      onBlur={leaveForm}
+      onSubmit={(e) => {
+        e.preventDefault()
+        void commit()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setEditing(null)
+        }
+      }}
+    >
+      <div className="section-row">
+        <h3>
+          {value.attributes.some((a) => a.id === editing.id) ? 'Editar atributo' : 'Nuevo atributo'}
+        </h3>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={() => setEditing(null)}
+          aria-label="Cancelar atributo"
+        >
+          <X size={15} />
+        </button>
       </div>
-      <h2>{value.name}</h2>
-      <p className="muted small">Define la estructura de tu clase.</p>
-      <form onSubmit={saveClass} className="property-form">
+      <div className="attribute-inline-fields">
         <label>
-          Nombre de la clase
+          Nombre del atributo
           <input
-            disabled={busy}
+            autoFocus
+            disabled={locked}
+            required
+            maxLength={80}
+            value={editing.name}
+            onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+            placeholder="nombre"
+          />
+        </label>
+        <label>
+          Tipo de dato
+          <select
+            disabled={locked}
+            value={editing.dataType}
+            onChange={(e) =>
+              setEditing({ ...editing, dataType: e.target.value as UmlAttribute['dataType'] })
+            }
+          >
+            <option value="">Sin tipo</option>
+            {dataTypes.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <details className="attribute-options">
+        <summary>Opciones UML</summary>
+        <label>
+          Visibilidad
+          <select
+            disabled={locked}
+            value={editing.visibility}
+            onChange={(e) =>
+              setEditing({ ...editing, visibility: e.target.value as UmlAttribute['visibility'] })
+            }
+          >
+            {visibilities.map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </select>
+        </label>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            disabled={locked}
+            checked={editing.identifier}
+            onChange={(e) =>
+              setEditing({
+                ...editing,
+                identifier: e.target.checked,
+                required: e.target.checked || editing.required,
+              })
+            }
+          />
+          Identificador
+        </label>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={editing.required}
+            disabled={locked || editing.identifier}
+            onChange={(e) => setEditing({ ...editing, required: e.target.checked })}
+          />
+          Obligatorio
+        </label>
+      </details>
+    </form>
+  ) : null
+  return (
+    <aside className="inspector uml-inspector" aria-label="Propiedades de la clase">
+      <h2 className="inspector-section-title">CLASE</h2>
+      <form
+        ref={classForm}
+        onBlur={leaveForm}
+        onSubmit={(e) => {
+          e.preventDefault()
+          void commit()
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setName(value.name)
+            setAbstract(value.abstract)
+          }
+        }}
+        className="property-form"
+      >
+        <label>
+          Nombre
+          <input
+            disabled={locked || !!editing}
+            aria-label="Nombre de la clase"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -68,19 +224,13 @@ export function Inspector({
         <label className="checkbox">
           <input
             type="checkbox"
-            disabled={busy}
+            aria-label="Clase abstracta"
+            disabled={locked || !!editing}
             checked={abstract}
             onChange={(e) => setAbstract(e.target.checked)}
           />
-          Clase abstracta
+          Abstracta
         </label>
-        <button
-          type="submit"
-          className="secondary full"
-          disabled={busy || (name === value.name && abstract === value.abstract)}
-        >
-          Guardar propiedades
-        </button>
       </form>
       <div className="section-row">
         <h3>
@@ -90,7 +240,8 @@ export function Inspector({
           className="icon-button"
           onClick={newAttribute}
           aria-label="Agregar atributo"
-          disabled={busy}
+          disabled={locked || classDirty || !!editing}
+          title="Agregar atributo"
         >
           <Plus size={17} />
         </button>
@@ -98,133 +249,51 @@ export function Inspector({
       {value.attributes.length === 0 && !editing && (
         <div className="empty-attributes">
           <p>Todavía no hay atributos.</p>
-          <button className="text-button" onClick={newAttribute} disabled={busy}>
-            Agregar el primero
+          <button className="text-button" onClick={newAttribute} disabled={locked || classDirty}>
+            Nuevo atributo…
           </button>
         </div>
       )}
-      <div className="attribute-list">
-        {value.attributes.map((a) => (
-          <div key={a.id} className="attribute-row">
-            <button
-              className="attribute-edit"
-              disabled={busy || readOnly}
-              onClick={() => setEditing(a)}
-              aria-label={`Editar atributo ${a.name}`}
-            >
-              <strong>{a.name}</strong>
-              <span>
-                {a.dataType}
-                {a.identifier ? ' · ID' : ''}
-              </span>
-              <Pencil size={13} />
-            </button>
-            <button
-              className="icon-button danger"
-              disabled={busy}
-              aria-label={`Eliminar atributo ${a.name}`}
-              onClick={() => void execute({ type: 'deleteAttribute', classId: value.id, id: a.id })}
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))}
+      <div className="attribute-table-heading">
+        <span>Nombre</span>
+        <span>Tipo</span>
       </div>
-      {editing && (
-        <form
-          className="attribute-form"
-          onSubmit={async (e) => {
-            e.preventDefault()
-            if (await execute({ type: 'upsertAttribute', classId: value.id, value: editing }))
-              setEditing(null)
-          }}
-        >
-          <div className="section-row">
-            <h3>
-              {value.attributes.some((a) => a.id === editing.id)
-                ? 'Editar atributo'
-                : 'Nuevo atributo'}
-            </h3>
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() => setEditing(null)}
-              aria-label="Cancelar atributo"
-            >
-              <X size={15} />
-            </button>
-          </div>
-          <label>
-            Nombre del atributo
-            <input
-              autoFocus
-              disabled={busy}
-              required
-              maxLength={80}
-              value={editing.name}
-              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-              placeholder="nombre"
-            />
-          </label>
-          <label>
-            Tipo de dato
-            <select
-              disabled={busy}
-              value={editing.dataType}
-              onChange={(e) =>
-                setEditing({ ...editing, dataType: e.target.value as UmlAttribute['dataType'] })
-              }
-            >
-              {dataTypes.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Visibilidad
-            <select
-              disabled={busy}
-              value={editing.visibility}
-              onChange={(e) =>
-                setEditing({ ...editing, visibility: e.target.value as UmlAttribute['visibility'] })
-              }
-            >
-              {visibilities.map((v) => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              disabled={busy}
-              checked={editing.identifier}
-              onChange={(e) =>
-                setEditing({
-                  ...editing,
-                  identifier: e.target.checked,
-                  required: e.target.checked || editing.required,
-                })
-              }
-            />
-            Identificador
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={editing.required}
-              disabled={busy || editing.identifier}
-              onChange={(e) => setEditing({ ...editing, required: e.target.checked })}
-            />
-            Obligatorio
-          </label>
-          <button className="primary full" disabled={busy}>
-            Guardar atributo
-          </button>
-        </form>
-      )}
+      <div className="attribute-list">
+        {value.attributes.map((a) =>
+          editing?.id === a.id ? (
+            <div key={a.id}>{attributeEditor}</div>
+          ) : (
+            <div key={a.id} className="attribute-row">
+              <button
+                className="attribute-edit"
+                disabled={locked || classDirty || !!editing}
+                onClick={() => setEditing(a)}
+                aria-label={`Editar atributo ${a.name}`}
+              >
+                <span className="attribute-signature">
+                  <strong>{a.name}</strong>
+                  <span className="attribute-datatype">{a.dataType || 'Sin tipo'}</span>
+                  {a.identifier && <small className="count">ID</small>}
+                </span>
+                <Pencil size={13} />
+              </button>
+              <button
+                className="icon-button danger"
+                disabled={locked || classDirty || !!editing}
+                aria-label={`Eliminar atributo ${a.name}`}
+                onClick={() =>
+                  void execute({ type: 'deleteAttribute', classId: value.id, id: a.id })
+                }
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ),
+        )}
+      </div>
+      {editing && !value.attributes.some((a) => a.id === editing.id) && attributeEditor}
       <div className="inspector-bottom">
-        <button className="danger-button" onClick={onDelete} disabled={busy}>
+        <button className="danger-button" onClick={onDelete} disabled={locked}>
           <Trash2 size={15} />
           Eliminar clase
         </button>

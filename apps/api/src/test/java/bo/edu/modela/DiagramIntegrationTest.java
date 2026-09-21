@@ -472,6 +472,61 @@ class DiagramIntegrationTest {
             List.of(relation)));
   }
 
+  @Test
+  void untypedAttributePersistsCanBeTypedAndKeepsHistory() throws Exception {
+    var doc = copy(document());
+    var attribute = ((List<Map<String,Object>>)((List<Map<String,Object>>)doc.get("classes")).get(0).get("attributes")).get(0);
+    var attributeId = UUID.fromString((String)attribute.get("id"));
+    attribute.remove("dataType");
+    create(doc, admin).andExpect(status().isCreated())
+        .andExpect(jsonPath("$.document.classes[0].attributes[0].dataType").value(""));
+    assertThat(jdbc.queryForObject("select tipo_dato from atributo_uml where id=?", String.class, attributeId)).isEmpty();
+    attribute.put("dataType", "String");
+    propose(doc, UUID.randomUUID(), 0, admin).andExpect(status().isOk());
+    mvc.perform(get(path()+"/"+doc.get("id")).with(actor(admin)))
+        .andExpect(jsonPath("$.document.classes[0].attributes[0].dataType").value("String"));
+    attribute.put("dataType", "");
+    propose(doc, UUID.randomUUID(), 1, admin).andExpect(status().isOk());
+    assertThat(jdbc.queryForObject("select tipo_dato from atributo_uml where id=?", String.class, attributeId)).isEmpty();
+    assertThat(jdbc.queryForObject("select contenido #>> '{classes,0,attributes,0,dataType}' from version_diagrama where diagrama_id=? and numero=2", String.class, UUID.fromString((String)doc.get("id")))).isEqualTo("String");
+    attribute.put("dataType", "inventado");
+    propose(doc, UUID.randomUUID(), 2, admin).andExpect(status().isBadRequest());
+    assertThat(jdbc.queryForObject("select tipo_dato from atributo_uml where id=?", String.class, attributeId)).isEmpty();
+  }
+
+  @Test
+  void floatingTypesPersistAndKeepPreviousVersion() throws Exception {
+    var doc = copy(document());
+    var attribute = ((List<Map<String,Object>>)((List<Map<String,Object>>)doc.get("classes")).get(0).get("attributes")).get(0);
+    var attributeId = UUID.fromString((String)attribute.get("id"));
+    attribute.put("dataType", "Float");
+    create(doc, admin).andExpect(status().isCreated());
+    assertThat(jdbc.queryForObject("select tipo_dato from atributo_uml where id=?", String.class, attributeId)).isEqualTo("Float");
+    attribute.put("dataType", "Double");
+    propose(doc, UUID.randomUUID(), 0, admin).andExpect(status().isOk());
+    mvc.perform(get(path()+"/"+doc.get("id")).with(actor(admin)))
+        .andExpect(jsonPath("$.document.classes[0].attributes[0].dataType").value("Double"));
+    assertThat(jdbc.queryForObject("select tipo_dato from atributo_uml where id=?", String.class, attributeId)).isEqualTo("Double");
+    assertThat(jdbc.queryForObject("select contenido #>> '{classes,0,attributes,0,dataType}' from version_diagrama where diagrama_id=? and numero=1", String.class, UUID.fromString((String)doc.get("id")))).isEqualTo("Float");
+  }
+
+  @Test
+  void spanishNamesPersistWithoutLosingAccents() throws Exception {
+    var doc = copy(document());
+    var clazz = ((List<Map<String,Object>>)doc.get("classes")).get(0);
+    clazz.put("name", "automóvil");
+    var attribute = ((List<Map<String,Object>>)clazz.get("attributes")).get(0);
+    attribute.put("name", "año");
+    create(doc, admin).andExpect(status().isCreated());
+    mvc.perform(get(path()+"/"+doc.get("id")).with(actor(admin)))
+        .andExpect(jsonPath("$.document.classes[0].name").value("automóvil"))
+        .andExpect(jsonPath("$.document.classes[0].attributes[0].name").value("año"));
+    assertThat(jdbc.queryForObject("select nombre from clase_uml where id=?", String.class, UUID.fromString((String)clazz.get("id")))).isEqualTo("automóvil");
+    assertThat(jdbc.queryForObject("select nombre from atributo_uml where id=?", String.class, UUID.fromString((String)attribute.get("id")))).isEqualTo("año");
+    clazz.put("name", "auto movil");
+    propose(doc, UUID.randomUUID(), 0, admin).andExpect(status().isBadRequest());
+  }
+
   ResultActions create(Map<String, Object> doc, Usuario user) throws Exception {
     return mvc.perform(
         post(path())

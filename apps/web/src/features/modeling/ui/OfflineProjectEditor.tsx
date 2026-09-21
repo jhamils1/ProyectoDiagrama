@@ -25,6 +25,8 @@ export function OfflineProjectEditor({
   const [online, setOnline] = useState(false)
   const [viewGeneration, setViewGeneration] = useState(0)
   const drafts = useRef(new Set<string>())
+  const syncFlight = useRef<Promise<void> | null>(null)
+  const saveRequested = useRef(false)
   const busy = useRef(false),
     alive = useRef(false),
     epoch = useRef(0)
@@ -52,7 +54,7 @@ export function OfflineProjectEditor({
       setError(errorMessage(e))
     }
     async function run() {
-      if (canceled || busy.current) return
+      if (canceled || busy.current || saveRequested.current || drafts.current.size) return
       busy.current = true
       const lifecycle = epoch.current
       try {
@@ -65,7 +67,7 @@ export function OfflineProjectEditor({
           value.conflict
             ? 'Propuesta guardada: resuelve el conflicto con conexión.'
             : drafts.current.size
-              ? 'Tus campos siguen abiertos. Guarda o actualiza para continuar.'
+              ? 'Edición en curso · tus campos se conservan'
               : value.pending
                 ? 'Guardado en este equipo · pendiente de sincronizar'
                 : 'Sincronizado · copia disponible sin conexión',
@@ -99,10 +101,18 @@ export function OfflineProjectEditor({
         if (!canceled) setLoading(false)
       }
     }
-    sync.current = run
-    void run()
+    const schedule = () => {
+      if (syncFlight.current) return syncFlight.current
+      const task = run().finally(() => {
+        if (syncFlight.current === task) syncFlight.current = null
+      })
+      syncFlight.current = task
+      return task
+    }
+    sync.current = schedule
+    void schedule()
     const timer = setInterval(() => {
-      void run()
+      void schedule()
     }, 5000)
     // This audit is independent of delayed network requests and detects logout in other tabs.
     const audit = setInterval(() => {
@@ -112,7 +122,7 @@ export function OfflineProjectEditor({
         })
     }, 1000)
     const reconnect = () => {
-      void run()
+      void schedule()
     }
     window.addEventListener('online', reconnect)
     return () => {
@@ -175,12 +185,18 @@ export function OfflineProjectEditor({
     selectDiagram: () => {},
     newDiagram: async () => false,
     execute: async (command) => {
-      if (!current.current || busy.current) return false
-      busy.current = true
+      if (!current.current || saveRequested.current) return false
+      const editingCopy = current.current
+      saveRequested.current = true
       setSaving(true)
       const lifecycle = epoch.current
+      let ownsBusy = false
       try {
-        const updated = await projectCopies().edit(current.current, command)
+        if (syncFlight.current) await syncFlight.current
+        if (!alive.current || lifecycle !== epoch.current || busy.current) return false
+        busy.current = true
+        ownsBusy = true
+        const updated = await projectCopies().edit(editingCopy, command)
         if (!alive.current || lifecycle !== epoch.current) return false
         apply(updated)
         setError(null)
@@ -190,7 +206,8 @@ export function OfflineProjectEditor({
         if (alive.current) setError(errorMessage(e))
         return false
       } finally {
-        busy.current = false
+        if (ownsBusy) busy.current = false
+        saveRequested.current = false
         setSaving(false)
       }
     },

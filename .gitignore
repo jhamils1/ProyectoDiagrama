@@ -1,4 +1,6 @@
 node_modules/
+__pycache__/
+apps/web/public/ai/
 dist/
 .qa/
 test-results/

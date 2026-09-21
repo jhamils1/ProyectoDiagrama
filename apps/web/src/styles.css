@@ -107,6 +107,12 @@ a {
   flex-direction: column;
   padding: 30px 16px 0;
 }
+.sidebar[hidden] {
+  display: none;
+}
+.sidebar-toggle {
+  flex-shrink: 0;
+}
 .brand {
   display: flex;
   align-items: center;
@@ -301,7 +307,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 0 30px;
-  height: 64px;
+  height: 48px;
   flex-shrink: 0;
   border-bottom: 1px solid #eceef4;
   background: #fff;
@@ -349,7 +355,7 @@ a {
   color: #87641b;
 }
 .document-header {
-  padding: 25px 30px 24px;
+  padding: 8px 30px;
   background: #fff;
   display: flex;
   align-items: center;
@@ -371,6 +377,8 @@ a {
   min-width: 0;
 }
 .document-title h1 {
+  font-size: 20px;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -398,11 +406,11 @@ a {
   color: #6e9b8d;
 }
 .editor-toolbar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 254px;
   align-items: center;
-  min-height: 60px;
-  padding: 9px 24px;
+  min-height: 48px;
+  padding: 6px 24px;
   border-top: 1px solid #eceef4;
   border-bottom: 1px solid #e2e5ee;
   background: #fff;
@@ -411,7 +419,12 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
+.editor-toolbar .toolbar-label { justify-self: end; }
+.editor-toolbar button { padding: 8px 12px; }
+.document-header .eyebrow { margin-bottom: 4px; }
 .primary,
 .secondary,
 .destructive {
@@ -472,7 +485,7 @@ a {
   flex: 1;
   min-width: 0;
   position: relative;
-  background: #f8f9fc;
+  background: #e5e9f1;
 }
 .marker-definitions {
   position: absolute;
@@ -626,6 +639,31 @@ a {
   margin-top: 20px;
   border-top: 1px solid #eef0f5;
 }
+.uml-inspector .panel-heading { margin-bottom: 18px; }
+.uml-inspector .inspector-section-title,
+.uml-inspector .section-row > h3 { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+.uml-inspector .property-form { margin-top: 12px; gap: 12px; padding-bottom: 16px; }
+.uml-inspector .property-form input:not([type="checkbox"]) { font-weight: 600; }
+.inspector-context-actions { display: flex; align-items: center; gap: 4px; }
+.inspector-context-actions > span { flex: 1; font-size: 10px; color: #82719e; }
+.inspector-context-actions .primary { padding: 7px 9px; font-size: 11px; }
+.uml-inspector .attribute-edit { display: flex; align-items: center; gap: 6px; padding: 11px 3px; }
+.uml-inspector .attribute-signature { flex: 1; color: #42465c; font-size: 12px; overflow-wrap: anywhere; }
+.uml-inspector .attribute-datatype { color: #858ba2; font-size: 11px; }
+.uml-inspector .attribute-edit:hover { background: #f7f5fc; border-radius: 5px; }
+.uml-inspector .attribute-form { margin: 4px 0; padding: 10px; gap: 10px; }
+.attribute-inline-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.attribute-inline-fields input, .attribute-inline-fields select { width: 100%; min-width: 0; padding: 8px; }
+.attribute-options { border-top: 1px solid #e8e3f3; padding-top: 8px; }
+.attribute-options summary { cursor: pointer; color: #78758e; font-size: 11px; }
+.attribute-options label { margin-top: 10px; }
+.attribute-apply { align-self: flex-end; font-size: 11px; padding: 8px 10px; }
+.inspector-edit-hint { color: #8b90a3; font-size: 10px; line-height: 1.5; margin-top: 8px; }
+.attribute-table-heading { display: grid; grid-template-columns: 1fr 1fr; padding: 7px 4px; background: #f3f4f7; border-bottom: 1px solid #dddfea; color: #787e91; font-size: 11px; }
+.uml-inspector .attribute-signature { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.uml-inspector .attribute-signature .attribute-datatype { grid-column: 2; grid-row: 1; }
+.uml-inspector .empty-attributes { border: none; padding: 12px 4px; text-align: left; }
+.uml-inspector .inspector-bottom { padding-top: 12px; margin-top: 18px; }
 .danger-button {
   background: none;
   color: #b86670;
@@ -702,25 +740,27 @@ a {
 }
 .class-node {
   background: #fff;
-  border: 1px solid #e1e3ee;
+  border: 1.5px solid #98a3b8;
   border-radius: 9px;
   min-width: 240px;
   max-width: 350px;
-  box-shadow: 0 4px 12px #25244c09;
+  box-shadow: 0 3px 10px #25244c14;
   overflow: visible;
 }
 .class-node.is-selected {
-  border: 1.5px solid #9280db;
+  border: 1.5px solid #7153ce;
   box-shadow:
     0 0 0 4px #9b88df14,
     0 5px 12px #25244c09;
 }
 .class-heading {
-  background: #f5f3fc;
-  border-bottom: 1px solid #e8e5f2;
+  background: #e7e2f3;
+  border-bottom: 1px solid #d3cbe5;
   padding: 14px 16px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 11px;
   border-radius: 8px 8px 0 0;
 }
@@ -741,7 +781,7 @@ a {
   margin-bottom: 4px;
 }
 .class-heading strong {
-  font-size: 12px;
+  font-size: 14px;
   color: #4e4666;
   overflow-wrap: anywhere;
 }
@@ -763,7 +803,7 @@ a {
   gap: 5px;
   align-items: center;
   font-family: Consolas, monospace;
-  font-size: 10px;
+  font-size: 13px;
   color: #606277;
   padding: 5px 0;
   overflow-wrap: anywhere;
@@ -915,6 +955,8 @@ a {
 .update-banner {
   background: #f0edff;
   color: #7663a4;
+  padding: 7px 25px;
+  font-size: 11px;
 }
 .update-banner button {
   background: none;
@@ -999,6 +1041,7 @@ a {
   }
 }
 @media (min-width: 1500px) {
+  .editor-toolbar { grid-template-columns: minmax(0, 1fr) 281px; }
   .sidebar {
     flex-basis: 250px;
   }
@@ -1006,16 +1049,17 @@ a {
     width: 305px;
   }
   .document-header {
-    padding: 30px 35px;
+    padding: 8px 35px;
   }
   .topbar {
-    height: 70px;
+    height: 48px;
   }
   .document-header h1 {
-    font-size: 28px;
+    font-size: 20px;
   }
 }
 @media (max-width: 1100px) {
+  .editor-toolbar { grid-template-columns: minmax(0, 1fr) 216px; }
   .sidebar {
     flex-basis: 195px;
     padding-left: 10px;
@@ -1044,6 +1088,8 @@ a {
   }
 }
 @media (max-width: 800px) {
+  .editor-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .toolbar-group { gap: 6px; }
   .sidebar {
     flex-basis: 165px;
   }
@@ -1078,7 +1124,7 @@ a {
     display: none;
   }
   .document-header {
-    padding: 19px 15px;
+    padding: 10px 15px;
   }
   .document-header h1 {
     font-size: 19px;

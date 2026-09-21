@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useLayoutEffect, type RefObject } from 'react'
 import {
   ReactFlow,
   Background,
@@ -8,11 +8,16 @@ import {
   type Connection,
   type Edge,
   type XYPosition,
+  type ReactFlowInstance,
 } from '@xyflow/react'
 import { ClassNode, type ClassFlowNode } from './ClassNode'
+import { GeneralizationEdge } from './GeneralizationEdge'
+import { AssociationEdge } from './AssociationEdge'
+import { generalizationLine } from './generalizationGeometry'
 import type { Diagram, ModelCommand, UmlRelation } from '../domain/model'
 
 const nodeTypes = { umlClass: ClassNode }
+const edgeTypes = { generalization: GeneralizationEdge, association: AssociationEdge }
 const ariaLabels = {
   'controls.ariaLabel': 'Controles del lienzo',
   'controls.zoomIn.ariaLabel': 'Acercar',
@@ -30,18 +35,32 @@ export function DiagramCanvas({
   execute,
   connect,
   editRelation,
+  deleteClass,
   busy,
   setEditing,
+  newClassPosition,
 }: {
   diagram: Diagram
   selectedId: string | null
   select: (id: string | null) => void
   busy: boolean
   setEditing?: (area: string, pending: boolean) => void
+  newClassPosition: RefObject<(() => XYPosition) | null>
   execute: (command: ModelCommand) => Promise<boolean>
   connect: (connection: Connection) => void
   editRelation: (relation: UmlRelation) => void
+  deleteClass: (id: string) => void
 }) {
+  const canvas = useRef<HTMLDivElement>(null)
+  const flow = useRef<ReactFlowInstance<ClassFlowNode> | null>(null)
+  useLayoutEffect(() => {
+    newClassPosition.current = () => {
+      const bounds = canvas.current!.getBoundingClientRect()
+      const center = flow.current?.screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }) ?? { x: 120, y: 50 }
+      return { x: center.x - 120, y: center.y - 50 }
+    }
+    return () => { newClassPosition.current = null }
+  }, [newClassPosition])
   const [positions, setPositions] = useState<Record<string, XYPosition>>({})
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>(
     {},
@@ -58,15 +77,28 @@ export function DiagramCanvas({
       })),
     [diagram.classes, positions, dimensions, selectedId],
   )
+  const rectangle = (id: string) => {
+    const node = nodes.find((n) => n.id === id)!
+    return {
+      ...node.position,
+      width: node.measured?.width ?? 240,
+      height: node.measured?.height ?? 100,
+    }
+  }
   const edges: Edge[] = diagram.relations.map((r) => ({
     id: r.id,
     source: r.sourceId,
     target: r.targetId,
-    type: 'smoothstep',
+    type: r.sourceId === r.targetId ? 'smoothstep' : r.type,
+    data: {
+      ...generalizationLine(rectangle(r.sourceId), rectangle(r.targetId)),
+      sourceMultiplicity: r.sourceMultiplicity,
+      targetMultiplicity: r.targetMultiplicity,
+    },
     label:
-      r.type === 'association'
+      r.sourceId === r.targetId
         ? `${r.sourceMultiplicity} · ${r.name || 'asociación'} · ${r.targetMultiplicity}`
-        : r.name || 'hereda',
+        : r.name || undefined,
     markerEnd: r.type === 'generalization' ? 'uml-inheritance' : undefined,
     style: { stroke: '#737c91', strokeWidth: 1.6 },
     labelStyle: { fill: '#566079', fontSize: 11 },
@@ -77,11 +109,19 @@ export function DiagramCanvas({
   return (
     <div
       className="canvas"
+      ref={canvas}
       aria-label="Lienzo del diagrama"
       onKeyDownCapture={(event) => {
+        if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
         const node = (event.target as HTMLElement).closest<HTMLElement>('.react-flow__node')
         const c = diagram.classes.find((c) => c.id === node?.dataset.id)
         if (!c) return
+        if (event.key === 'Delete') {
+          event.preventDefault()
+          event.stopPropagation()
+          if (!busy && !event.repeat) deleteClass(c.id)
+          return
+        }
         if (event.key === 'Enter' || event.key === ' ') select(c.id)
         const directions: Record<string, XYPosition> = {
           ArrowLeft: { x: -1, y: 0 },
@@ -123,9 +163,11 @@ export function DiagramCanvas({
         </defs>
       </svg>
       <ReactFlow
+        onInit={(instance) => { flow.current = instance }}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         ariaLabelConfig={ariaLabels}
         onNodesChange={(changes) => {
           for (const change of changes) {
@@ -170,7 +212,7 @@ export function DiagramCanvas({
         fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#d4d9e4" />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#b9c2d2" />
         <Controls showInteractive={false} />
         <MiniMap
           nodeColor="#dfe2ff"

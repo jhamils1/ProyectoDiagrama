@@ -1,0 +1,238 @@
+{
+  "recordedAt": "2026-09-21T00:24:02.127Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6H-association-v1",
+  "editorValidation": "6H-association-v1",
+  "mode": "greedy",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "Crear una asociación entre Cliente y Pedido, donde un Cliente puede tener muchos Pedidos y cada Pedido pertenece a un solo Cliente.",
+      "elapsedMs": 8168,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAsociación UML: Cliente 1 — 0..* Pedido. Se relacionan clases existentes.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Cliente\",\"target\":\"Pedido\",\"kind\":\"association\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"0..*\"}]}",
+          "elapsedMs": 7922.199999999255,
+          "inputTokens": 247,
+          "outputTokens": 39,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Un Usuario puede tener muchos Proyectos y cada Proyecto pertenece a un Usuario.",
+      "elapsedMs": 6145,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAsociación UML: Usuario 1 — 0..* Proyecto. Se relacionan clases existentes.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Usuario\",\"target\":\"Proyecto\",\"kind\":\"association\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"0..*\"}]}",
+          "elapsedMs": 5736.60000000149,
+          "inputTokens": 237,
+          "outputTokens": 40,
+          "tokenLimitReached": false
+        }
+      ]
+    },
+    {
+      "instruction": "Un Departamento tiene muchos Empleados y cada Empleado pertenece a un Departamento.",
+      "elapsedMs": 12206,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAsociación UML: Departamento 1 — 0..* Empleado. Se relacionan clases existentes.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Empleado\",\"target\":\"Departamento\",\"kind\":\"association\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"0..*\"}]}",
+          "elapsedMs": 5308,
+          "inputTokens": 239,
+          "outputTokens": 40,
+          "tokenLimitReached": false
+        },
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addRelation\",\"source\":\"Departamento\",\"target\":\"Empleado\",\"kind\":\"association\",\"sourceMultiplicity\":\"1\",\"targetMultiplicity\":\"0..*\"}]}",
+          "elapsedMs": 6531.300000000745,
+          "inputTokens": 450,
+          "outputTokens": 40,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "9f6c0b96-095a-4b43-b52e-ff0eb5d0bd3c",
+    "name": "Presentacion IA 1789950243518",
+    "localRevision": 13,
+    "updatedAt": "2026-09-21T00:24:04.869Z",
+    "classes": [
+      {
+        "id": "ade7a465-afd7-43ba-b4e0-4463859e1db8",
+        "name": "Cliente",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "f182437b-fd31-408b-b205-82c312e5b267",
+        "name": "Pedido",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "8d3fede8-e36b-4e3d-8572-b01528a5900c",
+        "name": "Usuario",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "93540f91-f654-4316-bdd1-3fc782490754",
+        "name": "Proyecto",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "052e6f8a-73c5-4668-a29d-a50a531b70fb",
+        "name": "Departamento",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "352616f9-5f57-4393-9594-c466898a119a",
+        "name": "Empleado",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 370
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "9f6c0b96-095a-4b43-b52e-ff0eb5d0bd3c",
+    "name": "Presentacion IA 1789950243518",
+    "localRevision": 16,
+    "updatedAt": "2026-09-21T00:24:43.575Z",
+    "classes": [
+      {
+        "id": "ade7a465-afd7-43ba-b4e0-4463859e1db8",
+        "name": "Cliente",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "f182437b-fd31-408b-b205-82c312e5b267",
+        "name": "Pedido",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "8d3fede8-e36b-4e3d-8572-b01528a5900c",
+        "name": "Usuario",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 100
+        },
+        "attributes": []
+      },
+      {
+        "id": "93540f91-f654-4316-bdd1-3fc782490754",
+        "name": "Proyecto",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "052e6f8a-73c5-4668-a29d-a50a531b70fb",
+        "name": "Departamento",
+        "abstract": false,
+        "position": {
+          "x": 430,
+          "y": 370
+        },
+        "attributes": []
+      },
+      {
+        "id": "352616f9-5f57-4393-9594-c466898a119a",
+        "name": "Empleado",
+        "abstract": false,
+        "position": {
+          "x": 760,
+          "y": 370
+        },
+        "attributes": []
+      }
+    ],
+    "relations": [
+      {
+        "id": "16296d7d-adba-4f73-93fb-0f493c8474e6",
+        "type": "association",
+        "sourceId": "ade7a465-afd7-43ba-b4e0-4463859e1db8",
+        "targetId": "f182437b-fd31-408b-b205-82c312e5b267",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..*"
+      },
+      {
+        "id": "dd2abeaa-8731-4091-9e98-dcf08399f76f",
+        "type": "association",
+        "sourceId": "8d3fede8-e36b-4e3d-8572-b01528a5900c",
+        "targetId": "93540f91-f654-4316-bdd1-3fc782490754",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..*"
+      },
+      {
+        "id": "2af755a1-49d5-4e61-a60e-88313caf7caf",
+        "type": "association",
+        "sourceId": "052e6f8a-73c5-4668-a29d-a50a531b70fb",
+        "targetId": "352616f9-5f57-4393-9594-c466898a119a",
+        "name": "",
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..*"
+      }
+    ]
+  }
+}

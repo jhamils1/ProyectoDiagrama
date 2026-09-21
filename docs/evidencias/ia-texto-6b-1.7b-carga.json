@@ -1,0 +1,14 @@
+{
+  "recordedOn": "2026-09-20",
+  "evidenceType": "Transcripción del error observado en la ejecución de scripts/ai/evaluate.mjs --model=qwen3-1.7b",
+  "model": "onnx-community/Qwen3-1.7B-ONNX",
+  "revision": "cc6a06a21d614e9b8e92a6adfab1074d4e7d2438",
+  "dtype": "q4f16",
+  "deviceRequested": "webgpu",
+  "resourcesPreparedAndVerified": true,
+  "loadSucceeded": false,
+  "error": "Can't create a session. ERROR_CODE: 6, ERROR_MESSAGE: std::bad_alloc",
+  "inferencePerformed": false,
+  "accuracy": null,
+  "memoryMeasured": false
+}

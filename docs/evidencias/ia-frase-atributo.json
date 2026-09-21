@@ -1,0 +1,78 @@
+{
+  "recordedAt": "2026-09-21T01:17:11.495Z",
+  "model": "qwen3-1.7b-external",
+  "prompt": "6I-untyped-v1",
+  "editorValidation": "6I-untyped-v1",
+  "mode": "structured",
+  "offline": true,
+  "recovered": true,
+  "cases": [
+    {
+      "instruction": "agrega el atributo modelo en la clase vehiculo",
+      "elapsedMs": 13947,
+      "message": "Revisa los cambios. El diagrama todavía no se modificó.",
+      "preview": "Cambios propuestos\nAgregar vehiculo.modelo: sin tipo, opcional, privado.\nDescartar propuesta\nConfirmar y guardar",
+      "unchangedBeforeConfirmation": true,
+      "saved": true,
+      "generations": [
+        {
+          "raw": "{\"status\":\"propose\",\"operations\":[{\"type\":\"addAttribute\",\"className\":\"vehiculo\",\"name\":\"modelo\",\"dataType\":\"\",\"required\":false}]}",
+          "elapsedMs": 13870.199999999255,
+          "inputTokens": 421,
+          "outputTokens": 30,
+          "tokenLimitReached": false
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "initial": {
+    "schemaVersion": 1,
+    "id": "9690fcab-60e9-4c61-99e6-07dd8bb434d5",
+    "name": "Presentacion IA 1789953433806",
+    "localRevision": 3,
+    "updatedAt": "2026-09-21T01:17:14.077Z",
+    "classes": [
+      {
+        "id": "8753fddd-411d-457e-aa66-b09c74827057",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": []
+      }
+    ],
+    "relations": []
+  },
+  "final": {
+    "schemaVersion": 1,
+    "id": "9690fcab-60e9-4c61-99e6-07dd8bb434d5",
+    "name": "Presentacion IA 1789953433806",
+    "localRevision": 4,
+    "updatedAt": "2026-09-21T01:17:39.476Z",
+    "classes": [
+      {
+        "id": "8753fddd-411d-457e-aa66-b09c74827057",
+        "name": "vehiculo",
+        "abstract": false,
+        "position": {
+          "x": 100,
+          "y": 100
+        },
+        "attributes": [
+          {
+            "id": "afa7ec8e-adfa-421c-8150-464d48b4a49b",
+            "name": "modelo",
+            "dataType": "",
+            "visibility": "private",
+            "identifier": false,
+            "required": false
+          }
+        ]
+      }
+    ],
+    "relations": []
+  }
+}

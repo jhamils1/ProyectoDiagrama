@@ -101,12 +101,15 @@ Estas pruebas crean registros con nombres E2E, eliminan lógicamente su proyecto
 
 ## Estado y decisiones
 
+- [IA integrada al editor y guion de presentación: 6G](docs/ETAPA_06G.md). Botón **Asistente IA**, preparación/carga local, instrucciones acotadas, vista previa y confirmación. Crear/renombrar clases, agregar atributos y herencia; seis comandos reales guardados y recuperados offline. 113 unitarias y 19 E2E aprobadas. Preparación de pesos externos en [6C](docs/ETAPA_06C.md). El laboratorio general [6F](docs/ETAPA_06F.md) conserva su resultado 9/20: esta entrega agrega validación exacta de intención para un subconjunto, no declara precisión general. Generación estructurada [6D](docs/ETAPA_06D.md) experimental; antecedentes [6E](docs/ETAPA_06E.md), [6A](docs/ETAPA_06A.md) y [6B](docs/ETAPA_06B.md).
+- [Asociaciones uno a muchos por IA: 6H](docs/ETAPA_06H.md). Amplía 6G: interpreta los ejemplos naturales Cliente–Pedido, Usuario–Proyecto y Departamento–Empleado como asociaciones 1 a 0..*. Pide aclaración si faltan multiplicidades e indica crear primero las clases ausentes. Vista previa y confirmación obligatorias. Tres ejemplos reales guardados y recuperados offline; uno necesitó corrección del modelo. No incluye composición ni agregación.
+- [Atributos con tipo opcional: 6I](docs/ETAPA_06I.md). Editor e IA admiten atributos Sin tipo, sin inventar String; se puede definir o quitar el tipo después. Ejemplo: `Agrega modelo a Vehiculo.` Reiniciar el backend actualizado para aplicar V4 antes de guardar en proyectos centrales.
 - [Continuar desde otra cuenta: estado, pendientes e instrucciones de relevo](CONTINUAR_AQUI.md).
 - [Trazabilidad de CU y pruebas](docs/TRAZABILIDAD.md).
 - [Evidencia de la primera etapa: 24 pruebas de dominio/persistencia y 6 de navegador](docs/EVIDENCIA_ETAPA_01.md).
 - [Evidencia de la segunda etapa: backend y recorrido web real](docs/EVIDENCIA_ETAPA_02.md).
 - [Evidencia de la tercera etapa: diagramas centrales](docs/EVIDENCIA_ETAPA_03.md).
-- [Motores de IA local elegidos y evaluación pendiente](docs/decisiones/ADR-001-ia-local.md).
+- [Motores de IA local y estado de su evaluación](docs/decisiones/ADR-001-ia-local.md).
 - [Diseño y límites de esta primera entrega](docs/decisiones/ADR-002-editor-local.md).
 - [Decisiones de acceso y proyectos](docs/decisiones/ADR-003-acceso-proyectos.md).
 - [Contrato de la API y copia de seguridad local](docs/API_ETAPA_02.md).
@@ -115,7 +118,9 @@ Estas pruebas crean registros con nombres E2E, eliminan lógicamente su proyecto
 - [Revisión inicial de documentación](docs/REVISION_INICIAL.md).
 - [Contexto vigente](CONTEXTO_PROYECTO.md).
 
-CU06 incluye proyectos y diagramas autorizados en web. CU07/CU08 y CU12 cubren modelado, guardado, colaboración, combinación y resolución de propuestas, incluyendo creación/edición offline y envío de pendientes con el espacio de trabajo abierto. Faltan Google con una cuenta real, Flutter, inferencia de IA, Enterprise Architect, generación del backend y despliegue AWS/HTTPS. CU12 móvil no está implementado.
+CU06 incluye proyectos y diagramas autorizados en web. CU07/CU08 y CU12 cubren modelado, guardado, colaboración, combinación y resolución de propuestas, incluyendo creación/edición offline y envío de pendientes con el espacio de trabajo abierto. 6G integra comandos acotados de IA de texto con confirmación; faltan ampliar operaciones y fiabilidad fuera de ese alcance. También faltan Google con cuenta real, Flutter, voz/imagen/asistencia contextual, Enterprise Architect, generación del backend y despliegue AWS/HTTPS. CU12 móvil no está implementado.
+
+**CU15 — diagramas desde imágenes:** pendiente para la última etapa, únicamente si el tiempo disponible lo permite. Primero completar y estabilizar las funcionalidades principales. Antes de desarrollar visión artificial, reconocimiento de imágenes o integrar modelos de imagen, consultar al usuario y obtener su autorización explícita.
 
 Los borradores y los cambios aún no sincronizados no tienen respaldo fuera del navegador. Borrar sus datos puede eliminarlos. La revisión local se distingue de la revisión central usada para sincronizar.
 

@@ -1,8 +1,12 @@
 # ADR 001 · Motores y modelos de IA local
 
-Estado: motores adoptados para el desarrollo incremental; modelos iniciales seleccionados para evaluación. No hay inferencia implementada ni rendimiento medido todavía. El usuario delegó la elección técnica y confirmó continuar por partes.
+Estado: motores adoptados para el desarrollo incremental. En 6A se implementó y midió inferencia de texto en laboratorio web, con Transformers.js 4.3.0 y Qwen3-0.6B q4f16; funciona offline pero la precisión inicial es insuficiente para integrarlo al editor. Voz, visión, asistencia y Flutter siguen sin inferencia implementada. Ver [evaluación 6A](../ETAPA_06A.md) y [ADR 010](ADR-010-validacion-texto-local.md). El usuario delegó la elección técnica y confirmó continuar por partes.
 
 ## Decisión
+
+Actualización vigente 6C: **Qwen3-1.7B q4f16 con datos ONNX separados** sí carga e infiere offline en la PC, conservando los valores del modelo original; la limitación de 6B corresponde al archivo monolítico. Se mantiene como candidato de laboratorio: validación de datos explícitos y una corrección alcanzan 28/30 originales y 17/20 de regresión, todavía insuficiente para aprobar integración. La suite nueva y todos los límites constan en [ETAPA_06C](../ETAPA_06C.md), [ADR 012](ADR-012-modelo-local-datos-externos.md) y [ADR 013](ADR-013-propuestas-respaldadas-por-solicitud.md). No se extrapola a móvil, voz, visión o asistencia contextual.
+
+Actualización 6B: se mantiene Qwen3-0.6B únicamente como modelo experimental del laboratorio. Prompt 6B-v3 y una corrección por validación mejoran el corpus original a 20/30, todavía insuficiente. Qwen3-1.7B q4f16 se descargó con revisión/hashes fijos, pero su carga falló con `std::bad_alloc`. No se adopta para esta PC ni se extrapola a Android. Ver [ETAPA_06B](../ETAPA_06B.md) y [ADR 011](ADR-011-precision-texto-local.md).
 
 Usar **Transformers.js sobre ONNX Runtime Web** en React. Ejecutar inferencia en un Web Worker, preferir WebGPU cuando el navegador y el modelo lo permitan y evaluar WASM por capacidad. Para Flutter/Android, integrar **llama.cpp** para lenguaje/visión y **whisper.cpp** para transcripción mediante un puente nativo. No introducir un servidor de inferencia ni una API remota.
 

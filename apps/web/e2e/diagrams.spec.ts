@@ -56,7 +56,7 @@ test.describe('Etapa 3 · diagramas con API real', () => {
   async function addClass(page: Page, name: string) {
     await page.getByRole('button', { name: 'Nueva clase', exact: true }).click()
     await page.getByLabel('Nombre de la clase', { exact: true }).fill(name)
-    await page.getByRole('button', { name: 'Guardar propiedades', exact: true }).click()
+    await page.getByLabel('Nombre de la clase', { exact: true }).press('Enter')
     await expect(page.locator('.class-node').filter({ hasText: name })).toHaveCount(1)
   }
   async function saved(page: Page) {
@@ -79,6 +79,57 @@ test.describe('Etapa 3 · diagramas con API real', () => {
     await expect(
       page.getByRole('button', { name: 'Nuevo diagrama sin conexión', exact: true }),
     ).toBeEnabled()
+  }
+
+  for (const action of ['clase', 'relacion'] as const) {
+    test(`sincronización propia en curso permite guardar ${action} sin recargar`, async ({ page }) => {
+      test.setTimeout(60000)
+      await newDiagram(page)
+      await addClass(page, 'Persona')
+      await addClass(page, 'Vehiculo')
+      await prepareCopy(page)
+      let release!: () => void
+      let arrived!: () => void
+      const received = new Promise<void>((resolve) => { arrived = resolve })
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      let held = false
+      await page.route('**/changes', async (route) => {
+        if (route.request().method() !== 'POST' || held) return route.continue()
+        held = true
+        const response = await route.fetch()
+        arrived()
+        await gate
+        await route.fulfill({ response })
+      })
+      try {
+        await renameCopy(page, 'Edicion individual')
+        await received
+        if (action === 'clase') {
+          await page.locator('.class-node').filter({ hasText: 'Persona' }).click()
+          await page.getByLabel('Nombre de la clase', { exact: true }).fill('Cliente')
+          await page.getByLabel('Nombre de la clase', { exact: true }).press('Enter')
+        } else {
+          await page.getByRole('button', { name: 'Relación', exact: true }).click()
+          await page.getByLabel('Nombre de la relación').fill('tiene')
+          await page.getByRole('button', { name: 'Guardar relación', exact: true }).click()
+        }
+        await expect(page.getByText('Otra pestaña modificó esta copia', { exact: false })).toHaveCount(0)
+        release()
+        if (action === 'clase') await expect(page.locator('.class-node').filter({ hasText: 'Cliente' })).toHaveCount(1)
+        else await expect(page.getByRole('dialog')).toHaveCount(0)
+        await expect.poll(async () => {
+          const doc = await saved(page)
+          return action === 'clase' ? doc.classes.some((c) => c.name === 'Cliente') : doc.relations.some((r) => r.name === 'tiene')
+        }, { timeout: 20000 }).toBe(true)
+        await page.reload()
+        if (action === 'clase') await expect(page.locator('.class-node').filter({ hasText: 'Cliente' })).toHaveCount(1)
+        else await expect(page.locator('.react-flow__edge')).toHaveCount(1)
+        await expect(page.locator('.error-banner')).toHaveCount(0)
+      } finally {
+        release()
+        await page.unroute('**/changes')
+      }
+    })
   }
   async function createOffline(page: Page, name: string) {
     await page.getByRole('button', { name: 'Nuevo diagrama sin conexión', exact: true }).click()
@@ -480,7 +531,7 @@ test.describe('Etapa 3 · diagramas con API real', () => {
     await expect(
       page.getByRole('heading', { name: 'Nombre compartido', exact: true }),
     ).toBeVisible()
-    await other.getByRole('button', { name: 'Guardar propiedades', exact: true }).click()
+    await other.getByLabel('Nombre de la clase', { exact: true }).press('Enter')
     await expect(
       other.getByRole('heading', { name: 'Nombre compartido', exact: true }),
     ).toBeVisible()
@@ -824,14 +875,14 @@ test.describe('Etapa 3 · diagramas con API real', () => {
     await page.getByLabel('Nombre del diagrama', { exact: true }).fill('Cambio externo')
     await page.getByRole('button', { name: 'Guardar nombre', exact: true }).click()
     await page.getByLabel('Nombre de la clase', { exact: true }).fill('ClienteServidor')
-    await page.getByRole('button', { name: 'Guardar propiedades', exact: true }).click()
+    await page.getByLabel('Nombre de la clase', { exact: true }).press('Enter')
     await expect(other.getByText('Hay cambios de otra sesión.', { exact: false })).toBeVisible({
       timeout: 12000,
     })
     await expect(other.getByLabel('Nombre de la clase', { exact: true })).toHaveValue(
       'PropuestaPendiente',
     )
-    await other.getByRole('button', { name: 'Guardar propiedades', exact: true }).click()
+    await other.getByLabel('Nombre de la clase', { exact: true }).press('Enter')
     await expect(other.getByRole('dialog', { name: 'Resolver cambios' })).toContainText(
       'PropuestaPendiente',
     )
@@ -869,7 +920,7 @@ test.describe('Etapa 3 · diagramas con API real', () => {
     await addClass(page, 'Cliente')
     await page.getByRole('button', { name: 'Agregar atributo', exact: true }).click()
     await page.getByLabel('Nombre del atributo', { exact: true }).fill('nombre')
-    await page.getByRole('button', { name: 'Guardar atributo', exact: true }).click()
+    await page.getByLabel('Nombre del atributo', { exact: true }).press('Enter')
     await expect(page.getByRole('button', { name: 'Editar atributo nombre' })).toBeVisible()
     await addClass(page, 'Pedido')
     await page.getByRole('button', { name: 'Relación', exact: true }).click()
