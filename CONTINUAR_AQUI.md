@@ -6,6 +6,8 @@ Actualizado: 21/09/2026. Proyecto Modela. Carpeta: `C:/Users/USUARIO/Desktop/Pri
 
 **CU11: herencia, clases abstractas y uno a uno inicial terminados.** La descarga genera entidades JPA JOINED; una raíz abstracta no tiene CRUD propio y su hija concreta sí. Además de `1 — 0..*`, se admite `1 — 0..1`: genera `@OneToOne` único y obligatorio en el extremo `0..1`, con referencia inversa opcional en el extremo `1`. No se admiten todavía `1 — 1`, `0..1 — 0..*` ni muchos a muchos. CU10 conserva la importación manual en EA comprobada para Cliente/ClientePremium/Pedido, sin posiciones/estilos.
 
+Flutter consumidor, primer incremento: `apps/flutter_consumer` consume de forma genérica un backend generado con URL, recurso plural y JSON configurables; lista, busca, crea, actualiza y elimina. Análisis y cuatro pruebas aprobados. Windows requiere el toolchain C++ de Visual Studio para ejecutar o compilar en esta PC. Ver `docs/FLUTTER_CONSUMER.md`.
+
 El usuario tiene pocos tokens: responder en espanol breve y trabajar por incrementos pequenos completos. Pidio este relevo para continuar con otra cuenta. No necesita rehacer el proyecto ni depender del chat anterior.
 
 ## Leer primero
@@ -25,6 +27,8 @@ Los documentos de etapas antiguas describen historia. NO retomar el antiguo fall
 - CU09: importar EA UML 2.5/XMI 2.5.1, previsualizar y confirmar nuevo diagrama. Real->Double y omision de relaciones vacias se proponen automaticamente y se explican; opciones avanzadas permiten cambiarlas. Otras ambiguedades requieren decision. Compatibilidad limitada al subconjunto probado.
 - CU11: ZIP Maven Spring Boot/Java21/PostgreSQL, entidades, repositorios, DTOs, servicios y REST CRUD. Asociaciones 1 a 0..* y 1 a 0..1; la segunda usa OneToOne único, referencia inversa opcional y escritura desde el extremo 0..1. Herencia JOINED, cadenas, varias hijas y raíces abstractas sin endpoint propio. ID Long explícito solo en raíz, heredado. Métodos y lógica de negocio no implementados; las demás multiplicidades quedan pendientes.
 - CU10: XML semantico descargable con clases, abstraccion, tipos, visibilidad, isID, obligatoriedad, asociaciones y herencia. Importacion real de la muestra comprobada; no implica compatibilidad universal.
+
+- Flutter consumidor: `apps/flutter_consumer` es una aplicación distinta del editor móvil. Consume los endpoints CRUD de un ZIP mediante JSON genérico y no inventa atributos. El editor Flutter de diagramas sigue pendiente.
 
 ## Codigo y contratos importantes
 

@@ -2,6 +2,8 @@
 
 ## Estado vigente para cambio de cuenta — 21/09/2026
 
+Flutter consumidor, primer incremento: `apps/flutter_consumer` ofrece un cliente CRUD genérico para los endpoints de un backend generado, con URL, recurso plural y JSON configurables. `flutter analyze` y cuatro pruebas pasaron. No reemplaza el editor web ni acredita todavía un editor Flutter de diagramas. El build Windows requiere el toolchain C++ de Visual Studio, ausente en esta PC. Ver `docs/FLUTTER_CONSUMER.md`.
+
 Leer primero `CONTINUAR_AQUI.md`. CU10 ya tiene evidencia manual del usuario en Enterprise Architect: Cliente/ClientePremium/Pedido, atributos/tipos, asociacion 1..1 a 0..* y herencia conservadas. Distribucion manual como Link, sin posiciones/estilos exportados. Ver `docs/CU10_EXPORTACION.md` para limites. CU11 ya admite herencia, clases abstractas y asociaciones 1 a 0..1, además del caso 1 a 0..*.
 
 Editor, colaboración/offline, IA local de texto integrada, CU09 e implementación CU11 con herencia ya existen. No retomar el antiguo fallo de carga de Qwen3-1.7B como pendiente actual. Voz, CU16, Flutter, Google real, AWS y cierre documental siguen pendientes; CU15 queda al final previa autorización explícita.

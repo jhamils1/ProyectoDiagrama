@@ -1,6 +1,12 @@
 # CU11 — generador de proyecto, segundo incremento
 
-Estado: alcance inicial CU11 implementado y verificado para Cliente/Pedido: generación ZIP, integración API/editor, compilación, arranque y CRUD con PostgreSQL. No acredita todos los modelos posibles ni la aplicación Flutter consumidora, todavía pendiente.
+Estado: alcance inicial CU11 implementado y verificado para Cliente/Pedido: generación ZIP, integración API/editor, compilación, arranque y CRUD con PostgreSQL. Existe un consumidor Flutter CRUD genérico; no acredita todavía formularios específicos para todos los modelos ni el editor Flutter de diagramas.
+
+## Consumidor Flutter: primer incremento
+
+`apps/flutter_consumer` es una aplicación separada que consume el CRUD de un ZIP generado. Configura URL, recurso plural y JSON; permite listar, buscar, crear, actualizar y eliminar sin inventar atributos del diagrama. El backend no expone aún metadatos para construir formularios específicos.
+
+Verificación: `flutter analyze` sin problemas y cuatro pruebas Flutter aprobadas. Android y Windows fueron creados como destinos; en esta PC, Windows no puede compilarse hasta instalar **Desktop development with C++** de Visual Studio. Instrucciones y límites: [FLUTTER_CONSUMER.md](FLUTTER_CONSUMER.md).
 
 ## Estado vigente: herencia habilitada en la descarga
 
