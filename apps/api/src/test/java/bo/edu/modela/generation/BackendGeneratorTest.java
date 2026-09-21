@@ -213,4 +213,48 @@ class BackendGeneratorTest {
         .isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,
             e -> assertThat(e.issues()).extracting(GenerationValidator.Issue::code).contains("GENERATED_NAME_COLLISION"));
   }
+
+  @Test void abstractEntityTemplateCompilesAndCannotBeInstantiated() throws Exception {
+    var base = new ClassData(UUID.randomUUID(), "EntidadBase", true, new Position(0d, 0d), List.of(
+        new AttributeData(UUID.randomUUID(), "codigo", "Long", "private", true, true)));
+    var child = new ClassData(UUID.randomUUID(), "EntidadConcreta", false, new Position(0d, 0d), List.of());
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Abstracta", 0L, Instant.EPOCH,
+        List.of(child, base), List.of(new RelationData(UUID.randomUUID(), "generalization",
+            child.id(), base.id(), "", "1", "1")));
+    var plan = InheritancePlan.analyze(doc);
+    assertThat(plan.valid()).isTrue();
+    String root = "com/example/generated/entity/";
+    var files = new TreeMap<String, String>();
+    files.put(root + "EntidadBase.java", BackendGenerator.entitySource(base, List.of(), plan.classes().get(base.id()), true));
+    files.put(root + "EntidadConcreta.java", BackendGenerator.entitySource(child, List.of(), plan.classes().get(child.id()), false));
+    assertThat(files.get(root + "EntidadBase.java")).contains("public abstract class EntidadBase",
+        "InheritanceType.JOINED", "@jakarta.persistence.Id");
+    assertThat(files.get(root + "EntidadConcreta.java")).contains("extends com.example.generated.entity.EntidadBase")
+        .doesNotContain("public abstract class");
+    compile(files);
+  }
+
+  @Test void abstractRootGetsEntityOnlyAndConcreteChildGetsCrud() throws Exception {
+    var base = new ClassData(UUID.randomUUID(), "EntidadBase", true, new Position(0d, 0d), List.of(
+        new AttributeData(UUID.randomUUID(), "codigo", "Long", "private", true, true)));
+    var child = new ClassData(UUID.randomUUID(), "EntidadConcreta", false, new Position(0d, 0d), List.of());
+    var region = new ClassData(UUID.randomUUID(), "Region", false, new Position(0d, 0d), List.of(
+        new AttributeData(UUID.randomUUID(), "codigo", "Long", "private", true, true),
+        new AttributeData(UUID.randomUUID(), "nombre", "String", "private", false, true)));
+    var relation = new RelationData(UUID.randomUUID(), "association", region.id(), child.id(), "", "1", "0..*");
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Abstracta", 0L, Instant.EPOCH,
+        List.of(base, child, region), List.of(new RelationData(UUID.randomUUID(), "generalization",
+            child.id(), base.id(), "", "1", "1"), relation));
+    var files = BackendGenerator.files(doc);
+    assertThat(files).containsKey("src/main/java/com/example/generated/entity/EntidadBase.java")
+        .doesNotContainKey("src/main/java/com/example/generated/controller/EntidadBaseController.java")
+        .containsKey("src/main/java/com/example/generated/controller/EntidadConcretaController.java");
+    compile(files);
+    var output = System.getProperty("generation.abstractFixture");
+    if (output != null) for (var entry : files.entrySet()) {
+      var path = Path.of(output).resolve(entry.getKey());
+      Files.createDirectories(path.getParent());
+      Files.writeString(path, entry.getValue());
+    }
+  }
 }

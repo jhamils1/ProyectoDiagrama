@@ -25,6 +25,10 @@ public final class GenerationValidator {
 
   /** Malformed UML retains the existing MODELO_INVALIDO exception contract. */
   public static Result validate(DiagramDocument document) {
+    return validate(document, true);
+  }
+
+  static Result validate(DiagramDocument document, boolean allowAbstract) {
     Objects.requireNonNull(document, "document").validate();
     var issues = new ArrayList<Issue>();
     issues.addAll(InheritancePlan.analyze(document).issues());
@@ -32,7 +36,7 @@ public final class GenerationValidator {
       issues.add(new Issue("EMPTY_DIAGRAM", document.id(), "Agrega al menos una clase para generar."));
     }
     for (var c : document.classes()) {
-      if (c.abstractClass()) {
+      if (c.abstractClass() && !allowAbstract) {
         issues.add(new Issue("ABSTRACT_CLASS_UNSUPPORTED", c.id(),
             "La clase " + c.name() + " es abstracta; esta primera versión no admite clases abstractas."));
       }

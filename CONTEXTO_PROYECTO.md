@@ -12,7 +12,9 @@ Editor, colaboración/offline, IA local de texto integrada, CU09 e implementaci�
 
 CU10, etapa 2: `EaXmiWriter` produce XML UML/XMI con clases, atributos, asociaciones y herencia. Endpoint autorizado y botón Exportar XML disponibles; 109 pruebas backend y 4 E2E de descargas aprobadas. Pendiente comprobación real de importación en EA. No exporta aún distribución visual. Ver `docs/CU10_EXPORTACION.md`.
 
-CU11: herencia simple habilitada para clases concretas con JPA JOINED, DTOs/CRUD heredados e ID Long compartido desde la raíz. No duplicar id en las hijas. Verificación PostgreSQL: 62 solicitudes con herencia y 29 del CRUD original. Descarga conserva permisos y control de revisión; clases abstractas siguen pendientes. Detalles y evidencia en `docs/CU11_GENERADOR.md`.
+CU11: herencia simple y clases abstractas habilitadas con JPA JOINED, DTOs/CRUD para descendientes concretos e ID Long compartido desde la raíz. Una raíz abstracta genera entidad sin endpoint propio. Verificación PostgreSQL: 62 solicitudes con herencia, 29 del CRUD original y 17 con abstractas; descarga con permisos/revisión verificada. Detalles y evidencia en `docs/CU11_GENERADOR.md`.
+
+CU11 abstractas: la generación pública emite una raíz JPA `public abstract` con JOINED; la raíz no tiene endpoint y la hija concreta sí. 25 pruebas específicas de herencia/generación y 17 comprobaciones PostgreSQL aisladas aprobaron entidad, alta/consulta, asociación, colección inversa, actualización, rollback y borrado protegido.
 
 Decisión UX vigente CU09: cargar XML prepara automáticamente vista previa con Real→Double sugerido y omisión propuesta solo de asociaciones vacías (cero extremos), mostrando ambas en el resumen. Opciones avanzadas permiten cambiarlas; confirmar sigue siendo obligatorio para guardar. Tipos desconocidos y relaciones incompletas requieren decisión. Ya no se exige revisar dos veces manualmente. Ver `docs/INTEROPERABILIDAD_01.md`; esta decisión sustituye la selección obligatoria de los incrementos anteriores.
 

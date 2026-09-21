@@ -35,7 +35,15 @@ public final class BackendGenerator {
   }
 
   public static Map<String, String> files(DiagramDocument model) {
-    var issues = new ArrayList<>(GenerationValidator.validate(model).issues());
+    return files(model, true);
+  }
+
+  static Map<String, String> filesWithAbstract(DiagramDocument model) {
+    return files(model, true);
+  }
+
+  private static Map<String, String> files(DiagramDocument model, boolean allowAbstract) {
+    var issues = new ArrayList<>(GenerationValidator.validate(model, allowAbstract).issues());
     var plans = InheritancePlan.analyze(model).classes();
     var effective = new HashMap<UUID, ClassData>();
     for (var c : model.classes()) effective.put(c.id(),
@@ -142,6 +150,10 @@ public final class BackendGenerator {
       boolean hierarchyRoot = plan.parent() == null
           && plans.values().stream().anyMatch(p -> p.parent() != null && p.root().id().equals(c.id()));
       files.put(ROOT + "entity/" + c.name() + ".java", entitySource(c, links.get(c.id()), plan, hierarchyRoot));
+      if (c.abstractClass()) {
+        readme.append("\n- ").append(c.name()).append(": entidad abstracta; no tiene endpoint CRUD propio.\n");
+        continue;
+      }
       files.put(ROOT + "repository/" + c.name() + "Repository.java", "package " + PACKAGE + ".repository;\npublic interface " + c.name() + "Repository extends org.springframework.data.jpa.repository.JpaRepository<" + entity(c) + ", java.lang.Long> {}\n");
       files.put(ROOT + "dto/" + c.name() + "Request.java", dto(state, ls, false));
       files.put(ROOT + "dto/" + c.name() + "Response.java", dto(state, ls, true));
@@ -190,7 +202,9 @@ public final class BackendGenerator {
       s.append("@jakarta.persistence.PrimaryKeyJoinColumn(name=\"a_")
           .append(key(inheritance.identifier().id())).append("\")\n");
     }
-    s.append("public class ").append(c.name());
+    s.append("public ");
+    if (c.abstractClass()) s.append("abstract ");
+    s.append("class ").append(c.name());
     if (parent != null) s.append(" extends ").append(entity(parent));
     s.append(" {\n");
     for (var a : c.attributes()) {

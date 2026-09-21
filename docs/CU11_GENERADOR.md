@@ -4,6 +4,10 @@ Estado: alcance inicial CU11 implementado y verificado para Cliente/Pedido: gene
 
 ## Estado vigente: herencia habilitada en la descarga
 
+### Entidades abstractas: verificación inicial
+
+La plantilla JPA y la descarga pública pueden emitir una raíz `public abstract` con `JOINED` y una hija concreta. La raíz solo produce entidad y la hija produce CRUD; así nunca se intenta instanciar la clase abstracta. La verificación PostgreSQL actual cubre creación, lectura, relaciones, actualización y rollback; no existe endpoint para la raíz.
+
 `GenerationValidator.validate`, `BackendGenerator.files` y la descarga ZIP admiten herencia simple entre clases concretas, incluidas cadenas y varias hijas. Se retiraron las entradas internas temporales y se utiliza un único flujo de validación/generación. Permisos, revisión persistida y persistencia del diagrama mantienen sus contratos.
 
 El identificador Long se declara únicamente en la raíz. Si ClientePremium tiene un atributo id propio además del heredado de Cliente, debe eliminarse el atributo duplicado de la hija (desmarcarlo no resuelve la colisión de nombres). No se modifican diagramas automáticamente. Se mantienen las restricciones sobre clases abstractas, tipos y asociaciones 1 a 0..*.
@@ -20,7 +24,9 @@ Verificados con PostgreSQL: jerarquía Cliente/ClientePremium/ClienteEspecial y 
 
 Evidencia: [cu11-herencia-postgresql.json](evidencias/cu11-herencia-postgresql.json). Proyecto y logs en `.qa/cu11-inheritance-generated` y `.qa/cu11-inheritance-runtime`. El script sin `-Inheritance` conserva la verificación original Cliente/Pedido.
 
-La generación pública permanece bloqueada para herencia en este incremento. Próxima etapa: habilitar el flujo público y verificar descarga/permisos/validación mediante pruebas de API. Las clases abstractas siguen sin soporte.
+La generación pública de abstractas está habilitada: la raíz solo produce entidad y la hija concreta produce CRUD. La prueba `scripts/test-generated-abstract.ps1` verificó 10 casos con PostgreSQL aislado: 404 de la raíz, alta/consulta de la hija, asociación y colección inversa, bloqueo 409 de borrado referenciado y borrado posterior. Falta ampliar casos de actualización y polimorfismo.
+
+La descarga del editor también se verificó con raíz abstracta, hija concreta, permisos, revisión e historial: el ZIP contiene la entidad abstracta, omite su controlador y conserva el controlador de la hija. Suite backend: 111 pruebas aprobadas. La prueba PostgreSQL se amplió a 17 comprobaciones, incluyendo actualización de relación, colecciones inversas y rollback ante referencia inexistente.
 
 ## Ampliación de herencia: etapa 3 (DTOs y CRUD internos)
 

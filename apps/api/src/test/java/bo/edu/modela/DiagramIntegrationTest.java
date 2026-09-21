@@ -76,8 +76,10 @@ class DiagramIntegrationTest {
     for (var c : classes) c.put("attributes", List.of(Map.of("id", UUID.randomUUID().toString(),
         "name", "codigo", "dataType", "Long", "visibility", "private", "identifier", true, "required", true)));
     var parent = classes.stream().filter(c -> c.get("name").equals("Cliente")).findFirst().orElseThrow();
+    parent.put("abstract", true);
     var child = new HashMap<String,Object>(parent);
     child.put("id", UUID.randomUUID().toString()); child.put("name", "ClientePremium");
+    child.put("abstract", false);
     child.put("attributes", List.of()); classes.add(child);
     var relations = new ArrayList<Map<String,Object>>((List<Map<String,Object>>)doc.get("relations"));
     relations.add(Map.of("id",UUID.randomUUID().toString(),"type","generalization",
@@ -107,6 +109,7 @@ class DiagramIntegrationTest {
         }
         assertThat(names).contains("pom.xml", "src/main/java/com/example/generated/entity/Cliente.java");
         assertThat(names).contains("src/main/java/com/example/generated/controller/ClientePremiumController.java");
+        assertThat(names).doesNotContain("src/main/java/com/example/generated/controller/ClienteController.java");
       }
     }
     mvc.perform(get(path()+"/"+doc.get("id")+"/backend?revision=1").with(actor(admin))).andExpect(status().isConflict());

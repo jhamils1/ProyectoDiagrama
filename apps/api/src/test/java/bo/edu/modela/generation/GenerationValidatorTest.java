@@ -59,12 +59,10 @@ class GenerationValidatorTest {
         .containsExactly("IDENTIFIER_TYPE_UNSUPPORTED", "ATTRIBUTE_TYPE_UNSUPPORTED", "ATTRIBUTE_TYPE_UNSUPPORTED");
   }
 
-  @Test void stillRejectsAbstractClassWithInheritance() {
+  @Test void acceptsAbstractRootWithConcreteChild() {
     var a = clazz("Base", true, attribute("id", "Long", true));
     var b = clazz("Hija", false);
-    assertThat(GenerationValidator.validate(document(List.of(a, b), relation(b, a, "generalization", "1", "1"))).issues())
-        .extracting(GenerationValidator.Issue::code)
-        .containsExactly("ABSTRACT_CLASS_UNSUPPORTED");
+    assertThat(GenerationValidator.validate(document(List.of(a, b), relation(b, a, "generalization", "1", "1"))).eligible()).isTrue();
   }
 
   @Test void rejectsOtherMultiplicities() {
