@@ -8,6 +8,10 @@ Actualizado: 21/09/2026. Proyecto Modela. Carpeta: `C:/Users/USUARIO/Desktop/Pri
 
 Flutter consumidor, primer incremento: `apps/flutter_consumer` consume de forma genérica un backend generado con URL, recurso plural y JSON configurables; lista, busca, crea, actualiza y elimina. Análisis y cuatro pruebas aprobados. Windows requiere el toolchain C++ de Visual Studio para ejecutar o compilar en esta PC. Ver `docs/FLUTTER_CONSUMER.md`.
 
+Evidencia manual adicional: un teléfono Android consultó `pedidos` desde la aplicación Flutter contra un backend generado que corría en la PC por la IP LAN y puerto 8081; la respuesta `[]` confirmó la conexión real. El ZIP usado tenía `Cliente` y `ClientePremium` abstractas, por lo que solo exponía `/pedidos`.
+
+Prueba posterior uno a uno: un ZIP con `Cliente` y `Pedido` concretos, relación `1 — 0..1`, se ejecutó en PostgreSQL. Desde Android se creó Cliente 1 y Pedido 1 relacionado; la consulta del cliente devolvió la referencia inversa al Pedido 1.
+
 El usuario tiene pocos tokens: responder en espanol breve y trabajar por incrementos pequenos completos. Pidio este relevo para continuar con otra cuenta. No necesita rehacer el proyecto ni depender del chat anterior.
 
 ## Leer primero

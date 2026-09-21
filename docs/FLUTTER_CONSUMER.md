@@ -28,4 +28,8 @@ El backend generado no expone un contrato con los nombres y atributos del diagra
 
 `flutter analyze` no reporta problemas y `flutter test --no-pub --reporter expanded` aprueba cuatro pruebas: URL/recurso, operaciones HTTP CRUD y pantalla CRUD.
 
+También se hizo una prueba manual desde un teléfono Android conectado a la misma red Wi-Fi que la PC. Con el backend de un ZIP generado activo en el puerto 8081, la aplicación usó la IP LAN de la PC y consultó el recurso `pedidos`; recibió `[]`. Esto confirma la conectividad Android → backend generado por la red local. El resultado vacío es esperado en una base sin pedidos.
+
+En una segunda prueba, con `Cliente` y `Pedido` concretos y relación `1 — 0..1`, se creó un cliente y un pedido mediante la aplicación. Al consultar el cliente, su referencia inversa técnica al pedido devolvió el ID `1`. Esto comprueba el alta y la navegación de la asociación uno a uno desde Android.
+
 El build Windows está bloqueado en esta PC porque Flutter no encuentra el toolchain C++ de Visual Studio. Instalar la carga de trabajo **Desktop development with C++** permite compilar y ejecutar `flutter run -d windows`. No es un fallo del código Flutter.
