@@ -8,7 +8,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request(path: string, options: RequestInit = {}): Promise<Response> {
   const method = options.method ?? 'GET'
   const headers = new Headers(options.headers)
   if (options.body) headers.set('Content-Type', 'application/json')
@@ -37,9 +37,20 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     throw new ApiError(
       response.status,
       body.code ?? 'ERROR_SERVIDOR',
-      body.message ?? 'El servidor no pudo completar la operación.',
+      body.issues?.map((issue: { message: string }) => issue.message).join('\n') ||
+        body.message || 'El servidor no pudo completar la operación.',
     )
   }
+  return response
+}
+
+export async function apiBlob(path: string): Promise<Blob> {
+  const response = await request(path, { signal: AbortSignal.timeout(60000) })
+  return response.blob()
+}
+
+export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await request(path, options)
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }

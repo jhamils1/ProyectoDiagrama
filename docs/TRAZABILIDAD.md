@@ -1,6 +1,44 @@
 # Trazabilidad de requisitos, código y pruebas
 
-Base: `CONTEXTO_PROYECTO.md` §6–13 y Word §3.1.4–3.1.5. Actualizado: 20 de septiembre de 2026.
+Base: `CONTEXTO_PROYECTO.md` §6–13 y Word §3.1.4–3.1.5. Actualizado: 21 de septiembre de 2026.
+
+## CU11 — cuarto incremento: CRUD generado con PostgreSQL
+
+`scripts/test-generated-backend.ps1` → generación actual Cliente/Pedido → ZIP extraído por fixture de `BackendGeneratorTest` → Maven clean/package → JAR con PostgreSQL/esquema aislado → **29 solicitudes HTTP aprobadas**. Cubre crear/listar/buscar/actualizar/eliminar Cliente y Pedido, relación por ID y colección inversa, cambio de asociación, errores 400/404/409, rollback y borrado sin cascada. Trece pruebas específicas de generación/validación aprobadas al preparar la muestra. Proceso y esquema de QA limpiados al finalizar; datos de desarrollo intactos. [Evidencia](evidencias/cu11-crud-postgresql.json), [procedimiento y límites](CU11_GENERADOR.md). Esta prueba acredita el CRUD de la muestra; no acredita todavía consumo Flutter ni demostración manual con Postman. Las evidencias de descarga/permisos/navegador están en el tercer incremento.
+
+### Tercer incremento: descarga integrada (histórico)
+
+`GenerationController` → instantánea autorizada de `DiagramService.get` → `BackendGenerator.zip`. `GenerateBackendButton`, `apiBlob`, `ProjectDiagrams` y `OfflineProjectEditor` → botón/descarga/mensajes en editores centrales y copias sincronizadas. `DiagramIntegrationTest.backendDownloadChecksPermissionsRevisionAndKeepsHistory` y `backendDownloadReportsValidationIssuesInsteadOfZip` comprueban permisos, revocación, revisión, cabeceras, contenido ZIP, incidencias y ausencia de versiones nuevas. `e2e/generation.spec.ts` comprueba descarga y errores con respuestas controladas, bloqueo por edición pendiente y CONSULTA. **78 pruebas backend, 157 unitarias frontend y 2 E2E aprobadas; compilación web correcta.** Falta CRUD del proyecto generado contra PostgreSQL. Lint: dos avisos previos en DiagramCanvas, sin errores nuevos. Ver [CU11_GENERADOR.md](CU11_GENERADOR.md).
+
+### Segundo incremento: generador ZIP interno (histórico)
+
+`generation/BackendGenerator.java`: clases/atributos → entidades JPA, repositorios, CRUD, controladores y DTOs; asociaciones 1 a 0..* → referencias por ID y colecciones de respuesta; proyecto Maven/configuración/README → ZIP UTF-8. `BackendGeneratorTest`: ZIP extraíble, compilación Java de Cliente/Pedido y extremos invertidos, rechazo de nombres inválidos/modelos incompletos/ciclos obligatorios y modelo original intacto. **13 pruebas aprobadas junto al validador; Maven package del proyecto generado aprobado.** No se ha probado aún el CRUD generado con PostgreSQL. Endpoint, permisos/revisión y botón de descarga pendientes. Ver [CU11_GENERADOR.md](CU11_GENERADOR.md). La tabla de alcance posterior conserva criterios pendientes de aceptación integral.
+
+### Primer incremento: validación inicial (evidencia histórica)
+
+`apps/api/src/main/java/bo/edu/modela/generation/GenerationValidator.java` valida un `DiagramDocument` sin modificarlo y reutiliza las restricciones UML existentes. `GenerationValidatorTest` cubre ocho escenarios: Cliente/Pedido en ambas orientaciones y sin mutación; diagrama vacío; identificador no inferido por nombre y tipo ausente; identificador no Long y tipos no mapeados; abstracción/herencia; otras multiplicidades; referencias inexistentes; catálogo de tipos acordado. Resultado: **8 pruebas, 0 fallos y 0 errores**, Maven BUILD SUCCESS. El primer intento aislado falló por acceso a una dependencia local; la ejecución autorizada posterior pasó.
+
+El identificador se reconoce por `identifier=true`, no por llamarse `id`; debe ser Long. En el futuro CRUD su valor lo proporcionará el cliente. No se crea ningún atributo. Float/UUID se informan como no soportados por este primer mapeo; atributos sin tipo siguen admitidos por el editor. Asociaciones 1 a 0..* se aceptan en ambas orientaciones. Clases abstractas, herencia y otras multiplicidades se informan explícitamente.
+
+Límite: es una función interna sin endpoint ni acceso a datos persistidos; no añade ni cambia permisos. No hay botón, generador o ZIP aún. Un resultado sin errores solo acredita estas reglas iniciales, no la compilabilidad: nombres/colisiones y demás restricciones del código generado deben validarse al implementar el generador. No se han ejecutado todavía pruebas CRUD del proyecto producido.
+
+### Alcance restante del generador
+
+La decisión vigente prioriza CU11 antes de métodos UML. El alcance se detalla al inicio de `CONTEXTO_PROYECTO.md`. Esta tabla describe trabajo y pruebas previstos; no declara código nuevo ni resultados ejecutados.
+
+| Requisito acordado | Correspondencia prevista con código y datos | Prueba de aceptación pendiente |
+| --- | --- | --- |
+| Generar desde el modelo existente, sin inventar clases o atributos | Lectura validada de clases, atributos, tipos, relaciones y multiplicidades; generador por diseñar | Comparar el modelo Cliente/Pedido con las entidades generadas; comprobar que no aparecen elementos de dominio adicionales |
+| Entidades JPA y tipos Java | Plantillas de entidades y mapeo explícito solicitado; sin alterar el modelo UML | Verificar String, Integer/int, Long, Boolean, Decimal/Double → Double y Date/DateTime → LocalDateTime; rechazar tipos no resueltos |
+| Asociación Cliente 1 — 0..* Pedido | Generación de `@OneToMany` y `@ManyToOne` sobre los extremos existentes | Compilar, persistir y consultar la relación en PostgreSQL; verificar integridad y DTOs sin recursión |
+| Repositorios, servicios, controladores y DTOs CRUD | `JpaRepository`, listar/buscar/crear/actualizar/eliminar y endpoints REST; implementación pendiente | Ejecutar GET/POST `/clientes` y GET/PUT/DELETE `/clientes/{id}`, además del CRUD de Pedido; comprobar identificadores inexistentes y datos inválidos |
+| Descargar proyecto ejecutable | ZIP Maven con `pom.xml`, configuración, arranque y fuentes organizadas | Descargar, extraer, compilar y arrancar el proyecto con PostgreSQL; probarlo mediante solicitudes REST |
+| Compatibilidad, validaciones y permisos | Reutilizar controles existentes; definir autorización de generación y versión de entrada antes de implementar | Rechazar acceso no autorizado y modelo insuficiente con mensajes claros; comprobar que generar no modifica el diagrama ni rompe edición/IA |
+| Excluir métodos UML y lógica personalizada | Generación limitada al CRUD y elementos admitidos | Verificar ausencia de generación de operaciones UML o reglas de negocio inferidas |
+
+Decisiones previas pendientes: identificación y generación de claves sin inventar `id`; atributos sin tipo; Float/UUID; nombres y colisiones; herencia/clases abstractas y otras multiplicidades; DTOs y reglas de eliminación; permisos, versión de entrada y configuración del proyecto producido. Las relaciones no soportadas deben informarse, no descartarse silenciosamente. Los tipos opcionales continúan permitidos en el editor.
+
+Evidencia de generación y ejecución del ZIP: **pendiente**. La validación inicial tiene la evidencia unitaria indicada arriba. El escenario integral será `Cliente 1 — 0..* Pedido` con tipos e identificadores definidos. El Word se actualizará posteriormente con la implementación y sus resultados. `CONTINUAR_AQUI.md` no se modifica; CU15 sigue pendiente para el final y requiere consulta previa.
 
 Estado: **quinta parte web completa e integración de IA limitada para presentación (6G)**, autorizada por el usuario con los comandos demostrados. Cuatro operaciones y seis formas de instrucción, vista previa y confirmación; comprobación exacta adicional de intención. Ensayo real offline: 6/6 guardados y recuperados. El benchmark general 6F sigue en 9/20; no se aprueba lenguaje libre ni se declara completado CU14. Métodos, voz/móvil/asistencia, Google real e interoperabilidad/generación siguen pendientes. CU15 al final y previa consulta/autorización. V3 conserva diez entidades; IndexedDB de proyectos sigue en 2. Los incrementos anteriores conservan su alcance histórico.
 

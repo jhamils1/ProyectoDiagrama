@@ -73,6 +73,8 @@ export default function App() {
 export type EditorController = Omit<ReturnType<typeof useEditor>, 'diagrams'> & {
   diagrams: Pick<Diagram, 'id' | 'name'>[]
 }
+import { GenerateBackendButton, type GenerationSource } from './features/generation/GenerateBackendButton'
+
 export function EditorView({
   editor,
   remote,
@@ -84,6 +86,7 @@ export function EditorView({
     readOnly: boolean
     reload: () => void
     offlineAction?: ReactNode
+    generationSource?: GenerationSource
     setEditing: (area: string, pending: boolean) => void
     syncMessage: string
     presence: Presence
@@ -433,6 +436,10 @@ export function EditorView({
           <>
             <div className="editor-toolbar">
               <div className="toolbar-group">
+                {remote?.generationSource && <GenerateBackendButton
+                  source={remote.generationSource}
+                  blocked={locked || !online || pendingFields || renaming || !!relation || deleting || assistantOpen}
+                />}
                 <button
                   className="secondary"
                   disabled={locked || pendingFields || renaming}

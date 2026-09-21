@@ -29,6 +29,48 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class DiagramIntegrationTest {
+  @Test @SuppressWarnings("unchecked")
+  void backendDownloadChecksPermissionsRevisionAndKeepsHistory() throws Exception {
+    var doc = copy(document());
+    var classes = (List<Map<String,Object>>)doc.get("classes");
+    for (var c : classes) c.put("attributes", List.of(Map.of("id", UUID.randomUUID().toString(),
+        "name", "codigo", "dataType", "Long", "visibility", "private", "identifier", true, "required", true)));
+    create(doc, admin).andExpect(status().isCreated());
+    String endpoint = path()+"/"+doc.get("id")+"/backend?revision=0";
+    mvc.perform(get(endpoint)).andExpect(status().isUnauthorized());
+    mvc.perform(get(endpoint).with(actor(collaborator))).andExpect(status().isNotFound());
+    var member = members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    mvc.perform(get(endpoint).with(actor(collaborator))).andExpect(status().isForbidden());
+    member.permiso = Participacion.Permiso.EDICION; members.saveAndFlush(member);
+    for (var user : List.of(admin, collaborator)) {
+      var response = mvc.perform(get(endpoint).with(actor(user))).andExpect(status().isOk())
+          .andExpect(content().contentType("application/zip"))
+          .andExpect(header().string("Cache-Control", "no-store"))
+          .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".zip")))
+          .andReturn().getResponse();
+      try (var zip = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(response.getContentAsByteArray()))) {
+        var names = new ArrayList<String>();
+        for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) names.add(entry.getName());
+        assertThat(names).contains("pom.xml", "src/main/java/com/example/generated/entity/Cliente.java");
+      }
+    }
+    mvc.perform(get(path()+"/"+doc.get("id")+"/backend?revision=1").with(actor(admin))).andExpect(status().isConflict());
+    mvc.perform(get("/api/projects/"+other.id+"/diagrams/"+doc.get("id")+"/backend?revision=0").with(actor(admin))).andExpect(status().isNotFound());
+    assertThat(jdbc.queryForObject("select count(*) from version_diagrama where diagrama_id=?", Integer.class,
+        UUID.fromString((String)doc.get("id")))).isEqualTo(1);
+    members.deleteById(member.id);
+    mvc.perform(get(endpoint).with(actor(collaborator))).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void backendDownloadReportsValidationIssuesInsteadOfZip() throws Exception {
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    mvc.perform(get(path()+"/"+doc.get("id")+"/backend?revision=0").with(actor(admin)))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("GENERACION_INVALIDA"))
+        .andExpect(jsonPath("$.issues[0].elementId").exists())
+        .andExpect(jsonPath("$.issues[0].message").isNotEmpty());
+  }
   ResultActions createOffline(Map<String,Object> doc, UUID requestId, Usuario user) throws Exception {
     return mvc.perform(post(path()+"/"+doc.get("id")+"/changes/create").with(actor(user)).with(csrf())
       .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(

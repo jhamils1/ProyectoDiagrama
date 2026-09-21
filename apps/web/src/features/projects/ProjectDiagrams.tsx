@@ -114,6 +114,7 @@ function ProjectEditor({
           readOnly: state.readOnly,
           reload: state.reload,
           offlineAction,
+          generationSource: { projectId: project.id, diagramId, revision: state.revision, ready: !!state.editor.active && !state.conflict },
           setEditing: state.setEditing,
           syncMessage: state.syncMessage,
           presence: state.presence,

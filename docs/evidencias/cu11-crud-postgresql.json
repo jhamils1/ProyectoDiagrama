@@ -1,0 +1,182 @@
+﻿{
+    "checks":  [
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "POST",
+                       "path":  "/clientes",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/clientes",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "POST",
+                       "path":  "/clientes",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/clientes",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientes/999",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "POST",
+                       "path":  "/pedidos",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "POST",
+                       "path":  "/pedidos",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/pedidos",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/pedidos/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes/1",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/pedidos",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "DELETE",
+                       "path":  "/clientes/1",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes/1",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "PUT",
+                       "path":  "/clientes/1",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "PUT",
+                       "path":  "/clientes/1",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "PUT",
+                       "path":  "/pedidos/10",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/pedidos/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "PUT",
+                       "path":  "/pedidos/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/pedidos/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes/2",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "PUT",
+                       "path":  "/clientes/999",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/pedidos/10",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/pedidos/10",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "DELETE",
+                       "path":  "/pedidos/10",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/clientes/1",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/clientes/2",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes",
+                       "actual":  200
+                   }
+               ],
+    "timestamp":  "2026-09-21T05:43:33.7036818Z",
+    "database":  "PostgreSQL/modela_test, esquema aislado",
+    "success":  true,
+    "generatedProject":  "Cliente/Pedido"
+}

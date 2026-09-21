@@ -242,6 +242,10 @@ export function OfflineProjectEditor({
           presence: [],
           connection: 'reconnecting',
           localCopy: true,
+          generationSource: {
+            projectId, diagramId, revision: copy?.base.revision ?? 0,
+            ready: online && !!copy && !copy.pending && !copy.conflict,
+          },
           conflictPending: !!copy?.conflict,
           review: () => setReviewing(true),
         }}
