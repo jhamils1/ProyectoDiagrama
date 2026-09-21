@@ -71,6 +71,20 @@ class BackendGeneratorTest {
   @Test void reversedRelationAndJavaTypeNamesCompile() throws Exception {
     compile(unpack(BackendGenerator.zip(model(clazz("String", "value"), clazz("Long", "text"), true))));
   }
+  @Test void oneToOneGeneratesUniqueOwningReferenceAndOptionalInverse() throws Exception {
+    var persona = clazz("Persona", "nombre");
+    var perfil = clazz("Perfil", "biografia");
+    var relation = new RelationData(UUID.randomUUID(), "association", persona.id(), perfil.id(), "", "1", "0..1");
+    var files = BackendGenerator.files(new DiagramDocument(1, UUID.randomUUID(), "Uno a uno", 0L,
+        Instant.EPOCH, List.of(persona, perfil), List.of(relation)));
+    String root = "src/main/java/com/example/generated/";
+    String field = "r" + relation.id().toString().replace("-", "");
+    assertThat(files.get(root + "entity/Perfil.java")).contains("@jakarta.persistence.OneToOne", "unique=true", "public com.example.generated.entity.Persona " + field);
+    assertThat(files.get(root + "entity/Persona.java")).contains("@jakarta.persistence.OneToOne(mappedBy=\"" + field + "\")", "public com.example.generated.entity.Perfil " + field + "Item");
+    assertThat(files.get(root + "dto/PerfilRequest.java")).contains("@jakarta.validation.constraints.NotNull java.lang.Long " + field + "Id");
+    assertThat(files.get(root + "dto/PersonaResponse.java")).contains("java.lang.Long " + field + "ItemId");
+    compile(files);
+  }
   @Test void rejectsJavaKeywordsAndReservedRecordNames() {
     var model = model(clazz("class", "nombre"), clazz("Pedido", "getClass"), false);
     assertThatThrownBy(() -> BackendGenerator.zip(model)).isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,
@@ -108,11 +122,11 @@ class BackendGeneratorTest {
     var files = new TreeMap<String, String>();
     String root = "com/example/generated/entity/";
     files.put(root + "Cliente.java", BackendGenerator.entitySource(base,
-        List.of(new BackendGenerator.Link("clienteItems", order, false)), plan.classes().get(base.id()), true));
+        List.of(new BackendGenerator.Link("clienteItems", order, false, false)), plan.classes().get(base.id()), true));
     files.put(root + "Premium.java", BackendGenerator.entitySource(child, List.of(), plan.classes().get(child.id()), false));
     files.put(root + "Especial.java", BackendGenerator.entitySource(leaf, List.of(), plan.classes().get(leaf.id()), false));
     files.put(root + "Pedido.java", BackendGenerator.entitySource(order,
-        List.of(new BackendGenerator.Link("cliente", base, true)), plan.classes().get(order.id()), false));
+        List.of(new BackendGenerator.Link("cliente", base, true, false)), plan.classes().get(order.id()), false));
     assertThat(files.get(root + "Cliente.java")).contains("InheritanceType.JOINED", "@jakarta.persistence.Id");
     assertThat(files.get(root + "Premium.java")).contains("extends com.example.generated.entity.Cliente", "PrimaryKeyJoinColumn")
         .doesNotContain("@jakarta.persistence.Id", " codigo;", " nombre;", "clienteItems");

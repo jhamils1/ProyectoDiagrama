@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 /** Initial CU11 eligibility rules, independent of persistence and transport. */
@@ -53,10 +54,10 @@ public final class GenerationValidator {
     }
     for (var r : document.relations()) {
       if (r.type().equals("generalization")) continue;
-      if (!((r.sourceMultiplicity().equals("1") && r.targetMultiplicity().equals("0..*"))
-          || (r.sourceMultiplicity().equals("0..*") && r.targetMultiplicity().equals("1")))) {
+      if (!((r.sourceMultiplicity().equals("1") && Set.of("0..*", "0..1").contains(r.targetMultiplicity()))
+          || (r.targetMultiplicity().equals("1") && Set.of("0..*", "0..1").contains(r.sourceMultiplicity())))) {
         issues.add(new Issue("MULTIPLICITY_UNSUPPORTED", r.id(),
-            "La generación inicial admite únicamente asociaciones 1 a 0..*."));
+            "La generación inicial admite asociaciones 1 a 0..* y 1 a 0..1."));
       }
     }
     return new Result(issues);

@@ -2,17 +2,17 @@
 
 ## Estado vigente para cambio de cuenta — 21/09/2026
 
-Leer primero `CONTINUAR_AQUI.md`. CU10 ya tiene evidencia manual del usuario en Enterprise Architect: Cliente/ClientePremium/Pedido, atributos/tipos, asociacion 1..1 a 0..* y herencia conservadas. Distribucion manual como Link, sin posiciones/estilos exportados. Ver `docs/CU10_EXPORTACION.md` para limites. Ultima solicitud: solo registrar evidencia; el usuario hara el commit. Abstractas en CU11 es una propuesta de siguiente trabajo, no una implementacion autorizada en este turno.
+Leer primero `CONTINUAR_AQUI.md`. CU10 ya tiene evidencia manual del usuario en Enterprise Architect: Cliente/ClientePremium/Pedido, atributos/tipos, asociacion 1..1 a 0..* y herencia conservadas. Distribucion manual como Link, sin posiciones/estilos exportados. Ver `docs/CU10_EXPORTACION.md` para limites. CU11 ya admite herencia, clases abstractas y asociaciones 1 a 0..1, además del caso 1 a 0..*.
 
 Editor, colaboración/offline, IA local de texto integrada, CU09 e implementación CU11 con herencia ya existen. No retomar el antiguo fallo de carga de Qwen3-1.7B como pendiente actual. Voz, CU16, Flutter, Google real, AWS y cierre documental siguen pendientes; CU15 queda al final previa autorización explícita.
 
-Último commit observado: `7a4e82f`. CU10 y este relevo tienen cambios locales pendientes de commit al preparar el traspaso; revisar Git, no asumir que están en el remoto. Mantener la misma carpeta y perfil del navegador para conservar datos. Nunca copiar secretos de `.local/backend.json`.
+Último commit observado antes del incremento uno a uno: `07cb521`. Este incremento tiene cambios locales pendientes de commit; revisar Git, no asumir que están en el remoto. Mantener la misma carpeta y perfil del navegador para conservar datos. Nunca copiar secretos de `.local/backend.json`.
 
 **Precedencia documental:** este bloque y los estados CU10/CU11/CU09 inmediatamente siguientes prevalecen sobre los relatos de etapas antiguas, aunque estos usen «vigente» o «pendiente». Los requisitos académicos posteriores se conservan; las evidencias de cada etapa no equivalen a nuevas pruebas ejecutadas hoy.
 
 CU10, etapa 2: `EaXmiWriter` produce XML UML/XMI con clases, atributos, asociaciones y herencia. Endpoint autorizado y botón Exportar XML disponibles; 109 pruebas backend y 4 E2E de descargas aprobadas. Pendiente comprobación real de importación en EA. No exporta aún distribución visual. Ver `docs/CU10_EXPORTACION.md`.
 
-CU11: herencia simple y clases abstractas habilitadas con JPA JOINED, DTOs/CRUD para descendientes concretos e ID Long compartido desde la raíz. Una raíz abstracta genera entidad sin endpoint propio. Verificación PostgreSQL: 62 solicitudes con herencia, 29 del CRUD original y 17 con abstractas; descarga con permisos/revisión verificada. Detalles y evidencia en `docs/CU11_GENERADOR.md`.
+CU11: herencia simple y clases abstractas habilitadas con JPA JOINED, DTOs/CRUD para descendientes concretos e ID Long compartido desde la raíz. Una raíz abstracta genera entidad sin endpoint propio. Las asociaciones 1 a 0..* y 1 a 0..1 están generadas; la segunda usa OneToOne único y referencia inversa opcional. Verificación PostgreSQL: 62 solicitudes con herencia, 29 del CRUD original y 17 con abstractas; descarga con permisos/revisión verificada. Detalles y evidencia en `docs/CU11_GENERADOR.md`.
 
 CU11 abstractas: la generación pública emite una raíz JPA `public abstract` con JOINED; la raíz no tiene endpoint y la hija concreta sí. 25 pruebas específicas de herencia/generación y 17 comprobaciones PostgreSQL aisladas aprobaron entidad, alta/consulta, asociación, colección inversa, actualización, rollback y borrado protegido.
 

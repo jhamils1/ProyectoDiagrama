@@ -4,7 +4,7 @@ Actualizado: 21/09/2026. Proyecto Modela. Carpeta: `C:/Users/USUARIO/Desktop/Pri
 
 ## Punto exacto de continuacion
 
-**CU10: importacion manual en EA comprobada para la muestra Cliente/ClientePremium/Pedido.** La captura del usuario muestra atributos/tipos, asociacion 1..1 a 0..* y herencia hacia Cliente. Clases colocadas manualmente como Link: no se conservan posiciones/estilos. Evidencia y limites en docs/CU10_EXPORTACION.md. El usuario solicito solo registrar evidencia; hara el commit manualmente. Proxima ampliacion propuesta: abstractas en CU11, pendiente autorizacion para implementarla.
+**CU11: herencia, clases abstractas y uno a uno inicial terminados.** La descarga genera entidades JPA JOINED; una raíz abstracta no tiene CRUD propio y su hija concreta sí. Además de `1 — 0..*`, se admite `1 — 0..1`: genera `@OneToOne` único y obligatorio en el extremo `0..1`, con referencia inversa opcional en el extremo `1`. No se admiten todavía `1 — 1`, `0..1 — 0..*` ni muchos a muchos. CU10 conserva la importación manual en EA comprobada para Cliente/ClientePremium/Pedido, sin posiciones/estilos.
 
 El usuario tiene pocos tokens: responder en espanol breve y trabajar por incrementos pequenos completos. Pidio este relevo para continuar con otra cuenta. No necesita rehacer el proyecto ni depender del chat anterior.
 
@@ -19,11 +19,11 @@ Los documentos de etapas antiguas describen historia. NO retomar el antiguo fall
 
 ## Estado implementado
 
-- Editor UML: clases, atributos, abstraccion, asociaciones y generalizacion. Inspector aplica por Enter/blur, Suprimir elimina con confirmacion, nuevas clases centradas, mejoras de lienzo y paneles. Metodos UML no implementados.
+- Editor UML: clases, atributos, abstraccion, asociaciones y generalizacion. El diálogo de asociación ofrece los preajustes Uno a muchos (1 — 0..*) y Uno a uno (1 — 0..1); Personalizada conserva la edición UML libre. Inspector aplica por Enter/blur, Suprimir elimina con confirmacion, nuevas clases centradas, mejoras de lienzo y paneles. Metodos UML no implementados.
 - Herramienta web: usuarios, administrador, proyectos, permisos CONSULTA/EDICION, diagramas/versiones, colaboracion, presencia, propuestas y conflictos. IndexedDB/PWA y sincronizacion offline; conservar migraciones y pendientes. Correcciones de conflictos espurios en docs/CORRECCION_SINCRONIZACION_EDICION.md.
 - IA local de texto integrada para edicion UML limitada con validacion y confirmacion. Qwen3-1.7B funciona en el flujo actual. Guia de demostracion: docs/PRUEBA_PRESENTACION_IA.md. No es generador general de sistemas; las metricas antiguas del laboratorio no describen todo el estado actual.
 - CU09: importar EA UML 2.5/XMI 2.5.1, previsualizar y confirmar nuevo diagrama. Real->Double y omision de relaciones vacias se proponen automaticamente y se explican; opciones avanzadas permiten cambiarlas. Otras ambiguedades requieren decision. Compatibilidad limitada al subconjunto probado.
-- CU11: ZIP Maven Spring Boot/Java21/PostgreSQL, entidades, repositorios, DTOs, servicios y REST CRUD. Asociaciones 1 a 0..*, herencia simple JOINED entre clases concretas, cadenas y varias hijas. ID Long explicito solo en raiz, heredado. No abstractas, metodos ni logica de negocio; otras multiplicidades pendientes.
+- CU11: ZIP Maven Spring Boot/Java21/PostgreSQL, entidades, repositorios, DTOs, servicios y REST CRUD. Asociaciones 1 a 0..* y 1 a 0..1; la segunda usa OneToOne único, referencia inversa opcional y escritura desde el extremo 0..1. Herencia JOINED, cadenas, varias hijas y raíces abstractas sin endpoint propio. ID Long explícito solo en raíz, heredado. Métodos y lógica de negocio no implementados; las demás multiplicidades quedan pendientes.
 - CU10: XML semantico descargable con clases, abstraccion, tipos, visibilidad, isID, obligatoriedad, asociaciones y herencia. Importacion real de la muestra comprobada; no implica compatibilidad universal.
 
 ## Codigo y contratos importantes
@@ -43,7 +43,7 @@ En diagrama manual del usuario, ClientePremium tenia id duplicado y lo renombro 
 
 ## Evidencias y pruebas
 
-- Ultima suite backend: 109 pruebas sin fallos, Maven BUILD SUCCESS, .qa/cu10-api-tests.log.
+- Última suite backend: 112 pruebas sin fallos, Maven BUILD SUCCESS tras añadir uno a uno.
 - Build web completo con PWA generado: .qa/cu10-web-build.log. Advertencias de tamano y tiempos de bundle. PowerShell puede mostrar NativeCommandError/exit 1 por stderr de advertencias aunque la herramienta termine bien: inspeccionar resultado real.
 - 4 E2E aprobadas en apps/web/e2e/generation.spec.ts: ZIP/XML, conflicto y bloqueos por edicion/permisos. Respuestas controladas; API comprobada aparte.
 - 18 pruebas de interoperabilidad (lector/conversor/escritor).
@@ -83,7 +83,7 @@ Sesiones en memoria, cookie HttpOnly y CSRF. No cachear /api. No borrar IndexedD
 ## Pendientes posteriores
 
 1. CU10: muestra verificada en EA; ampliar cobertura o distribucion visual solo si se solicita.
-2. CU11: abstractas, mas multiplicidades/tipos segun prioridad.
+2. CU11: más multiplicidades/tipos según prioridad; uno a uno inicial y abstractas ya están terminados.
 3. Voz local, asistencia contextual CU16, Flutter diagramador y Flutter consumidor del backend (son alcances distintos).
 4. Google con cuenta real, despliegue AWS HTTPS/WSS, manual/tutoriales y Word con evidencias.
 5. CU15 imagen: AL FINAL, solo tras consultar y obtener autorizacion explicita.
@@ -92,12 +92,12 @@ No sustituir IA local por remota sin acuerdo. No reset/clean, no borrar datos ni
 
 ## Git y cambio de cuenta
 
-Ultimo commit observado: 7a4e82f feat: importar diagramas EA y generar backend CRUD con herencia JPA. CU10 y este relevo tienen cambios locales SIN COMMIT al escribir este documento. Revisar git status. No hubo commit/push por el asistente. Remoto conocido https://github.com/jhamils1/ProyectoDiagrama.git; verificar antes de publicar.
+Último commit observado antes de este incremento: `07cb521`. La relación uno a uno y esta actualización documental tienen cambios locales sin commit. Revisar `git status`. El usuario realiza commit/push manualmente. Remoto conocido https://github.com/jhamils1/ProyectoDiagrama.git; verificar antes de publicar.
 
 Misma PC: abrir esta MISMA carpeta con nueva cuenta; no hace falta clonar. Git no traslada .local, .tools, .qa, base de datos ni IndexedDB. Cambiar de PC requiere respaldos privados adicionales: publicar codigo no basta.
 
 Mensaje para pegar en nueva cuenta:
 
-> Continua Modela en esta carpeta. Lee CONTINUAR_AQUI.md y el estado vigente de CONTEXTO_PROYECTO.md; despues docs/CU10_EXPORTACION.md. CU09 y CU11 con herencia ya funcionan. CU10 tiene generador, descarga y prueba manual en EA para la muestra; lee la evidencia y acuerda el siguiente incremento. No rehagas lo terminado ni implementes CU15. Tengo pocos tokens: trabaja por incrementos pequenos y completos. Conserva datos, secretos y cambios locales.
+> Continúa Modela en esta carpeta. Lee CONTINUAR_AQUI.md y el estado vigente de CONTEXTO_PROYECTO.md; después docs/CU11_GENERADOR.md. CU09/CU10 y CU11 con herencia, abstractas y asociaciones 1 a 0..1 ya funcionan. No rehagas lo terminado ni implementes CU15. Tengo pocos tokens: trabaja por incrementos pequeños y completos. Conserva datos, secretos y cambios locales.
 
 La nueva cuenta sigue sus propias instrucciones/permisos; este archivo aporta contexto, no credenciales ni acceso automatico.

@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { X, ArrowRight } from 'lucide-react'
 import type { Diagram, ModelCommand, UmlRelation } from '../domain/model'
 
+type MultiplicityPreset = 'one-to-many' | 'one-to-one' | 'custom'
+
+function presetFor(value: UmlRelation): MultiplicityPreset {
+  if (value.sourceMultiplicity === '1' && value.targetMultiplicity === '0..*') return 'one-to-many'
+  if (value.sourceMultiplicity === '1' && value.targetMultiplicity === '0..1') return 'one-to-one'
+  return 'custom'
+}
+
 export function RelationDialog({
   diagram,
   initial,
@@ -19,6 +27,7 @@ export function RelationDialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const [value, setValue] = useState(initial)
+  const [preset, setPreset] = useState<MultiplicityPreset>(() => presetFor(initial))
   const [failure, setFailure] = useState(false)
   useEffect(() => {
     ref.current?.showModal()
@@ -92,6 +101,27 @@ export function RelationDialog({
           />
         </label>
         {value.type === 'association' && (
+          <>
+            <label>
+              Tipo de multiplicidad
+              <select
+                value={preset}
+                onChange={(e) => {
+                  const next = e.target.value as MultiplicityPreset
+                  setPreset(next)
+                  if (next === 'one-to-many') {
+                    setValue({ ...value, sourceMultiplicity: '1', targetMultiplicity: '0..*' })
+                  } else if (next === 'one-to-one') {
+                    setValue({ ...value, sourceMultiplicity: '1', targetMultiplicity: '0..1' })
+                  }
+                }}
+              >
+                <option value="one-to-many">Uno a muchos (1 — 0..*)</option>
+                <option value="one-to-one">Uno a uno (1 — 0..1)</option>
+                <option value="custom">Personalizada</option>
+              </select>
+            </label>
+            {preset === 'custom' && (
           <div className="form-columns">
             <label>
               Multiplicidad de origen
@@ -110,6 +140,8 @@ export function RelationDialog({
               />
             </label>
           </div>
+            )}
+          </>
         )}
         {value.type === 'generalization' && (
           <p className="hint">

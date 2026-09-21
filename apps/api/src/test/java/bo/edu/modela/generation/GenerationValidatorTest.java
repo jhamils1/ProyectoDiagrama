@@ -65,10 +65,14 @@ class GenerationValidatorTest {
     assertThat(GenerationValidator.validate(document(List.of(a, b), relation(b, a, "generalization", "1", "1"))).eligible()).isTrue();
   }
 
-  @Test void rejectsOtherMultiplicities() {
+  @Test void acceptsOneToOneAndRejectsOtherMultiplicities() {
     var a = clazz("Cliente", false, attribute("id", "Long", true));
     var b = clazz("Pedido", false, attribute("id", "Long", true));
-    for (var multiplicity : List.of("1", "1..*", "*", "0..1")) {
+    assertThat(GenerationValidator.validate(document(List.of(a, b),
+        relation(a, b, "association", "1", "0..1"))).eligible()).isTrue();
+    assertThat(GenerationValidator.validate(document(List.of(a, b),
+        relation(a, b, "association", "0..1", "1"))).eligible()).isTrue();
+    for (var multiplicity : List.of("1", "1..*", "*")) {
       assertThat(GenerationValidator.validate(document(List.of(a, b),
           relation(a, b, "association", "1", multiplicity))).issues())
           .extracting(GenerationValidator.Issue::code).containsExactly("MULTIPLICITY_UNSUPPORTED");

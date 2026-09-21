@@ -23,7 +23,8 @@ public final class BackendGenerator {
     public List<GenerationValidator.Issue> issues() { return issues; }
   }
 
-  record Link(String field, ClassData other, boolean manyToOne) {}
+  /** `manyToOne` identifies the owning, writable end; `oneToOne` changes its JPA cardinality. */
+  record Link(String field, ClassData other, boolean manyToOne, boolean oneToOne) {}
   private static String key(UUID id) { return id.toString().replace("-", ""); }
   private static String entity(ClassData c) { return PACKAGE + ".entity." + c.name(); }
   private static String id(ClassData c) {
@@ -62,11 +63,12 @@ public final class BackendGenerator {
       if (!r.type().equals("association")) continue;
       var oneId = r.sourceMultiplicity().equals("1") ? r.sourceId() : r.targetId();
       var manyId = r.sourceMultiplicity().equals("1") ? r.targetId() : r.sourceId();
+      boolean oneToOne = r.sourceMultiplicity().equals("0..1") || r.targetMultiplicity().equals("0..1");
       var one = model.classes().stream().filter(c -> c.id().equals(oneId)).findFirst().orElseThrow();
       var many = model.classes().stream().filter(c -> c.id().equals(manyId)).findFirst().orElseThrow();
       String field = "r" + key(r.id());
-      links.get(manyId).add(new Link(field, one, true));
-      links.get(oneId).add(new Link(field + "Items", many, false));
+      links.get(manyId).add(new Link(field, one, true, oneToOne));
+      links.get(oneId).add(new Link(field + (oneToOne ? "Item" : "Items"), many, false, oneToOne));
     }
     var effectiveLinks = new HashMap<UUID, List<Link>>();
     for (var c : model.classes()) {
@@ -82,7 +84,7 @@ public final class BackendGenerator {
       Set<String> names = new HashSet<>();
       c.attributes().forEach(a -> names.add(a.name()));
       for (var link : effectiveLinks.get(c.id())) {
-        for (var name : List.of(link.field(), link.field() + (link.manyToOne() ? "Id" : "Ids"))) {
+        for (var name : List.of(link.field(), relationDtoField(link))) {
           if (!names.add(name)) issues.add(new GenerationValidator.Issue("GENERATED_NAME_COLLISION", c.id(), "Nombre reservado para representar una relación: " + name));
         }
       }
@@ -160,7 +162,7 @@ public final class BackendGenerator {
       files.put(ROOT + "service/" + c.name() + "Service.java", service(state, ls, plan.root()));
       files.put(ROOT + "controller/" + c.name() + "Controller.java", controller(c));
       readme.append("\n- ").append(c.name()).append(": /").append(c.name().toLowerCase(Locale.ROOT)).append("s (ID: ").append(id(state)).append(")\n");
-      for (var l : ls) readme.append("  - ").append(l.field()).append(l.manyToOne() ? "Id" : "Ids").append(" → ").append(l.other().name()).append(l.manyToOne() ? " (obligatorio en solicitud)\n" : " (solo respuesta)\n");
+      for (var l : ls) readme.append("  - ").append(relationDtoField(l)).append(" → ").append(l.other().name()).append(l.manyToOne() ? " (obligatorio en solicitud)\n" : " (solo respuesta)\n");
     }
     if (plans.values().stream().anyMatch(p -> p.parent() != null)) readme.append("""
 
@@ -180,6 +182,9 @@ public final class BackendGenerator {
   private static String type(AttributeData a) {
     var t = GenerationValidator.JAVA_TYPES.get(a.dataType());
     return t.contains(".") ? t : "java.lang." + t;
+  }
+  private static String relationDtoField(Link link) {
+    return link.field() + ((link.manyToOne() || link.oneToOne()) ? "Id" : "Ids");
   }
   private static boolean hasCycle(UUID id, Map<UUID, List<Link>> links, Set<UUID> visiting, Set<UUID> done) {
     if (done.contains(id)) return false;
@@ -212,8 +217,13 @@ public final class BackendGenerator {
       s.append("  @jakarta.persistence.Column(name=\"a_").append(key(a.id())).append("\", nullable=").append(!a.required()).append(")\n  public ").append(type(a)).append(" ").append(a.name()).append(";\n");
     }
     for (var l : links) {
-      if (l.manyToOne()) s.append("  @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY, optional=false)\n  @jakarta.persistence.JoinColumn(name=\"").append(l.field()).append("\", nullable=false)\n  public ").append(entity(l.other())).append(" ").append(l.field()).append(";\n");
-      else s.append("  @jakarta.persistence.OneToMany(mappedBy=\"").append(l.field().replaceFirst("Items$", "")).append("\")\n  public java.util.List<").append(entity(l.other())).append("> ").append(l.field()).append(" = new java.util.ArrayList<>();\n");
+      if (l.manyToOne()) {
+        if (l.oneToOne()) s.append("  @jakarta.persistence.OneToOne(fetch=jakarta.persistence.FetchType.LAZY, optional=false)\n  @jakarta.persistence.JoinColumn(name=\"").append(l.field()).append("\", nullable=false, unique=true)\n");
+        else s.append("  @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY, optional=false)\n  @jakarta.persistence.JoinColumn(name=\"").append(l.field()).append("\", nullable=false)\n");
+        s.append("  public ").append(entity(l.other())).append(" ").append(l.field()).append(";\n");
+      } else if (l.oneToOne()) {
+        s.append("  @jakarta.persistence.OneToOne(mappedBy=\"").append(l.field().replaceFirst("Item$", "")).append("\")\n  public ").append(entity(l.other())).append(" ").append(l.field()).append(";\n");
+      } else s.append("  @jakarta.persistence.OneToMany(mappedBy=\"").append(l.field().replaceFirst("Items$", "")).append("\")\n  public java.util.List<").append(entity(l.other())).append("> ").append(l.field()).append(" = new java.util.ArrayList<>();\n");
     }
     return s.append("}\n").toString();
   }
@@ -221,8 +231,9 @@ public final class BackendGenerator {
     List<String> fields = new ArrayList<>();
     for (var a : c.attributes()) fields.add((!response && a.required() ? "@jakarta.validation.constraints.NotNull " : "") + type(a) + " " + a.name());
     for (var l : links) {
-      if (l.manyToOne()) fields.add((response ? "" : "@jakarta.validation.constraints.NotNull ") + "java.lang.Long " + l.field() + "Id");
-      else if (response) fields.add("java.util.List<java.lang.Long> " + l.field() + "Ids");
+      if (l.manyToOne()) fields.add((response ? "" : "@jakarta.validation.constraints.NotNull ") + "java.lang.Long " + relationDtoField(l));
+      else if (response && l.oneToOne()) fields.add("java.lang.Long " + relationDtoField(l));
+      else if (response) fields.add("java.util.List<java.lang.Long> " + relationDtoField(l));
     }
     return "package " + PACKAGE + ".dto;\npublic record " + c.name() + (response ? "Response" : "Request") + "(" + String.join(", ", fields) + ") {}\n";
   }
@@ -234,12 +245,12 @@ public final class BackendGenerator {
     s.append("  private ").append(e).append(" find(java.lang.Long id) { return repository.findById(id).orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND)); }\n");
     List<String> output = new ArrayList<>();
     c.attributes().forEach(a -> output.add("value." + a.name()));
-    for (var l : links) output.add(l.manyToOne() ? "(java.lang.Long) em.getEntityManagerFactory().getPersistenceUnitUtil().getIdentifier(value." + l.field() + ")" : "value." + l.field() + ".stream().map(item -> (java.lang.Long) em.getEntityManagerFactory().getPersistenceUnitUtil().getIdentifier(item)).toList()");
+    for (var l : links) output.add(l.manyToOne() ? "(java.lang.Long) em.getEntityManagerFactory().getPersistenceUnitUtil().getIdentifier(value." + l.field() + ")" : l.oneToOne() ? "value." + l.field() + " == null ? null : (java.lang.Long) em.getEntityManagerFactory().getPersistenceUnitUtil().getIdentifier(value." + l.field() + ")" : "value." + l.field() + ".stream().map(item -> (java.lang.Long) em.getEntityManagerFactory().getPersistenceUnitUtil().getIdentifier(item)).toList()");
     s.append("  private ").append(response).append(" dto(").append(e).append(" value) { return new ").append(response).append("(").append(String.join(", ", output)).append("); }\n");
     s.append("  private void apply(").append(e).append(" value, ").append(request).append(" input) {\n");
     for (var a : c.attributes()) s.append("    value.").append(a.name()).append(" = input.").append(a.name()).append("();\n");
     for (var l : links) if (l.manyToOne()) {
-      s.append("    value.").append(l.field()).append(" = em.find(").append(entity(l.other())).append(".class, input.").append(l.field()).append("Id());\n    if (value.").append(l.field()).append(" == null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, \"Referencia inexistente\");\n");
+      s.append("    value.").append(l.field()).append(" = em.find(").append(entity(l.other())).append(".class, input.").append(relationDtoField(l)).append("());\n    if (value.").append(l.field()).append(" == null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, \"Referencia inexistente\");\n");
     }
     s.append("  }\n  public java.util.List<").append(response).append("> list() { return repository.findAll().stream().map(this::dto).toList(); }\n  public ").append(response).append(" get(java.lang.Long id) { return dto(find(id)); }\n");
     String duplicateCheck = root.id().equals(c.id()) ? "repository.existsById(input." + id(c) + "())"
