@@ -1,5 +1,27 @@
 # Trazabilidad de requisitos, código y pruebas
 
+## CU09 — simplificación de decisiones, vigente
+
+`EaXmiReader.Issue` añade suggestedType/emptyAssociation; `ImportXmiDialog` prepara la vista previa automáticamente y expone opciones avanzadas. `EaXmiConverter` mantiene resoluciones validadas y avisos legibles; no persiste por analizar. Suite backend de 92 aprobada y luego 6 pruebas específicas del lector (incluye nueva garantía de no sugerir para tipos desconocidos/relaciones incompletas). Dos E2E controlada/real aprobadas, build correcto y captura revisada. La confirmación persiste, no la carga. [Decisión y límites](INTEROPERABILIDAD_01.md).
+
+## CU09 — carga, vista previa y confirmación integradas
+
+`ImportXmiDialog`/`ProjectDiagrams` → `XmiPreviewController` → decisiones explícitas → documento revisado → POST diagramas existente (permisos y validación reejecutados). `xmi-import.spec.ts`: 2 E2E aprobadas, controlada y API real; cero escrituras antes de confirmar, invalidación al editar, reintento con iguales IDs, importación real y recuperación con referencias correctas. Test de integración ampliado: permiso revocado antes de guardar, idempotencia y lectura. **92 backend aprobadas, build web correcto**; lint solo con avisos previos de DiagramCanvas. CU10 y formatos fuera de la muestra no acreditados. [Detalle y uso](INTEROPERABILIDAD_01.md).
+
+## CU09 — resoluciones y endpoint de vista previa, tercer incremento
+
+Resultado de ejecución: **92 pruebas backend aprobadas**, BUILD SUCCESS; incluye regresiones previas de permisos, diagramas, sincronización y generación.
+
+`EaXmiConverter` resuelve únicamente decisiones explícitas sobre incidencias admitidas; `XmiPreviewController` reutiliza permisos de proyecto y CSRF, acepta XML en base64 y responde sin guardar. `EaXmiConverterTest` añade resolución completa/parcial y opciones falsas; `DiagramIntegrationTest.xmiPreviewChecksAccessResolvesExplicitChoicesAndNeverPersists` verifica permisos, CSRF, revocación, incidencias, resultado corregido, entrada inválida y cero diagramas creados. Interfaz y confirmación/persistencia pendientes. [Contrato](INTEROPERABILIDAD_01.md).
+
+## CU09 — conversión validada sin guardado, segundo incremento
+
+`EaXmiConverter.preview` + metadatos ampliados de `EaXmiReader` → `DiagramDocument.validate`. `EaXmiConverterTest` prueba bloqueo atómico de la muestra original y conversión de variante compatible, posiciones, flags, referencias, UUID nuevos, nombres inválidos, métodos/colecciones y cuadrícula. **11 pruebas aprobadas en conjunto con el lector.** No acredita importación UI/persistencia ni CU10. Real y asociación vacía requieren resolución; no se modifican en silencio. [Decisiones y límites](INTEROPERABILIDAD_01.md).
+
+## CU09 — inventario XMI inicial (CU10 pendiente)
+
+`interoperability/EaXmiReader` + muestra real `src/test/resources/interoperability/ea-sample.xml` → clases, atributos, referencias, multiplicidades explícitas y herencia. `EaXmiReaderTest`: cinco pruebas aprobadas de muestra/codificación/incidencias/seguridad/formato. Se reportan Real sin equivalencia y asociación vacía; no se importa ni se guarda el inventario. Transformación completa, vista previa, permisos, persistencia y exportación pendientes. [Alcance y evidencia](INTEROPERABILIDAD_01.md).
+
 Base: `CONTEXTO_PROYECTO.md` §6–13 y Word §3.1.4–3.1.5. Actualizado: 21 de septiembre de 2026.
 
 ## CU11 — cuarto incremento: CRUD generado con PostgreSQL

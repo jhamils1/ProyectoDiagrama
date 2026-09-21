@@ -1,9 +1,13 @@
-param([int]$Port = 18081)
+param([int]$Port = 18081, [switch]$Inheritance)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $settings = Get-Content -Raw -LiteralPath (Join-Path $root '.local/backend.json') | ConvertFrom-Json
 $fixture = Join-Path $root '.qa/cu11-generated'
 $reportDir = Join-Path $root '.qa/cu11-runtime'
+if ($Inheritance) {
+  $fixture = Join-Path $root '.qa/cu11-inheritance-generated'
+  $reportDir = Join-Path $root '.qa/cu11-inheritance-runtime'
+}
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
 $schema = 'cu11_' + [guid]::NewGuid().ToString('N')
 $previous = @{}
@@ -17,7 +21,9 @@ try {
   $env:JAVA_HOME = Join-Path $root '.tools/jdk-21'
   $env:DEBUG = 'false'
   $maven = Join-Path $root '.tools/apache-maven-3.9.11/bin/mvn.cmd'
-  & $maven --batch-mode --no-transfer-progress "-Dmaven.repo.local=$root/.tools/m2" -f "$root/apps/api/pom.xml" '-Dtest=GenerationValidatorTest,BackendGeneratorTest' "-Dgeneration.fixture=$fixture" test *> "$reportDir/generation.log"
+  $fixtureProperty = "-Dgeneration.fixture=$fixture"
+  if ($Inheritance) { $fixtureProperty = "-Dgeneration.inheritanceFixture=$fixture" }
+  & $maven --batch-mode --no-transfer-progress "-Dmaven.repo.local=$root/.tools/m2" -f "$root/apps/api/pom.xml" '-Dtest=GenerationValidatorTest,BackendGeneratorTest,InheritancePlanTest' $fixtureProperty test *> "$reportDir/generation.log"
   if ($LASTEXITCODE -ne 0) { throw 'Falló la generación. Revisa .qa/cu11-runtime/generation.log.' }
   & $maven --batch-mode --no-transfer-progress "-Dmaven.repo.local=$root/.tools/m2" -f "$fixture/pom.xml" clean package *> "$reportDir/package.log"
   if ($LASTEXITCODE -ne 0) { throw 'Falló Maven del proyecto generado. Revisa .qa/cu11-runtime/package.log.' }
@@ -62,6 +68,9 @@ try {
   $relation = [regex]::Match($source, '\b(r[0-9a-f]{32}Id)\b').Groups[1].Value
   if (-not $relation) { throw 'No se encontró la referencia Cliente del DTO generado.' }
   $collection = $relation.Substring(0,$relation.Length-2) + 'ItemsIds'
+  if ($Inheritance) {
+    . (Join-Path $PSScriptRoot 'test-generated-inheritance-checks.ps1')
+  } else {
   Assert (@(Check GET /clientes 200).Count -eq 0) 'El esquema no estaba vacío.'
   Check POST /clientes 400 @{nombre='Sin identificador'} | Out-Null
   Check POST /clientes 201 @{codigo=1;nombre='Ana'} | Out-Null
@@ -99,7 +108,10 @@ try {
   Check DELETE /clientes/1 204 | Out-Null
   Check DELETE /clientes/2 204 | Out-Null
   Assert (@(Check GET /clientes 200).Count -eq 0) 'Quedaron clientes después de eliminar.'
-  @{success=$true; generatedProject='Cliente/Pedido'; database='PostgreSQL/modela_test, esquema aislado'; checks=$checks; timestamp=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "$reportDir/results.json"
+  }
+  $projectLabel = 'Cliente/Pedido'
+  if ($Inheritance) { $projectLabel = 'Cliente/ClientePremium/ClienteEspecial/ClienteVip/Pedido/Region (JOINED)' }
+  @{success=$true; generatedProject=$projectLabel; database='PostgreSQL/modela_test, esquema aislado'; checks=$checks; timestamp=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "$reportDir/results.json"
   Write-Output "CU11: $($checks.Count) solicitudes verificadas; CRUD y relaciones aprobados."
 } finally {
   if ($process -and -not $process.HasExited) { $process.Kill(); $process.WaitForExit() }

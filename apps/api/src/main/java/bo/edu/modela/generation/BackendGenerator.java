@@ -23,7 +23,7 @@ public final class BackendGenerator {
     public List<GenerationValidator.Issue> issues() { return issues; }
   }
 
-  private record Link(String field, ClassData other, boolean manyToOne) {}
+  record Link(String field, ClassData other, boolean manyToOne) {}
   private static String key(UUID id) { return id.toString().replace("-", ""); }
   private static String entity(ClassData c) { return PACKAGE + ".entity." + c.name(); }
   private static String id(ClassData c) {
@@ -36,6 +36,10 @@ public final class BackendGenerator {
 
   public static Map<String, String> files(DiagramDocument model) {
     var issues = new ArrayList<>(GenerationValidator.validate(model).issues());
+    var plans = InheritancePlan.analyze(model).classes();
+    var effective = new HashMap<UUID, ClassData>();
+    for (var c : model.classes()) effective.put(c.id(),
+        new ClassData(c.id(), c.name(), c.abstractClass(), c.position(), plans.get(c.id()).attributes()));
     for (var c : model.classes()) {
       if (!javaName(c.name())) issues.add(new GenerationValidator.Issue("JAVA_NAME_INVALID", c.id(), "Nombre Java no admitido: " + c.name()));
       for (var a : c.attributes()) {
@@ -47,6 +51,7 @@ public final class BackendGenerator {
     var links = new HashMap<UUID, List<Link>>();
     for (var c : model.classes()) links.put(c.id(), new ArrayList<>());
     for (var r : model.relations()) {
+      if (!r.type().equals("association")) continue;
       var oneId = r.sourceMultiplicity().equals("1") ? r.sourceId() : r.targetId();
       var manyId = r.sourceMultiplicity().equals("1") ? r.targetId() : r.sourceId();
       var one = model.classes().stream().filter(c -> c.id().equals(oneId)).findFirst().orElseThrow();
@@ -55,15 +60,25 @@ public final class BackendGenerator {
       links.get(manyId).add(new Link(field, one, true));
       links.get(oneId).add(new Link(field + "Items", many, false));
     }
+    var effectiveLinks = new HashMap<UUID, List<Link>>();
     for (var c : model.classes()) {
+      var ls = new ArrayList<Link>();
+      var ancestors = new ArrayDeque<ClassData>();
+      for (var current = c; current != null; current = plans.get(current.id()).parent()) {
+        ancestors.push(current);
+      }
+      while (!ancestors.isEmpty()) ls.addAll(links.get(ancestors.pop().id()));
+      effectiveLinks.put(c.id(), ls);
+    }
+    for (var c : effective.values()) {
       Set<String> names = new HashSet<>();
       c.attributes().forEach(a -> names.add(a.name()));
-      for (var link : links.get(c.id())) {
+      for (var link : effectiveLinks.get(c.id())) {
         for (var name : List.of(link.field(), link.field() + (link.manyToOne() ? "Id" : "Ids"))) {
           if (!names.add(name)) issues.add(new GenerationValidator.Issue("GENERATED_NAME_COLLISION", c.id(), "Nombre reservado para representar una relación: " + name));
         }
       }
-      if (hasCycle(c.id(), links, new HashSet<>(), new HashSet<>())) {
+      if (hasCycle(c.id(), effectiveLinks, new HashSet<>(), new HashSet<>())) {
         issues.add(new GenerationValidator.Issue("REQUIRED_RELATION_CYCLE", c.id(),
             "Las referencias obligatorias forman un ciclo; el CRUD inicial requiere crear primero los registros referenciados."));
       }
@@ -121,16 +136,31 @@ public final class BackendGenerator {
         ## Rutas y relaciones
         """);
     for (var c : model.classes()) {
-      var ls = links.get(c.id());
-      files.put(ROOT + "entity/" + c.name() + ".java", entitySource(c, ls));
+      var ls = effectiveLinks.get(c.id());
+      var state = effective.get(c.id());
+      var plan = plans.get(c.id());
+      boolean hierarchyRoot = plan.parent() == null
+          && plans.values().stream().anyMatch(p -> p.parent() != null && p.root().id().equals(c.id()));
+      files.put(ROOT + "entity/" + c.name() + ".java", entitySource(c, links.get(c.id()), plan, hierarchyRoot));
       files.put(ROOT + "repository/" + c.name() + "Repository.java", "package " + PACKAGE + ".repository;\npublic interface " + c.name() + "Repository extends org.springframework.data.jpa.repository.JpaRepository<" + entity(c) + ", java.lang.Long> {}\n");
-      files.put(ROOT + "dto/" + c.name() + "Request.java", dto(c, ls, false));
-      files.put(ROOT + "dto/" + c.name() + "Response.java", dto(c, ls, true));
-      files.put(ROOT + "service/" + c.name() + "Service.java", service(c, ls));
+      files.put(ROOT + "dto/" + c.name() + "Request.java", dto(state, ls, false));
+      files.put(ROOT + "dto/" + c.name() + "Response.java", dto(state, ls, true));
+      files.put(ROOT + "service/" + c.name() + "Service.java", service(state, ls, plan.root()));
       files.put(ROOT + "controller/" + c.name() + "Controller.java", controller(c));
-      readme.append("\n- ").append(c.name()).append(": /").append(c.name().toLowerCase(Locale.ROOT)).append("s (ID: ").append(id(c)).append(")\n");
+      readme.append("\n- ").append(c.name()).append(": /").append(c.name().toLowerCase(Locale.ROOT)).append("s (ID: ").append(id(state)).append(")\n");
       for (var l : ls) readme.append("  - ").append(l.field()).append(l.manyToOne() ? "Id" : "Ids").append(" → ").append(l.other().name()).append(l.manyToOne() ? " (obligatorio en solicitud)\n" : " (solo respuesta)\n");
     }
+    if (plans.values().stream().anyMatch(p -> p.parent() != null)) readme.append("""
+
+        ## Herencia
+        Se usa JOINED: una tabla por clase y un identificador compartido en toda la jerarquia.
+        POST sobre una clase crea ese tipo concreto; no convierte un registro existente a otro tipo.
+        Los IDs deben ser unicos entre la raiz y todos sus descendientes.
+        Las consultas del padre incluyen descendientes, mostrando los campos del DTO del padre.
+        Para consultar o editar campos especificos, usar el endpoint de la clase hija.
+        PUT sobre el padre conserva los campos especificos del descendiente.
+        DELETE elimina el objeto completo, incluidas sus filas de herencia; no elimina asociaciones en cascada.
+        """);
     files.put("README.md", readme.toString());
     return Collections.unmodifiableMap(files);
   }
@@ -149,8 +179,20 @@ public final class BackendGenerator {
     done.add(id);
     return false;
   }
-  private static String entitySource(ClassData c, List<Link> links) {
-    var s = new StringBuilder("package " + PACKAGE + ".entity;\n@jakarta.persistence.Entity\n@jakarta.persistence.Table(name=\"c_" + key(c.id()) + "\")\npublic class " + c.name() + " {\n");
+  /** Entity fields are declared once; DTOs and services use the effective inherited state. */
+  static String entitySource(ClassData c, List<Link> links,
+      InheritancePlan.ClassPlan inheritance, boolean hierarchyRoot) {
+    var parent = inheritance == null ? null : inheritance.parent();
+    var s = new StringBuilder("package " + PACKAGE + ".entity;\n@jakarta.persistence.Entity\n@jakarta.persistence.Table(name=\"c_" + key(c.id()) + "\")\n");
+    if (hierarchyRoot) s.append("@jakarta.persistence.Inheritance(strategy=jakarta.persistence.InheritanceType.JOINED)\n");
+    if (parent != null) {
+      // All descendant primary keys use the root ID column, including deeper hierarchies.
+      s.append("@jakarta.persistence.PrimaryKeyJoinColumn(name=\"a_")
+          .append(key(inheritance.identifier().id())).append("\")\n");
+    }
+    s.append("public class ").append(c.name());
+    if (parent != null) s.append(" extends ").append(entity(parent));
+    s.append(" {\n");
     for (var a : c.attributes()) {
       if (a.identifier()) s.append("  @jakarta.persistence.Id\n");
       s.append("  @jakarta.persistence.Column(name=\"a_").append(key(a.id())).append("\", nullable=").append(!a.required()).append(")\n  public ").append(type(a)).append(" ").append(a.name()).append(";\n");
@@ -171,7 +213,7 @@ public final class BackendGenerator {
     return "package " + PACKAGE + ".dto;\npublic record " + c.name() + (response ? "Response" : "Request") + "(" + String.join(", ", fields) + ") {}\n";
   }
 
-  private static String service(ClassData c, List<Link> links) {
+  private static String service(ClassData c, List<Link> links, ClassData root) {
     String e = entity(c), request = PACKAGE + ".dto." + c.name() + "Request", response = PACKAGE + ".dto." + c.name() + "Response";
     var s = new StringBuilder("package " + PACKAGE + ".service;\n@org.springframework.stereotype.Service\n@org.springframework.transaction.annotation.Transactional\npublic class " + c.name() + "Service {\n");
     s.append("  private final ").append(PACKAGE).append(".repository.").append(c.name()).append("Repository repository;\n  @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager em;\n  public ").append(c.name()).append("Service(").append(PACKAGE).append(".repository.").append(c.name()).append("Repository repository) { this.repository=repository; }\n");
@@ -186,7 +228,9 @@ public final class BackendGenerator {
       s.append("    value.").append(l.field()).append(" = em.find(").append(entity(l.other())).append(".class, input.").append(l.field()).append("Id());\n    if (value.").append(l.field()).append(" == null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, \"Referencia inexistente\");\n");
     }
     s.append("  }\n  public java.util.List<").append(response).append("> list() { return repository.findAll().stream().map(this::dto).toList(); }\n  public ").append(response).append(" get(java.lang.Long id) { return dto(find(id)); }\n");
-    s.append("  public ").append(response).append(" create(").append(request).append(" input) { if(repository.existsById(input.").append(id(c)).append("())) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT); var value = new ").append(e).append("(); apply(value,input); em.persist(value); em.flush(); return dto(value); }\n");
+    String duplicateCheck = root.id().equals(c.id()) ? "repository.existsById(input." + id(c) + "())"
+        : "em.find(" + entity(root) + ".class, input." + id(c) + "()) != null";
+    s.append("  public ").append(response).append(" create(").append(request).append(" input) { if(").append(duplicateCheck).append(") throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT); var value = new ").append(e).append("(); apply(value,input); em.persist(value); em.flush(); return dto(value); }\n");
     s.append("  public ").append(response).append(" update(java.lang.Long id, ").append(request).append(" input) { if(!id.equals(input.").append(id(c)).append("())) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, \"El ID no coincide con la ruta\"); var value=find(id); apply(value,input); em.flush(); return dto(value); }\n");
     s.append("  public void delete(java.lang.Long id) { repository.delete(find(id)); repository.flush(); }\n}\n");
     return s.toString();

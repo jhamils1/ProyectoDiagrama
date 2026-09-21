@@ -10,6 +10,7 @@ import { Modal, Pagination } from './common'
 import { ConflictDialog } from '../modeling/ui/ConflictDialog'
 import { projectCopies } from '../modeling/infrastructure/projectCopies'
 import { prepareOfflineApp } from '../modeling/infrastructure/prepareOfflineApp'
+import { ImportXmiDialog } from '../interoperability/ImportXmiDialog'
 
 type Summary = {
   id: string
@@ -137,6 +138,7 @@ function ProjectEditor({
   )
 }
 function DiagramList({ userId, project }: { userId: string; project: Project }) {
+  const [importing, setImporting] = useState(false)
   const [data, setData] = useState<PageResult<Summary>>({ items: [], total: 0, page: 0, size: 20 })
   const [page, setPage] = useState(0),
     [version, setVersion] = useState(0),
@@ -179,6 +181,9 @@ function DiagramList({ userId, project }: { userId: string; project: Project }) 
         </div>
         {editable && (
           <div className="toolbar-group">
+            <button className="secondary" onClick={() => setImporting(true)}>
+              <Upload size={16} /> Importar XML de EA
+            </button>
             <button className="secondary" onClick={() => setCreating('copy')}>
               <Upload size={16} />
               Copiar borrador local
@@ -276,6 +281,7 @@ function DiagramList({ userId, project }: { userId: string; project: Project }) 
       {creating && (
         <CreateDiagram project={project} mode={creating} close={() => setCreating(null)} />
       )}
+      {importing && <ImportXmiDialog projectId={project.id} close={() => setImporting(false)} />}
       {removing && (
         <Modal title="Eliminar diagrama" close={() => setRemoving(null)}>
           <p>

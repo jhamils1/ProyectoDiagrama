@@ -2,6 +2,50 @@
 
 Estado: alcance inicial CU11 implementado y verificado para Cliente/Pedido: generación ZIP, integración API/editor, compilación, arranque y CRUD con PostgreSQL. No acredita todos los modelos posibles ni la aplicación Flutter consumidora, todavía pendiente.
 
+## Estado vigente: herencia habilitada en la descarga
+
+`GenerationValidator.validate`, `BackendGenerator.files` y la descarga ZIP admiten herencia simple entre clases concretas, incluidas cadenas y varias hijas. Se retiraron las entradas internas temporales y se utiliza un único flujo de validación/generación. Permisos, revisión persistida y persistencia del diagrama mantienen sus contratos.
+
+El identificador Long se declara únicamente en la raíz. Si ClientePremium tiene un atributo id propio además del heredado de Cliente, debe eliminarse el atributo duplicado de la hija (desmarcarlo no resuelve la colisión de nombres). No se modifican diagramas automáticamente. Se mantienen las restricciones sobre clases abstractas, tipos y asociaciones 1 a 0..*.
+
+Verificación: 104 pruebas backend aprobadas. Pruebas API: descarga con herencia para administrador/editor, bloqueo de consulta/usuario ajeno/anónimo y permiso revocado, revisión desactualizada, historial sin cambios y respuesta 422 por identificador redeclarado. El ZIP contiene la entidad hija con extends y su controlador.
+
+Las etapas siguientes describen el desarrollo histórico; sus bloqueos temporales de descarga ya fueron retirados.
+
+## Ampliación de herencia: etapa 4 (PostgreSQL)
+
+Ejecutar `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-generated-backend.ps1 -Inheritance -Port 18082`. Genera el proyecto, compila y empaqueta con Maven, arranca su JAR y comprueba 62 solicitudes HTTP en un esquema aleatorio de `modela_test`. Al terminar detiene únicamente ese proceso y elimina su esquema.
+
+Verificados con PostgreSQL: jerarquía Cliente/ClientePremium/ClienteEspecial y rama ClienteVip; identificador compartido; rechazo de duplicados entre padre, hijas y hermanas; consultas polimórficas; referencia heredada a Region y asociación Pedido con descendientes; actualización de atributos propios/heredados; PUT del padre preservando datos exclusivos; rollback al fallar una referencia; validación de campos obligatorios; borrados desde padre e hija y bloqueo por referencias externas. Los listados terminan vacíos.
+
+Evidencia: [cu11-herencia-postgresql.json](evidencias/cu11-herencia-postgresql.json). Proyecto y logs en `.qa/cu11-inheritance-generated` y `.qa/cu11-inheritance-runtime`. El script sin `-Inheritance` conserva la verificación original Cliente/Pedido.
+
+La generación pública permanece bloqueada para herencia en este incremento. Próxima etapa: habilitar el flujo público y verificar descarga/permisos/validación mediante pruebas de API. Las clases abstractas siguen sin soporte.
+
+## Ampliación de herencia: etapa 3 (DTOs y CRUD internos)
+
+`BackendGenerator.filesWithInheritance` conecta el plan de herencia con la generación completa, solo como entrada interna de verificación. Los DTOs incluyen atributos y relaciones heredados; las entidades declaran únicamente sus campos propios. El alta de un descendiente comprueba el ID contra la raíz para detectar duplicados en toda la jerarquía. Las validaciones incluyen colisiones con campos técnicos heredados y ciclos de referencias obligatorias heredadas. Siguen rechazándose clases abstractas y multiplicidades fuera de 1 a 0..*.
+
+Semántica del CRUD: POST crea el tipo concreto del endpoint y no transforma registros existentes. Consultas del padre incluyen descendientes con el DTO del padre; PUT del padre preserva campos exclusivos de la hija. DELETE debe eliminar el objeto completo, respetando las asociaciones sin cascada. Esta semántica se documenta también en el README generado y falta verificarla en ejecución con PostgreSQL.
+
+Pruebas de esta etapa: compilación del proyecto completo Cliente/ClientePremium/Pedido/Region, relaciones heredadas en ambos extremos, preservación del modelo y rechazo de identificadores repetidos, raíz sin ID, colisiones y ciclos. La propiedad de pruebas `generation.inheritanceFixture` permite escribir ese proyecto para la próxima verificación de ejecución.
+
+La API pública y el ZIP siguen rechazando herencia hasta completar las pruebas reales. Próximo paso: ejecutar el proyecto generado con PostgreSQL, verificar CRUD/polimorfismo/integridad y después habilitar la descarga con pruebas de API.
+
+## Ampliación de herencia: etapa 2 (plantilla de entidades)
+
+La plantilla interna `BackendGenerator.entitySource` admite `extends`, `InheritanceType.JOINED` en la raíz y `PrimaryKeyJoinColumn` en descendientes. Cada entidad declara únicamente sus atributos y relaciones propios; el identificador y los campos del padre se heredan. Las entidades sin jerarquía conservan su generación anterior.
+
+Se verifica compilación Java de una jerarquía de tres niveles con atributos heredados y una asociación Cliente/Pedido, además de conservar el modelo original y mantener bloqueado el ZIP con herencia. Esto acredita generación y compilación de entidades, no ejecución JPA. Pendiente: conectar la plantilla al flujo completo, adaptar DTOs/CRUD y probar PostgreSQL antes de habilitar la descarga.
+
+## Ampliación de herencia: etapa 1
+
+`InheritancePlan.analyze` resuelve padre, raíz, atributos heredados e identificador efectivo sin modificar el diagrama. Reutiliza la validación UML para rechazar ciclos y padres múltiples. Exige identificador Long explícito en la raíz; rechaza identificadores declarados nuevamente en descendientes y atributos que repiten nombres heredados. Las asociaciones no se interpretan como herencia.
+
+Esta etapa es interna: todavía no habilita la descarga con herencia. El siguiente incremento conectará el plan con entidades JPA usando JOINED (tabla por clase, identificador compartido), DTOs con atributos heredados y CRUD; después se verificará la ejecución con PostgreSQL y asociaciones. No se debe retirar el bloqueo antes de completar esa integración. Las clases abstractas siguen fuera del alcance inicial de esta ampliación.
+
+Pruebas: `InheritancePlanTest` cubre cadenas en orden arbitrario, conservación del modelo, colisiones, identificador ausente/tipo inválido, ciclos, padres múltiples y separación de asociaciones.
+
 ## Cuarto incremento: ejecución real con PostgreSQL
 
 `scripts/test-generated-backend.ps1` regenera la muestra usando el generador actual (13 pruebas unitarias aprobadas), ejecuta Maven clean/package y arranca el JAR en 127.0.0.1:18081. Utiliza un esquema aleatorio exclusivo dentro de modela_test; no usa la base de desarrollo. Al terminar detiene el proceso que inició y elimina únicamente ese esquema. Las credenciales se leen de la configuración privada y no se guardan en la evidencia ni en el ZIP.

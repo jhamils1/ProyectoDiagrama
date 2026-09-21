@@ -30,11 +30,59 @@ import tools.jackson.databind.ObjectMapper;
 @ActiveProfiles("test")
 class DiagramIntegrationTest {
   @Test @SuppressWarnings("unchecked")
+  void xmiPreviewChecksAccessResolvesExplicitChoicesAndNeverPersists() throws Exception {
+    byte[] xml;
+    try(var in=getClass().getResourceAsStream("/interoperability/ea-sample.xml")) { xml=in.readAllBytes(); }
+    var body=new HashMap<String,Object>();
+    body.put("name","Importado"); body.put("xmlBase64",Base64.getEncoder().encodeToString(xml));
+    body.put("attributeTypes",Map.of()); body.put("excludedInvalidAssociations",List.of());
+    String endpoint="/api/projects/"+project.id+"/imports/xmi/preview";
+    mvc.perform(post(endpoint).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isUnauthorized());
+    mvc.perform(post(endpoint).with(actor(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isForbidden());
+    mvc.perform(post(endpoint).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isNotFound());
+    var member=members.saveAndFlush(new Participacion(collaborator,project,Participacion.Permiso.CONSULTA));
+    mvc.perform(post(endpoint).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isForbidden());
+    member.permiso=Participacion.Permiso.EDICION; members.saveAndFlush(member);
+    mvc.perform(post(endpoint).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+        .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"))
+        .andExpect(jsonPath("$.document").isEmpty()).andExpect(jsonPath("$.issues.length()").value(2));
+    var inventory=bo.edu.modela.interoperability.EaXmiReader.read(xml);
+    var type=inventory.issues().stream().filter(i->i.code().equals("TYPE_MAPPING_REQUIRED")).findFirst().orElseThrow().elementId();
+    var relation=inventory.issues().stream().filter(i->i.code().equals("ASSOCIATION_ENDS_INVALID")).findFirst().orElseThrow().elementId();
+    body.put("attributeTypes",Map.of(type,"Double")); body.put("excludedInvalidAssociations",List.of(relation));
+    var previewResponse=mvc.perform(post(endpoint).with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.document.classes.length()").value(3))
+        .andExpect(jsonPath("$.document.relations.length()").value(2)).andExpect(jsonPath("$.issues").isEmpty())
+        .andReturn().getResponse().getContentAsString();
+    var reviewed=(Map<String,Object>)json.readValue(previewResponse,Map.class).get("document");
+    body.put("xmlBase64","not-base64!");
+    mvc.perform(post(endpoint).with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("XMI_INVALIDO"));
+    assertThat(jdbc.queryForObject("select count(*) from diagrama where proyecto_id=?",Integer.class,project.id)).isZero();
+    members.deleteById(member.id);
+    mvc.perform(post(endpoint).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isNotFound());
+    create(reviewed,collaborator).andExpect(status().isNotFound());
+    create(reviewed,admin).andExpect(status().isCreated());
+    create(reviewed,admin).andExpect(status().isCreated());
+    assertThat(jdbc.queryForObject("select count(*) from diagrama where proyecto_id=?",Integer.class,project.id)).isEqualTo(1);
+    mvc.perform(get(path()+"/"+reviewed.get("id")).with(actor(admin)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.document.classes.length()").value(3))
+        .andExpect(jsonPath("$.document.relations.length()").value(2));
+  }
+  @Test @SuppressWarnings("unchecked")
   void backendDownloadChecksPermissionsRevisionAndKeepsHistory() throws Exception {
     var doc = copy(document());
     var classes = (List<Map<String,Object>>)doc.get("classes");
     for (var c : classes) c.put("attributes", List.of(Map.of("id", UUID.randomUUID().toString(),
         "name", "codigo", "dataType", "Long", "visibility", "private", "identifier", true, "required", true)));
+    var parent = classes.stream().filter(c -> c.get("name").equals("Cliente")).findFirst().orElseThrow();
+    var child = new HashMap<String,Object>(parent);
+    child.put("id", UUID.randomUUID().toString()); child.put("name", "ClientePremium");
+    child.put("attributes", List.of()); classes.add(child);
+    var relations = new ArrayList<Map<String,Object>>((List<Map<String,Object>>)doc.get("relations"));
+    relations.add(Map.of("id",UUID.randomUUID().toString(),"type","generalization",
+        "sourceId",child.get("id"),"targetId",parent.get("id"),"name","","sourceMultiplicity","1","targetMultiplicity","1"));
+    doc.put("relations", relations);
     create(doc, admin).andExpect(status().isCreated());
     String endpoint = path()+"/"+doc.get("id")+"/backend?revision=0";
     mvc.perform(get(endpoint)).andExpect(status().isUnauthorized());
@@ -50,8 +98,15 @@ class DiagramIntegrationTest {
           .andReturn().getResponse();
       try (var zip = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(response.getContentAsByteArray()))) {
         var names = new ArrayList<String>();
-        for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) names.add(entry.getName());
+        for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+          names.add(entry.getName());
+          if (entry.getName().endsWith("entity/ClientePremium.java")) {
+            assertThat(new String(zip.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8))
+                .contains("extends com.example.generated.entity.Cliente").doesNotContain("@jakarta.persistence.Id");
+          }
+        }
         assertThat(names).contains("pom.xml", "src/main/java/com/example/generated/entity/Cliente.java");
+        assertThat(names).contains("src/main/java/com/example/generated/controller/ClientePremiumController.java");
       }
     }
     mvc.perform(get(path()+"/"+doc.get("id")+"/backend?revision=1").with(actor(admin))).andExpect(status().isConflict());
@@ -70,6 +125,22 @@ class DiagramIntegrationTest {
         .andExpect(jsonPath("$.code").value("GENERACION_INVALIDA"))
         .andExpect(jsonPath("$.issues[0].elementId").exists())
         .andExpect(jsonPath("$.issues[0].message").isNotEmpty());
+  }
+
+  @Test @SuppressWarnings("unchecked")
+  void backendDownloadExplainsRedeclaredInheritedIdentifier() throws Exception {
+    var doc = copy(document());
+    var classes = (List<Map<String,Object>>)doc.get("classes");
+    for (var c : classes) c.put("attributes", List.of(Map.of("id", UUID.randomUUID().toString(),
+        "name", "id", "dataType", "Long", "visibility", "private", "identifier", true, "required", true)));
+    doc.put("relations", List.of(Map.of("id",UUID.randomUUID().toString(),"type","generalization",
+        "sourceId",classes.get(1).get("id"),"targetId",classes.get(0).get("id"),
+        "name","","sourceMultiplicity","1","targetMultiplicity","1")));
+    create(doc, admin).andExpect(status().isCreated());
+    mvc.perform(get(path()+"/"+doc.get("id")+"/backend?revision=0").with(actor(admin)))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("GENERACION_INVALIDA"))
+        .andExpect(jsonPath("$.issues[*].code", org.hamcrest.Matchers.hasItem("INHERITED_IDENTIFIER_REDECLARED")));
   }
   ResultActions createOffline(Map<String,Object> doc, UUID requestId, Usuario user) throws Exception {
     return mvc.perform(post(path()+"/"+doc.get("id")+"/changes/create").with(actor(user)).with(csrf())

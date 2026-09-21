@@ -90,4 +90,127 @@ class BackendGeneratorTest {
     assertThatThrownBy(() -> BackendGenerator.zip(model)).isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,
         e -> assertThat(e.issues()).extracting(GenerationValidator.Issue::code).contains("REQUIRED_RELATION_CYCLE"));
   }
+
+  @Test void joinedEntitiesCompileWithInheritedIdAttributesAndAssociations() throws Exception {
+    var base = clazz("Cliente", "nombre");
+    var child = new ClassData(UUID.randomUUID(), "Premium", false, new Position(0d, 0d), List.of(
+        new AttributeData(UUID.randomUUID(), "puntos", "Integer", "private", false, true)));
+    var leaf = new ClassData(UUID.randomUUID(), "Especial", false, new Position(0d, 0d), List.of());
+    var order = clazz("Pedido", "detalle");
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Herencia", 0L, Instant.EPOCH,
+        List.of(leaf, order, child, base), List.of(
+            new RelationData(UUID.randomUUID(), "generalization", child.id(), base.id(), "", "1", "1"),
+            new RelationData(UUID.randomUUID(), "generalization", leaf.id(), child.id(), "", "1", "1"),
+            new RelationData(UUID.randomUUID(), "association", base.id(), order.id(), "", "1", "0..*")));
+    var before = doc.toString();
+    var plan = InheritancePlan.analyze(doc);
+    assertThat(plan.valid()).isTrue();
+    var files = new TreeMap<String, String>();
+    String root = "com/example/generated/entity/";
+    files.put(root + "Cliente.java", BackendGenerator.entitySource(base,
+        List.of(new BackendGenerator.Link("clienteItems", order, false)), plan.classes().get(base.id()), true));
+    files.put(root + "Premium.java", BackendGenerator.entitySource(child, List.of(), plan.classes().get(child.id()), false));
+    files.put(root + "Especial.java", BackendGenerator.entitySource(leaf, List.of(), plan.classes().get(leaf.id()), false));
+    files.put(root + "Pedido.java", BackendGenerator.entitySource(order,
+        List.of(new BackendGenerator.Link("cliente", base, true)), plan.classes().get(order.id()), false));
+    assertThat(files.get(root + "Cliente.java")).contains("InheritanceType.JOINED", "@jakarta.persistence.Id");
+    assertThat(files.get(root + "Premium.java")).contains("extends com.example.generated.entity.Cliente", "PrimaryKeyJoinColumn")
+        .doesNotContain("@jakarta.persistence.Id", " codigo;", " nombre;", "clienteItems");
+    assertThat(files.get(root + "Especial.java")).contains("extends com.example.generated.entity.Premium")
+        .doesNotContain("@jakarta.persistence.Id", " puntos;");
+    assertThat(files.get(root + "Pedido.java")).doesNotContain("Inheritance(", "PrimaryKeyJoinColumn");
+    files.put("Probe.java", """
+        class Probe {
+          void inheritedState(com.example.generated.entity.Especial value) {
+            value.codigo = 1L;
+            value.nombre = "Ana";
+            value.puntos = 10;
+            value.clienteItems.add(new com.example.generated.entity.Pedido());
+          }
+        }
+        """);
+    compile(files);
+    assertThat(doc.toString()).isEqualTo(before);
+    compile(unpack(BackendGenerator.zip(doc)));
+  }
+
+  private RelationData inherits(ClassData child, ClassData parent) {
+    return new RelationData(UUID.randomUUID(), "generalization", child.id(), parent.id(), "", "1", "1");
+  }
+
+  private DiagramDocument hierarchy(ClassData base, ClassData child, RelationData... extra) {
+    var relations = new ArrayList<RelationData>(List.of(inherits(child, base)));
+    relations.addAll(List.of(extra));
+    return new DiagramDocument(1, UUID.randomUUID(), "Herencia", 0L, Instant.EPOCH,
+        List.of(child, base), relations);
+  }
+
+  @Test void completeInheritedCrudCompilesWithBothKindsOfInheritedRelations() throws Exception {
+    var base = clazz("Cliente", "nombre");
+    var child = new ClassData(UUID.randomUUID(), "ClientePremium", false, new Position(0d, 0d), List.of(
+        new AttributeData(UUID.randomUUID(), "puntos", "Integer", "private", false, true)));
+    var order = clazz("Pedido", "detalle");
+    var region = clazz("Region", "nombre");
+    var sibling = new ClassData(UUID.randomUUID(), "ClienteVip", false, new Position(0d, 0d), List.of());
+    var leaf = new ClassData(UUID.randomUUID(), "ClienteEspecial", false, new Position(0d, 0d), List.of());
+    var pedidos = new RelationData(UUID.randomUUID(), "association", base.id(), order.id(), "", "1", "0..*");
+    var regiones = new RelationData(UUID.randomUUID(), "association", region.id(), base.id(), "", "1", "0..*");
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Herencia", 0L, Instant.EPOCH,
+        List.of(leaf, sibling, child, order, base, region),
+        List.of(inherits(child, base), inherits(sibling, base), inherits(leaf, child), pedidos, regiones));
+    var before = doc.toString();
+    var files = BackendGenerator.files(doc);
+    String root = "src/main/java/com/example/generated/";
+    String orders = "r" + pedidos.id().toString().replace("-", "") + "Items";
+    String regions = "r" + regiones.id().toString().replace("-", "");
+    assertThat(files.get(root + "dto/ClientePremiumRequest.java"))
+        .contains("java.lang.Long codigo", "java.lang.String nombre", "java.lang.Integer puntos", regions + "Id")
+        .doesNotContain(orders);
+    assertThat(files.get(root + "dto/ClientePremiumResponse.java")).contains(orders + "Ids", regions + "Id");
+    assertThat(files.get(root + "entity/ClientePremium.java"))
+        .contains("extends com.example.generated.entity.Cliente").doesNotContain(orders, regions, "@jakarta.persistence.Id");
+    assertThat(files.get(root + "service/ClientePremiumService.java"))
+        .contains("em.find(com.example.generated.entity.Cliente.class, input.codigo()) != null",
+            "value.nombre = input.nombre()", "value.puntos = input.puntos()", "value." + regions + " = em.find(");
+    assertThat(files.get(root + "service/ClienteService.java")).doesNotContain("value.puntos");
+    compile(files);
+    assertThat(doc.toString()).isEqualTo(before);
+    // Optional independent Maven/runtime fixture for the next verification stage.
+    var output = System.getProperty("generation.inheritanceFixture");
+    if (output != null) for (var entry : files.entrySet()) {
+      var path = Path.of(output).resolve(entry.getKey());
+      Files.createDirectories(path.getParent());
+      Files.writeString(path, entry.getValue());
+    }
+  }
+
+  @Test void inheritedCrudRejectsRedeclaredIdsAndMissingRootId() {
+    var base = clazz("Cliente", "nombre");
+    var child = clazz("Premium", "puntos");
+    assertThatThrownBy(() -> BackendGenerator.files(hierarchy(base, child)))
+        .isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,
+            e -> assertThat(e.issues()).extracting(GenerationValidator.Issue::code)
+                .contains("INHERITED_IDENTIFIER_REDECLARED", "INHERITED_ATTRIBUTE_COLLISION"));
+    var noId = new ClassData(base.id(), base.name(), false, base.position(), List.of());
+    var emptyChild = new ClassData(child.id(), child.name(), false, child.position(), List.of());
+    assertThatThrownBy(() -> BackendGenerator.files(hierarchy(noId, emptyChild)))
+        .isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,
+            e -> assertThat(e.issues()).extracting(GenerationValidator.Issue::code).contains("IDENTIFIER_REQUIRED"));
+  }
+
+  @Test void inheritedCrudRejectsTechnicalFieldShadowingAndInheritedMandatoryCycles() {
+    var base = clazz("Cliente", "nombre");
+    var child = new ClassData(UUID.randomUUID(), "Premium", false, new Position(0d, 0d), List.of());
+    // A required reference from the root to its child is inherited by the child, forming a cycle.
+    var relation = new RelationData(UUID.randomUUID(), "association", child.id(), base.id(), "", "1", "0..*");
+    assertThatThrownBy(() -> BackendGenerator.files(hierarchy(base, child, relation)))
+        .isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,
+            e -> assertThat(e.issues()).extracting(GenerationValidator.Issue::code).contains("REQUIRED_RELATION_CYCLE"));
+    String field = "r" + relation.id().toString().replace("-", "");
+    var shadowing = new ClassData(child.id(), child.name(), false, child.position(), List.of(
+        new AttributeData(UUID.randomUUID(), field, "String", "private", false, false)));
+    assertThatThrownBy(() -> BackendGenerator.files(hierarchy(base, shadowing, relation)))
+        .isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,
+            e -> assertThat(e.issues()).extracting(GenerationValidator.Issue::code).contains("GENERATED_NAME_COLLISION"));
+  }
 }

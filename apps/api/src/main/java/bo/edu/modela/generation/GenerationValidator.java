@@ -27,6 +27,7 @@ public final class GenerationValidator {
   public static Result validate(DiagramDocument document) {
     Objects.requireNonNull(document, "document").validate();
     var issues = new ArrayList<Issue>();
+    issues.addAll(InheritancePlan.analyze(document).issues());
     if (document.classes().isEmpty()) {
       issues.add(new Issue("EMPTY_DIAGRAM", document.id(), "Agrega al menos una clase para generar."));
     }
@@ -34,10 +35,6 @@ public final class GenerationValidator {
       if (c.abstractClass()) {
         issues.add(new Issue("ABSTRACT_CLASS_UNSUPPORTED", c.id(),
             "La clase " + c.name() + " es abstracta; esta primera versión no admite clases abstractas."));
-      }
-      if (c.attributes().stream().noneMatch(a -> a.identifier())) {
-        issues.add(new Issue("IDENTIFIER_REQUIRED", c.id(),
-            "Marca un atributo Long como identificador de " + c.name() + ". No se agregará automáticamente."));
       }
       for (var a : c.attributes()) {
         if (a.dataType().isEmpty()) {
@@ -47,17 +44,12 @@ public final class GenerationValidator {
           issues.add(new Issue("ATTRIBUTE_TYPE_UNSUPPORTED", a.id(),
               "El tipo " + a.dataType() + " de " + c.name() + "." + a.name() + " aún no tiene un mapeo aprobado."));
         }
-        if (a.identifier() && !a.dataType().equals("Long")) {
-          issues.add(new Issue("IDENTIFIER_TYPE_UNSUPPORTED", a.id(),
-              "El identificador de " + c.name() + " debe ser Long para esta versión."));
-        }
+
       }
     }
     for (var r : document.relations()) {
-      if (!r.type().equals("association")) {
-        issues.add(new Issue("RELATION_TYPE_UNSUPPORTED", r.id(),
-            "La generación inicial no admite herencia."));
-      } else if (!((r.sourceMultiplicity().equals("1") && r.targetMultiplicity().equals("0..*"))
+      if (r.type().equals("generalization")) continue;
+      if (!((r.sourceMultiplicity().equals("1") && r.targetMultiplicity().equals("0..*"))
           || (r.sourceMultiplicity().equals("0..*") && r.targetMultiplicity().equals("1")))) {
         issues.add(new Issue("MULTIPLICITY_UNSUPPORTED", r.id(),
             "La generación inicial admite únicamente asociaciones 1 a 0..*."));

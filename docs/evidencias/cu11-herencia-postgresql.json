@@ -1,0 +1,380 @@
+﻿{
+    "checks":  [
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/regions",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/regions",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/clientepremiums",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "POST",
+                       "path":  "/clientepremiums",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "POST",
+                       "path":  "/clientes",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "POST",
+                       "path":  "/clientevips",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/clientes",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "POST",
+                       "path":  "/clientepremiums",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/20",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "DELETE",
+                       "path":  "/clientepremiums/20",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes/20",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/clienteespecials",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/30",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes/30",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientevips/30",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/clientevips",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  201,
+                       "method":  "POST",
+                       "path":  "/pedidos",
+                       "actual":  201
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/pedidos/100",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "DELETE",
+                       "path":  "/clientepremiums/10",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "DELETE",
+                       "path":  "/clientes/10",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "PUT",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "PUT",
+                       "path":  "/clientes/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "PUT",
+                       "path":  "/clientepremiums/10",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "PUT",
+                       "path":  "/clientepremiums/10",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "PUT",
+                       "path":  "/clientepremiums/999",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "POST",
+                       "path":  "/clientepremiums",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "POST",
+                       "path":  "/clientepremiums",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientes/50",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  400,
+                       "method":  "POST",
+                       "path":  "/clientepremiums",
+                       "actual":  400
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientes/50",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "DELETE",
+                       "path":  "/regions/2",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "PUT",
+                       "path":  "/pedidos/100",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clienteespecials/30",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/10",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/clientepremiums/10",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientes/10",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  409,
+                       "method":  "DELETE",
+                       "path":  "/clientes/30",
+                       "actual":  409
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/pedidos/100",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/clientes/30",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clienteespecials/30",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientepremiums/30",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/clientes/40",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  404,
+                       "method":  "GET",
+                       "path":  "/clientevips/40",
+                       "actual":  404
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/clientes/20",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/regions/1",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  204,
+                       "method":  "DELETE",
+                       "path":  "/regions/2",
+                       "actual":  204
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientes",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientepremiums",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clienteespecials",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/clientevips",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/pedidos",
+                       "actual":  200
+                   },
+                   {
+                       "expected":  200,
+                       "method":  "GET",
+                       "path":  "/regions",
+                       "actual":  200
+                   }
+               ],
+    "timestamp":  "2026-09-21T12:22:50.7667007Z",
+    "database":  "PostgreSQL/modela_test, esquema aislado",
+    "success":  true,
+    "generatedProject":  "Cliente/ClientePremium/ClienteEspecial/ClienteVip/Pedido/Region (JOINED)"
+}
