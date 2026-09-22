@@ -244,6 +244,45 @@
   color: #d8cffb;
   background: #8c78eb24;
 }
+.account-project-menu > button span {
+  min-width: 0;
+}
+.project-chevron {
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+.project-chevron.open {
+  transform: rotate(180deg);
+}
+.project-submenu {
+  display: grid;
+  gap: 2px;
+  margin: -2px 0 8px 29px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.project-submenu > a,
+.project-submenu > span {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  font-size: 11px;
+  gap: 8px;
+  line-height: 1.3;
+  min-height: 30px;
+  padding: 6px 8px;
+  text-decoration: none;
+}
+.project-submenu > a span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-submenu > a svg {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
 .account-local-link {
   color: #a79ac8;
   font-size: 11px;
@@ -363,6 +402,19 @@
 }
 .project-diagrams .toolbar-group {
   flex-wrap: wrap;
+}
+.project-diagrams .project-card-actions {
+  justify-content: flex-end;
+  min-height: 31px;
+  position: relative;
+}
+.project-diagrams .project-card-actions .text-button {
+  font-size: 13px;
+  left: 50%;
+  margin: 0;
+  padding: 5px 0;
+  position: absolute;
+  transform: translateX(-50%);
 }
 .project-card-actions .text-button {
   margin-right: auto;
@@ -712,5 +764,9 @@
   gap: 12px;
   padding: 8px 16px;
   background: #eef2ff;
-  font-size: 13px;
+  font-size: 12px;
+}
+.offline-toolbar .secondary {
+  font-size: 11px;
+  padding: 6px 10px;
 }

@@ -19,6 +19,7 @@ import {
   PanelRightClose,
   PanelLeftClose,
   PanelLeftOpen,
+  Radio,
 } from 'lucide-react'
 import { useEditor } from './features/modeling/application/useEditor'
 import { createClass, type UmlRelation, type Diagram } from './features/modeling/domain/model'
@@ -271,7 +272,7 @@ export function EditorView({
               </span>
             )}
             <a className="shared-workspace-link" href={remote?.backHref ?? '/workspace'}>
-              {remote ? 'Volver a diagramas' : 'Acceder a proyectos'}
+              {remote ? 'Volver' : 'Acceder a proyectos'}
             </a>
             <span className="user-avatar">M</span>
           </div>
@@ -367,18 +368,6 @@ export function EditorView({
             ))}
           </div>
         )}
-        {remote && (
-          <div className="update-banner">
-            <span role="status">{remote.syncMessage}</span>
-            {remote.conflictPending && (
-              <button onClick={remote.review}>Resolver cambios pendientes</button>
-            )}
-            <button disabled={saving} onClick={remote.reload}>
-              {remote.localCopy ? 'Actualizar y sincronizar' : 'Recargar diagrama'}
-            </button>
-            {remote.offlineAction}
-          </div>
-        )}
         {needRefresh && (
           <div className="update-banner">
             Hay una nueva versión. Guarda los formularios antes de actualizar.
@@ -436,6 +425,28 @@ export function EditorView({
           <>
             <div className="editor-toolbar">
               <div className="toolbar-group">
+                {remote && (
+                  <div className="editor-remote-actions">
+                    <span className="live-sync-status" role="status">
+                      {remote.syncMessage.endsWith('activa') ? (
+                        <>
+                          {remote.syncMessage.slice(0, -'activa'.length)}
+                          <span className="live-active">activa</span>
+                        </>
+                      ) : (
+                        remote.syncMessage
+                      )}
+                      <Radio size={13} aria-hidden="true" />
+                    </span>
+                    {remote.conflictPending && (
+                      <button onClick={remote.review}>Resolver cambios pendientes</button>
+                    )}
+                    <button disabled={saving} onClick={remote.reload}>
+                      {remote.localCopy ? 'Actualizar y sincronizar' : 'Recargar diagrama'}
+                    </button>
+                    {remote.offlineAction}
+                  </div>
+                )}
                 {remote?.generationSource && <GenerateBackendButton
                   source={remote.generationSource}
                   blocked={locked || !online || pendingFields || renaming || !!relation || deleting || assistantOpen}

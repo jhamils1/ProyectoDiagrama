@@ -13,9 +13,7 @@ export async function prepareOfflineApp() {
         timer = setTimeout(
           () =>
             reject(
-              new Error(
-                'Abre la versión compilada y espera a que termine la preparación de la aplicación.',
-              ),
+              new Error('No se pudo preparar la aplicación sin conexión.'),
             ),
           10000,
         )

@@ -1,6 +1,6 @@
 import { copyLocalDiagram } from '../modeling/domain/copyDiagram'
 import { useEffect, useRef, useState } from 'react'
-import { Plus, ArrowLeft, Layers3, Trash2, Upload, Download, LoaderCircle } from 'lucide-react'
+import { Plus, ArrowLeft, Layers3, Trash2, Upload } from 'lucide-react'
 import { api, errorMessage, type Project, type PageResult } from '../../shared/api'
 import { createDiagram, type Diagram } from '../modeling/domain/model'
 import { diagramRepository } from '../modeling/infrastructure/diagramRepository'
@@ -9,8 +9,8 @@ import { EditorView } from '../../App'
 import { Modal, Pagination } from './common'
 import { ConflictDialog } from '../modeling/ui/ConflictDialog'
 import { projectCopies } from '../modeling/infrastructure/projectCopies'
-import { prepareOfflineApp } from '../modeling/infrastructure/prepareOfflineApp'
 import { ImportXmiDialog } from '../interoperability/ImportXmiDialog'
+import { OfflineProjectEditor } from '../modeling/ui/OfflineProjectEditor'
 
 type Summary = {
   id: string
@@ -57,7 +57,7 @@ export function ProjectDiagrams({
     )
   if (diagramId)
     return <ProjectEditor key={diagramId} userId={userId} project={project} diagramId={diagramId} />
-  return <DiagramList userId={userId} project={project} />
+  return <DiagramList project={project} />
 }
 function ProjectEditor({
   userId,
@@ -68,42 +68,31 @@ function ProjectEditor({
   project: Project
   diagramId: string
 }) {
+  const [offline, setOffline] = useState(() => !navigator.onLine)
+  useEffect(() => {
+    const goOffline = () => setOffline(true)
+    window.addEventListener('offline', goOffline)
+    return () => window.removeEventListener('offline', goOffline)
+  }, [])
+  if (offline)
+    return <OfflineProjectEditor userId={userId} projectId={project.id} diagramId={diagramId} />
+  return <OnlineProjectEditor userId={userId} project={project} diagramId={diagramId} />
+}
+
+function OnlineProjectEditor({
+  userId,
+  project,
+  diagramId,
+}: {
+  userId: string
+  project: Project
+  diagramId: string
+}) {
   const state = useProjectEditor(project.id, diagramId)
-  const [preparing, setPreparing] = useState(false),
-    [prepareError, setPrepareError] = useState('')
-  const offlineAction = (
-      <>
-        <button
-          className="icon-button"
-          aria-label="Preparar para trabajar sin conexión"
-          title="Prepara una copia para guardar cambios aunque pierdas la conexión"
-          disabled={preparing || !state.editor.active || state.editor.saving || !!state.conflict}
-          onClick={async () => {
-            setPreparing(true)
-            setPrepareError('')
-            try {
-              if (state.hasDrafts())
-                throw new Error(
-                  'Guarda o cierra los formularios abiertos antes de preparar la copia.',
-                )
-              await prepareOfflineApp()
-              const base = await api<DiagramEnvelope>(
-                `/projects/${project.id}/diagrams/${diagramId}`,
-              )
-              await projectCopies().prepare(userId, project, base)
-              window.location.assign(`${href(project.id, diagramId)}&offline=1`)
-            } catch (e) {
-              setPrepareError(errorMessage(e))
-            } finally {
-              setPreparing(false)
-            }
-          }}
-        >
-          {preparing ? <LoaderCircle size={17} className="spin" /> : <Download size={17} />}
-        </button>
-        {prepareError && <span role="alert">{prepareError}</span>}
-      </>
-  )
+  useEffect(() => {
+    if (!state.envelope) return
+    void projectCopies().prepare(userId, project, state.envelope).catch(() => {})
+  }, [userId, project, state.envelope])
   return (
     <>
       <EditorView
@@ -114,7 +103,6 @@ function ProjectEditor({
           backHref: href(project.id),
           readOnly: state.readOnly,
           reload: state.reload,
-          offlineAction,
           generationSource: { projectId: project.id, diagramId, revision: state.revision, ready: !!state.editor.active && !state.conflict },
           setEditing: state.setEditing,
           syncMessage: state.syncMessage,
@@ -137,7 +125,7 @@ function ProjectEditor({
     </>
   )
 }
-function DiagramList({ userId, project }: { userId: string; project: Project }) {
+function DiagramList({ project }: { project: Project }) {
   const [importing, setImporting] = useState(false)
   const [data, setData] = useState<PageResult<Summary>>({ items: [], total: 0, page: 0, size: 20 })
   const [page, setPage] = useState(0),
@@ -177,7 +165,6 @@ function DiagramList({ userId, project }: { userId: string; project: Project }) 
         <div>
           <span className="eyebrow">DIAGRAMAS DEL PROYECTO</span>
           <h1>{project.nombre}</h1>
-          <p>{project.descripcion || 'Organiza los modelos de tu proyecto.'}</p>
         </div>
         {editable && (
           <div className="toolbar-group">
@@ -200,31 +187,6 @@ function DiagramList({ userId, project }: { userId: string; project: Project }) 
           ? 'Puedes crear y editar. Cada guardado conserva una versión en el servidor.'
           : 'Acceso de consulta: puedes abrir los diagramas sin modificarlos.'}
       </p>
-      <div className="offline-toolbar">
-        <span>
-          Prepara este proyecto para crear diagramas sin conexión, incluso si todavía está vacío.
-        </span>
-        <button
-          className="secondary"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true)
-            setError('')
-            try {
-              await prepareOfflineApp()
-              const authorized = await api<Project>(`/projects/${project.id}`)
-              await projectCopies().prepareProject(userId, authorized)
-              window.location.assign('/workspace?copies=1')
-            } catch (e) {
-              setError(errorMessage(e))
-            } finally {
-              setBusy(false)
-            }
-          }}
-        >
-          Preparar proyecto sin conexión
-        </button>
-      </div>
       {error && (
         <p role="alert" className="auth-error">
           {error}

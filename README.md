@@ -40,7 +40,7 @@ El Administrador puede crear/desactivar colaboradores, crear/editar/eliminar ló
 
 Cada cambio central aplicado genera una instantánea histórica, incluida la creación; no se crea una versión redundante si el resultado es idéntico. WebSocket notifica y muestra presencia. El editor combina propuestas compatibles; si hay discrepancias, abre **Resolver cambios** y conserva la propuesta enviada en PostgreSQL. **Recargar diagrama** solicita confirmación porque descarta campos nunca enviados; las propuestas pendientes ya registradas se recuperan. Un fallo de red no se presenta como guardado confirmado; reintentar la misma propuesta evita duplicar versiones. Aún no hay pantalla de restauración de versiones.
 
-Los proyectos centrales necesitan sesión y conexión. No tienen caché offline ni se copian automáticamente al espacio anónimo. El editor local continúa funcionando sin conexión como antes. Límites actuales: 200 clases por diagrama, 100 atributos por clase y 500 relaciones; una superclase sin ciclos y un identificador obligatorio por clase.
+Al abrir un diagrama de proyecto con conexión, Modela guarda automáticamente una copia local vinculada a la cuenta. Si la red se corta, el editor continúa usando esa copia y sincroniza los cambios pendientes al volver la conexión. El editor local continúa funcionando sin conexión como antes. Límites actuales: 200 clases por diagrama, 100 atributos por clase y 500 relaciones; una superclase sin ciclos y un identificador obligatorio por clase.
 
 ### Activar Google
 
@@ -140,7 +140,7 @@ Abre el mismo diagrama en dos ventanas. En una, comienza a cambiar el nombre sin
 ### Etapa 5A: editar una copia sin conexión
 
 1. Ejecuta `npm run build` y `npm run preview` junto con el backend. Abre `http://127.0.0.1:4173/workspace` e inicia sesión. La preparación PWA requiere la versión compilada.
-2. Abre un diagrama existente, guarda/cierra los formularios abiertos y pulsa **Preparar para trabajar sin conexión**. Se abrirá su copia y aparecerá **Sincronizado · copia disponible sin conexión**.
+2. Abre un diagrama existente. Modela prepara la copia local automáticamente mientras tengas conexión.
 3. Desconecta la red —o usa Offline en las herramientas del navegador si todo corre en localhost—. Edita y pulsa Guardar en cada formulario. Puedes recargar: los cambios guardados permanecen.
 4. Recupera la conexión con la copia abierta. Se sincroniza automáticamente; también puedes pulsar **Actualizar y sincronizar**. Si hay discrepancias, utiliza **Resolver cambios**.
 5. Encuentra tus copias desde **Copias sin conexión**. Desde 5B, el espacio de trabajo también envía sus pendientes aunque los editores estén cerrados.

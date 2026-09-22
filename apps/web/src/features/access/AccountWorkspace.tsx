@@ -8,8 +8,10 @@ import {
   AlertCircle,
   X,
   RefreshCw,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
-import { api, ApiError, errorMessage, type User } from '../../shared/api'
+import { api, ApiError, errorMessage, type PageResult, type Project, type User } from '../../shared/api'
 import { LoginPage } from './LoginPage'
 import { ProjectsPanel } from '../projects/ProjectsPanel'
 import { UsersPanel } from '../projects/UsersPanel'
@@ -32,15 +34,35 @@ export default function AccountWorkspace() {
   const [offline, setOffline] = useState(false)
   const [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0)
-  const route = new URLSearchParams(window.location.search)
+  const [projectsOpen, setProjectsOpen] = useState(() =>
+    new URLSearchParams(window.location.search).has('project'),
+  )
+  const [sidebarProjects, setSidebarProjects] = useState<Project[]>([])
+  const [sidebarProjectsLoading, setSidebarProjectsLoading] = useState(false)
+  const [projectsVersion, setProjectsVersion] = useState(0)
+  const [locationSearch, setLocationSearch] = useState(() => window.location.search)
+  const route = new URLSearchParams(locationSearch)
   const projectId = route.get('project'),
     diagramId = route.get('diagram')
+  const navigate = useCallback((href: string) => {
+    window.history.pushState({}, '', href)
+    setLocationSearch(window.location.search)
+  }, [])
   const synchronization = useProjectSynchronization(
     user?.id,
-    user && projectId && diagramId && (route.has('offline') || offline)
+    user && projectId && diagramId
       ? copyKey(user.id, projectId, diagramId)
       : null,
   )
+  const report = useCallback((e: unknown) => {
+    setError(errorMessage(e))
+    if (e instanceof ApiError && e.status === 401) setUser(null)
+  }, [])
+  useEffect(() => {
+    const updateRoute = () => setLocationSearch(window.location.search)
+    window.addEventListener('popstate', updateRoute)
+    return () => window.removeEventListener('popstate', updateRoute)
+  }, [])
   useEffect(() => {
     if (!user) return
     let canceled = false
@@ -94,10 +116,27 @@ export default function AccountWorkspace() {
       canceled = true
     }
   }, [reload])
-  const report = useCallback((e: unknown) => {
-    setError(errorMessage(e))
-    if (e instanceof ApiError && e.status === 401) setUser(null)
-  }, [])
+  useEffect(() => {
+    if (!user || offline) {
+      setSidebarProjects([])
+      return
+    }
+    let canceled = false
+    setSidebarProjectsLoading(true)
+    api<PageResult<Project>>('/projects?page=0&size=100')
+      .then((data) => {
+        if (!canceled) setSidebarProjects(data.items)
+      })
+      .catch((e) => {
+        if (!canceled) report(e)
+      })
+      .finally(() => {
+        if (!canceled) setSidebarProjectsLoading(false)
+      })
+    return () => {
+      canceled = true
+    }
+  }, [user, offline, projectsVersion, report])
   const success = (u: User) => {
     void projectCopies()
       .remember(u)
@@ -117,7 +156,7 @@ export default function AccountWorkspace() {
   if (!user) return <LoginPage key={error} onSuccess={success} initialError={error} />
   if (projectId && diagramId && (route.has('offline') || offline))
     return <OfflineProjectEditor userId={user.id} projectId={projectId} diagramId={diagramId} />
-  if (projectId && !offline)
+  if (projectId && diagramId && !offline)
     return <ProjectDiagrams userId={user.id} projectId={projectId} diagramId={diagramId} />
   return (
     <div className="app-shell account-shell">
@@ -139,18 +178,58 @@ export default function AccountWorkspace() {
         </div>
         <div className="sidebar-section">ESPACIO COMPARTIDO</div>
         <nav className="account-nav">
+          <div className="account-project-menu">
+            <button
+              disabled={offline}
+              className={view === 'projects' ? 'active' : ''}
+              onClick={() => {
+                setView('projects')
+                if (projectId) {
+                  navigate('/workspace')
+                  return
+                }
+                setProjectsOpen((open) => !open)
+                setError('')
+              }}
+              aria-expanded={projectsOpen}
+              aria-controls="project-submenu"
+            >
+              <Folder size={17} />
+              <span>Proyectos</span>
+              <ChevronDown className={projectsOpen ? 'project-chevron open' : 'project-chevron'} size={16} />
+            </button>
+            {projectsOpen && !offline && (
+              <div id="project-submenu" className="project-submenu">
+                {sidebarProjectsLoading ? (
+                  <span>Cargando proyectos…</span>
+                ) : sidebarProjects.length === 0 ? (
+                  <span>Sin proyectos disponibles.</span>
+                ) : (
+                  sidebarProjects.map((project) => (
+                    <a
+                      key={project.id}
+                      href={`/workspace?project=${project.id}`}
+                      onClick={(event) => {
+                        event.preventDefault()
+                        setView('projects')
+                        navigate(`/workspace?project=${project.id}`)
+                      }}
+                    >
+                      <span>{project.nombre}</span>
+                      <ChevronRight size={14} />
+                    </a>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
           <button
-            disabled={offline}
-            className={view === 'projects' ? 'active' : ''}
+            className={view === 'copies' ? 'active' : ''}
             onClick={() => {
-              setView('projects')
-              setError('')
+              setView('copies')
+              navigate('/workspace?copies=1')
             }}
           >
-            <Folder size={17} />
-            Proyectos
-          </button>
-          <button className={view === 'copies' ? 'active' : ''} onClick={() => setView('copies')}>
             <Folder size={17} /> Copias sin conexión
           </button>
           {user.rol === 'ADMINISTRADOR' && !offline && (
@@ -158,6 +237,7 @@ export default function AccountWorkspace() {
               className={view === 'users' ? 'active' : ''}
               onClick={() => {
                 setView('users')
+                navigate('/workspace')
                 setError('')
               }}
             >
@@ -202,7 +282,10 @@ export default function AccountWorkspace() {
           </div>
         </div>
       </aside>
-      <main className="workspace">
+      {projectId && !offline ? (
+        <ProjectDiagrams userId={user.id} projectId={projectId} diagramId={null} />
+      ) : (
+        <main className="workspace">
         <header className="topbar">
           <div className="breadcrumb">
             <Folder size={16} />
@@ -239,9 +322,14 @@ export default function AccountWorkspace() {
         ) : view === 'users' && user.rol === 'ADMINISTRADOR' ? (
           <UsersPanel report={report} />
         ) : (
-          <ProjectsPanel admin={user.rol === 'ADMINISTRADOR'} report={report} />
+          <ProjectsPanel
+            admin={user.rol === 'ADMINISTRADOR'}
+            report={report}
+            onProjectsChanged={() => setProjectsVersion((version) => version + 1)}
+          />
         )}
-      </main>
+        </main>
+      )}
     </div>
   )
 }

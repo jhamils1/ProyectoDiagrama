@@ -362,6 +362,7 @@ export function useProjectEditor(projectId: string, diagramId: string) {
   }
   return {
     editor,
+    envelope,
     hasDrafts: () => drafts.current.size > 0,
     revision: envelope?.revision ?? 0,
     setEditing,

@@ -422,6 +422,32 @@ a {
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+.editor-remote-actions {
+  align-items: center;
+  color: #7663a4;
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+  margin-right: auto;
+}
+.editor-remote-actions button {
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+}
+.live-sync-status {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+.live-active {
+  color: #6e9b8d;
+}
+.live-sync-status svg {
+  color: #6e9b8d;
+  position: relative;
+  top: 2px;
+}
 .editor-toolbar .toolbar-label { justify-self: end; }
 .editor-toolbar button { padding: 8px 12px; }
 .document-header .eyebrow { margin-bottom: 4px; }

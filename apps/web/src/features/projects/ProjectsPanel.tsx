@@ -4,7 +4,15 @@ import { api, errorMessage, type Project, type PageResult } from '../../shared/a
 import { Modal, Pagination } from './common'
 import { MembersPanel } from './MembersPanel'
 
-export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: unknown) => void }) {
+export function ProjectsPanel({
+  admin,
+  report,
+  onProjectsChanged,
+}: {
+  admin: boolean
+  report: (e: unknown) => void
+  onProjectsChanged?: () => void
+}) {
   const [result, setResult] = useState<PageResult<Project>>({
     items: [],
     total: 0,
@@ -161,6 +169,7 @@ export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: u
           saved={() => {
             setEditing(null)
             setVersion((v) => v + 1)
+            onProjectsChanged?.()
           }}
           report={report}
         />
@@ -191,6 +200,7 @@ export function ProjectsPanel({ admin, report }: { admin: boolean; report: (e: u
                   })
                   setRemoving(null)
                   setVersion((v) => v + 1)
+                  onProjectsChanged?.()
                 } catch (e) {
                   setRemoveError(errorMessage(e))
                   report(e)
