@@ -4,11 +4,17 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 $settingsPath = Join-Path $projectRoot '.local/backend.json'
 if (-not (Test-Path $settingsPath)) { throw 'Ejecuta primero scripts/setup-backend.ps1.' }
 $settings = Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json
+$serverAddressOverride = $env:SERVER_ADDRESS
 $previous = @{}
 foreach ($entry in $settings.PSObject.Properties) {
   if ($entry.Name -ne 'POSTGRES_BIN') {
     $previous[$entry.Name] = [Environment]::GetEnvironmentVariable($entry.Name, 'Process')
-    [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process')
+    $value = if ($entry.Name -eq 'SERVER_ADDRESS' -and -not [string]::IsNullOrWhiteSpace($serverAddressOverride)) {
+      $serverAddressOverride
+    } else {
+      [string]$entry.Value
+    }
+    [Environment]::SetEnvironmentVariable($entry.Name, $value, 'Process')
   }
 }
 $previousJava = $env:JAVA_HOME

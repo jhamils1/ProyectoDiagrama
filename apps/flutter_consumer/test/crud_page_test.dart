@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:modela_consumer/main.dart';
 
@@ -5,7 +6,7 @@ void main() {
   testWidgets('shows the generic generated-backend CRUD controls', (
     tester,
   ) async {
-    await tester.pumpWidget(const ModelaConsumerApp());
+    await tester.pumpWidget(const MaterialApp(home: CrudPage()));
 
     expect(find.text('Backend generado'), findsOneWidget);
     expect(find.text('Listar'), findsOneWidget);

@@ -1,8 +1,8 @@
-# Flutter Consumer — primer incremento
+# Consumidor CRUD Flutter
 
-`apps/flutter_consumer` es una aplicación Flutter separada para demostrar el consumo de un backend CRUD generado por Modela. No reemplaza el editor web ni es todavía el editor móvil de diagramas.
+Esta guía conserva la prueba del consumidor CRUD de `apps/flutter_consumer`. La misma aplicación ahora también incluye un editor UML móvil local; su alcance, sincronización y prueba están en [FLUTTER_MOVIL.md](FLUTTER_MOVIL.md).
 
-## Alcance implementado
+## Alcance del consumidor CRUD
 
 - URL del backend configurable; valor inicial para Windows: `http://127.0.0.1:8081`.
 - Recurso plural configurable, por ejemplo `clientes` o `pedidos`.

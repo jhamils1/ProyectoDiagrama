@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'generated_backend_client.dart';
+import 'uml/editor_page.dart';
 
 void main() => runApp(const ModelaConsumerApp());
 
@@ -11,14 +12,51 @@ class ModelaConsumerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Modela Consumer',
+    title: 'Modela móvil',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff7257d9)),
       useMaterial3: true,
     ),
-    home: const CrudPage(),
+    home: const MobileHome(),
   );
+}
+
+class MobileHome extends StatefulWidget {
+  const MobileHome({super.key});
+
+  @override
+  State<MobileHome> createState() => _MobileHomeState();
+}
+
+class _MobileHomeState extends State<MobileHome> {
+  var _section = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = [const MobileEditorPage(), const CrudPage()];
+    return Scaffold(
+      body: SafeArea(child: pages[_section]),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _section,
+        onDestinationSelected: (value) => setState(() => _section = value),
+        destinations: const [
+          NavigationDestination(
+            key: Key('diagram-tab'),
+            icon: Icon(Icons.account_tree_outlined),
+            selectedIcon: Icon(Icons.account_tree),
+            label: 'Diagramas',
+          ),
+          NavigationDestination(
+            key: Key('crud-tab'),
+            icon: Icon(Icons.storage_outlined),
+            selectedIcon: Icon(Icons.storage),
+            label: 'CRUD',
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class CrudPage extends StatefulWidget {

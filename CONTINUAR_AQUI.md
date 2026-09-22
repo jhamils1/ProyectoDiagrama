@@ -6,7 +6,9 @@ Actualizado: 21/09/2026. Proyecto Modela. Carpeta: `C:/Users/USUARIO/Desktop/Pri
 
 **CU11: herencia, clases abstractas y uno a uno inicial terminados.** La descarga genera entidades JPA JOINED; una raíz abstracta no tiene CRUD propio y su hija concreta sí. Además de `1 — 0..*`, se admite `1 — 0..1`: genera `@OneToOne` único y obligatorio en el extremo `0..1`, con referencia inversa opcional en el extremo `1`. No se admiten todavía `1 — 1`, `0..1 — 0..*` ni muchos a muchos. CU10 conserva la importación manual en EA comprobada para Cliente/ClientePremium/Pedido, sin posiciones/estilos.
 
-Flutter consumidor, primer incremento: `apps/flutter_consumer` consume de forma genérica un backend generado con URL, recurso plural y JSON configurables; lista, busca, crea, actualiza y elimina. Análisis y cuatro pruebas aprobados. Windows requiere el toolchain C++ de Visual Studio para ejecutar o compilar en esta PC. Ver `docs/FLUTTER_CONSUMER.md`.
+Flutter móvil: `apps/flutter_consumer` reúne dos pestañas. **CRUD** consume de forma genérica un backend generado con URL, recurso plural y JSON configurables; lista, busca, crea, actualiza y elimina. **Diagramas** permite crear clases, atributos, asociaciones y herencias; guarda primero en el teléfono, sincroniza con Modela durante una sesión iniciada y mantiene los cambios pendientes sin red. Incluye guía contextual local y comandos de voz para crear, renombrar o eliminar clases, agregar o quitar atributos, asociar clases e indicar herencia mediante el reconocedor offline de Android. No contiene un LLM ni guarda contraseña. Ver `docs/FLUTTER_MOVIL.md`.
+
+Evidencia manual del incremento móvil: en Android se creó y sincronizó **Diagrama móvil**, se agregó `pedido` con `id : Long` y el editor web detectó la revisión nueva; después de **Recargar diagrama**, mostró el cambio enviado por el teléfono. Con Español (Bolivia) sin conexión descargado, el comando de voz `crear clase Factura` creó la clase localmente. El recorrido y el alcance están en `docs/FLUTTER_MOVIL.md`.
 
 Evidencia manual adicional: un teléfono Android consultó `pedidos` desde la aplicación Flutter contra un backend generado que corría en la PC por la IP LAN y puerto 8081; la respuesta `[]` confirmó la conexión real. El ZIP usado tenía `Cliente` y `ClientePremium` abstractas, por lo que solo exponía `/pedidos`.
 
@@ -32,7 +34,7 @@ Los documentos de etapas antiguas describen historia. NO retomar el antiguo fall
 - CU11: ZIP Maven Spring Boot/Java21/PostgreSQL, entidades, repositorios, DTOs, servicios y REST CRUD. Asociaciones 1 a 0..* y 1 a 0..1; la segunda usa OneToOne único, referencia inversa opcional y escritura desde el extremo 0..1. Herencia JOINED, cadenas, varias hijas y raíces abstractas sin endpoint propio. ID Long explícito solo en raíz, heredado. Métodos y lógica de negocio no implementados; las demás multiplicidades quedan pendientes.
 - CU10: XML semantico descargable con clases, abstraccion, tipos, visibilidad, isID, obligatoriedad, asociaciones y herencia. Importacion real de la muestra comprobada; no implica compatibilidad universal.
 
-- Flutter consumidor: `apps/flutter_consumer` es una aplicación distinta del editor móvil. Consume los endpoints CRUD de un ZIP mediante JSON genérico y no inventa atributos. El editor Flutter de diagramas sigue pendiente.
+- Flutter móvil: `apps/flutter_consumer` contiene el editor UML local y el consumidor CRUD genérico. El editor persiste en SharedPreferences, permite clases, atributos, asociaciones y herencia, y sincroniza manual o automáticamente durante una sesión con Modela. La asistencia contextual y la voz se ejecutan localmente; la voz depende del reconocimiento offline instalado en Android. No hay LLM local ni resolución móvil de conflictos todavía.
 
 ## Codigo y contratos importantes
 
@@ -92,7 +94,7 @@ Sesiones en memoria, cookie HttpOnly y CSRF. No cachear /api. No borrar IndexedD
 
 1. CU10: muestra verificada en EA; ampliar cobertura o distribucion visual solo si se solicita.
 2. CU11: más multiplicidades/tipos según prioridad; uno a uno inicial y abstractas ya están terminados.
-3. Voz local, asistencia contextual CU16, Flutter diagramador y Flutter consumidor del backend (son alcances distintos).
+3. Ampliar los comandos de voz y, solo si se solicita, integrar un modelo local real para asistencia generativa. El editor Flutter, su persistencia local y la sincronización básica ya están implementados.
 4. Google con cuenta real, despliegue AWS HTTPS/WSS, manual/tutoriales y Word con evidencias.
 5. CU15 imagen: AL FINAL, solo tras consultar y obtener autorizacion explicita.
 
