@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { apiOrigin } from '../../../shared/api'
 
 const stateSchema = z.object({
   type: z.literal('state'),
@@ -36,7 +37,7 @@ export function connectDiagramLive(
   function connect() {
     if (disposed) return
     callbacks.status(delay === 1000 ? 'connecting' : 'reconnecting')
-    const url = new URL(`/api${path}/live`, window.location.href)
+    const url = new URL(`/api${path}/live`, apiOrigin || window.location.href)
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     const active = new WebSocket(url)
     socket = active

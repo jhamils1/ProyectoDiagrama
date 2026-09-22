@@ -1,0 +1,199 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20131001" xmi:version="2.5.1">
+  <uml:Model xmi:id="modela_system_model" name="Modela - Diagrama de clases del sistema">
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_UUID" name="UUID"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_String" name="String"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_boolean" name="boolean"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_Long" name="Long"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_Integer" name="Integer"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_Double" name="Double"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_DateTime" name="DateTime"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_JSON" name="JSON"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_ZIP" name="ZIP"/>
+
+    <packagedElement xmi:type="uml:Enumeration" xmi:id="RolUsuario" name="RolUsuario">
+      <ownedLiteral xmi:id="RolUsuario_ADMINISTRADOR" name="ADMINISTRADOR"/>
+      <ownedLiteral xmi:id="RolUsuario_COLABORADOR" name="COLABORADOR"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Enumeration" xmi:id="Permiso" name="Permiso">
+      <ownedLiteral xmi:id="Permiso_CONSULTA" name="CONSULTA"/>
+      <ownedLiteral xmi:id="Permiso_EDICION" name="EDICION"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="Usuario" name="Usuario" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_nombre" name="nombre" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_correo" name="correo" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_rol" name="rol" visibility="private" type="RolUsuario"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_passwordHash" name="passwordHash" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_googleId" name="googleId" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_activo" name="activo" visibility="private" type="type_boolean"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_creadoEn" name="creadoEn" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Usuario_revision" name="revision" visibility="private" type="type_Long"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="Proyecto" name="Proyecto" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Proyecto_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Proyecto_nombre" name="nombre" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Proyecto_descripcion" name="descripcion" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Proyecto_fechaCreacion" name="fechaCreacion" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Proyecto_eliminadoEn" name="eliminadoEn" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Proyecto_revision" name="revision" visibility="private" type="type_Long"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="Participacion" name="Participacion" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Participacion_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Participacion_permiso" name="permiso" visibility="private" type="Permiso"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Participacion_fechaIngreso" name="fechaIngreso" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Participacion_revision" name="revision" visibility="private" type="type_Long"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="Diagrama" name="Diagrama" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Diagrama_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Diagrama_nombre" name="nombre" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Diagrama_versionActual" name="versionActual" visibility="private" type="type_Long"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Diagrama_fechaActualizacion" name="fechaActualizacion" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Diagrama_eliminadoEn" name="eliminadoEn" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Diagrama_revision" name="revision" visibility="private" type="type_Long"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="VersionDiagrama" name="VersionDiagrama" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="VersionDiagrama_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="VersionDiagrama_numero" name="numero" visibility="private" type="type_Long"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="VersionDiagrama_fechaCreacion" name="fechaCreacion" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="VersionDiagrama_contenido" name="contenido" visibility="private" type="type_JSON"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="ClaseUML" name="ClaseUML" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="ClaseUML_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="ClaseUML_nombre" name="nombre" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="ClaseUML_abstracta" name="abstracta" visibility="private" type="type_boolean"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="ClaseUML_posicionX" name="posicionX" visibility="private" type="type_Double"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="ClaseUML_posicionY" name="posicionY" visibility="private" type="type_Double"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="ClaseUML_orden" name="orden" visibility="private" type="type_Integer"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="AtributoUML" name="AtributoUML" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="AtributoUML_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="AtributoUML_nombre" name="nombre" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="AtributoUML_tipoDato" name="tipoDato" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="AtributoUML_visibilidad" name="visibilidad" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="AtributoUML_identificador" name="identificador" visibility="private" type="type_boolean"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="AtributoUML_obligatorio" name="obligatorio" visibility="private" type="type_boolean"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="AtributoUML_orden" name="orden" visibility="private" type="type_Integer"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="RelacionUML" name="RelacionUML" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="RelacionUML_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="RelacionUML_tipo" name="tipo" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="RelacionUML_nombre" name="nombre" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="RelacionUML_multiplicidadOrigen" name="multiplicidadOrigen" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="RelacionUML_multiplicidadDestino" name="multiplicidadDestino" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="RelacionUML_orden" name="orden" visibility="private" type="type_Integer"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="Cambio" name="Cambio" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_revisionBase" name="revisionBase" visibility="private" type="type_Long"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_revisionComparada" name="revisionComparada" visibility="private" type="type_Long"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_tipoElemento" name="tipoElemento" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_operacion" name="operacion" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_estado" name="estado" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_propiedad" name="propiedad" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_valorAnterior" name="valorAnterior" visibility="private" type="type_JSON"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_valorPropuesto" name="valorPropuesto" visibility="private" type="type_JSON"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_fechaCreacion" name="fechaCreacion" visibility="private" type="type_DateTime"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Cambio_fechaResolucion" name="fechaResolucion" visibility="private" type="type_DateTime"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="Conflicto" name="Conflicto" isAbstract="false">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_id" name="id" visibility="private" type="type_UUID" isID="true"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_ruta" name="ruta" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_descripcion" name="descripcion" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_estado" name="estado" visibility="private" type="type_String"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_valorLocal" name="valorLocal" visibility="private" type="type_JSON"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_valorServidor" name="valorServidor" visibility="private" type="type_JSON"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_valorResuelto" name="valorResuelto" visibility="private" type="type_JSON"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="Conflicto_fechaResolucion" name="fechaResolucion" visibility="private" type="type_DateTime"/>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Class" xmi:id="GeneradorBackend" name="GeneradorBackend" isAbstract="false">
+      <ownedOperation xmi:type="uml:Operation" xmi:id="GeneradorBackend_generar" name="generar" visibility="public">
+        <ownedParameter xmi:type="uml:Parameter" xmi:id="GeneradorBackend_generar_diagrama" name="diagrama" direction="in" type="Diagrama"/>
+        <ownedParameter xmi:type="uml:Parameter" xmi:id="GeneradorBackend_generar_retorno" name="resultado" direction="return" type="type_ZIP"/>
+      </ownedOperation>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="asoc_Usuario_Proyecto" name="crea" memberEnd="asoc_Usuario_Proyecto_usuario asoc_Usuario_Proyecto_proyecto">
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Proyecto_usuario" type="Usuario" association="asoc_Usuario_Proyecto"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Proyecto_usuario_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Proyecto_usuario_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Proyecto_proyecto" type="Proyecto" association="asoc_Usuario_Proyecto"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Proyecto_proyecto_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Proyecto_proyecto_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="asoc_Usuario_Participacion" name="participa" memberEnd="asoc_Usuario_Participacion_usuario asoc_Usuario_Participacion_participacion">
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Participacion_usuario" type="Usuario" association="asoc_Usuario_Participacion"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Participacion_usuario_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Participacion_usuario_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Participacion_participacion" type="Participacion" association="asoc_Usuario_Participacion"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Participacion_participacion_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Participacion_participacion_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="asoc_Proyecto_Participacion" name="tiene" memberEnd="asoc_Proyecto_Participacion_proyecto asoc_Proyecto_Participacion_participacion">
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Proyecto_Participacion_proyecto" type="Proyecto" association="asoc_Proyecto_Participacion"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Proyecto_Participacion_proyecto_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Proyecto_Participacion_proyecto_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Proyecto_Participacion_participacion" type="Participacion" association="asoc_Proyecto_Participacion"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Proyecto_Participacion_participacion_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Proyecto_Participacion_participacion_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="comp_Proyecto_Diagrama" name="contiene" memberEnd="comp_Proyecto_Diagrama_proyecto comp_Proyecto_Diagrama_diagrama">
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Proyecto_Diagrama_proyecto" type="Proyecto" association="comp_Proyecto_Diagrama"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Proyecto_Diagrama_proyecto_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Proyecto_Diagrama_proyecto_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Proyecto_Diagrama_diagrama" type="Diagrama" association="comp_Proyecto_Diagrama" aggregation="composite"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Proyecto_Diagrama_diagrama_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Proyecto_Diagrama_diagrama_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="comp_Diagrama_Version" name="versiona" memberEnd="comp_Diagrama_Version_diagrama comp_Diagrama_Version_version">
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Version_diagrama" type="Diagrama" association="comp_Diagrama_Version"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Version_diagrama_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Version_diagrama_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Version_version" type="VersionDiagrama" association="comp_Diagrama_Version" aggregation="composite"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Version_version_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Version_version_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="comp_Diagrama_Clase" name="contiene" memberEnd="comp_Diagrama_Clase_diagrama comp_Diagrama_Clase_clase">
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Clase_diagrama" type="Diagrama" association="comp_Diagrama_Clase"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Clase_diagrama_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Clase_diagrama_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Clase_clase" type="ClaseUML" association="comp_Diagrama_Clase" aggregation="composite"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Clase_clase_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Clase_clase_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="comp_Clase_Atributo" name="define" memberEnd="comp_Clase_Atributo_clase comp_Clase_Atributo_atributo">
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Clase_Atributo_clase" type="ClaseUML" association="comp_Clase_Atributo"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Clase_Atributo_clase_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Clase_Atributo_clase_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Clase_Atributo_atributo" type="AtributoUML" association="comp_Clase_Atributo" aggregation="composite"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Clase_Atributo_atributo_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Clase_Atributo_atributo_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="comp_Diagrama_Relacion" name="contiene" memberEnd="comp_Diagrama_Relacion_diagrama comp_Diagrama_Relacion_relacion">
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Relacion_diagrama" type="Diagrama" association="comp_Diagrama_Relacion"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Relacion_diagrama_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Relacion_diagrama_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Relacion_relacion" type="RelacionUML" association="comp_Diagrama_Relacion" aggregation="composite"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Relacion_relacion_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Relacion_relacion_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="asoc_Relacion_Origen" name="origen" memberEnd="asoc_Relacion_Origen_relacion asoc_Relacion_Origen_clase">
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Relacion_Origen_relacion" type="RelacionUML" association="asoc_Relacion_Origen"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Relacion_Origen_relacion_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Relacion_Origen_relacion_upper" value="*"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Relacion_Origen_clase" type="ClaseUML" association="asoc_Relacion_Origen"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Relacion_Origen_clase_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Relacion_Origen_clase_upper" value="1"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="asoc_Relacion_Destino" name="destino" memberEnd="asoc_Relacion_Destino_relacion asoc_Relacion_Destino_clase">
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Relacion_Destino_relacion" type="RelacionUML" association="asoc_Relacion_Destino"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Relacion_Destino_relacion_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Relacion_Destino_relacion_upper" value="*"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Relacion_Destino_clase" type="ClaseUML" association="asoc_Relacion_Destino"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Relacion_Destino_clase_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Relacion_Destino_clase_upper" value="1"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="comp_Diagrama_Cambio" name="registra" memberEnd="comp_Diagrama_Cambio_diagrama comp_Diagrama_Cambio_cambio">
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Cambio_diagrama" type="Diagrama" association="comp_Diagrama_Cambio"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Cambio_diagrama_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Cambio_diagrama_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Diagrama_Cambio_cambio" type="Cambio" association="comp_Diagrama_Cambio" aggregation="composite"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Diagrama_Cambio_cambio_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Diagrama_Cambio_cambio_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="asoc_Usuario_Cambio" name="realiza" memberEnd="asoc_Usuario_Cambio_usuario asoc_Usuario_Cambio_cambio">
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Cambio_usuario" type="Usuario" association="asoc_Usuario_Cambio"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Cambio_usuario_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Cambio_usuario_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Cambio_cambio" type="Cambio" association="asoc_Usuario_Cambio"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Cambio_cambio_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Cambio_cambio_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="comp_Cambio_Conflicto" name="puede generar" memberEnd="comp_Cambio_Conflicto_cambio comp_Cambio_Conflicto_conflicto">
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Cambio_Conflicto_cambio" type="Cambio" association="comp_Cambio_Conflicto"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Cambio_Conflicto_cambio_lower" value="1"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Cambio_Conflicto_cambio_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="comp_Cambio_Conflicto_conflicto" type="Conflicto" association="comp_Cambio_Conflicto" aggregation="composite"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="comp_Cambio_Conflicto_conflicto_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="comp_Cambio_Conflicto_conflicto_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Association" xmi:id="asoc_Usuario_Conflicto" name="resuelve" memberEnd="asoc_Usuario_Conflicto_usuario asoc_Usuario_Conflicto_conflicto">
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Conflicto_usuario" type="Usuario" association="asoc_Usuario_Conflicto"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Conflicto_usuario_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Conflicto_usuario_upper" value="1"/></ownedEnd>
+      <ownedEnd xmi:type="uml:Property" xmi:id="asoc_Usuario_Conflicto_conflicto" type="Conflicto" association="asoc_Usuario_Conflicto"><lowerValue xmi:type="uml:LiteralInteger" xmi:id="asoc_Usuario_Conflicto_conflicto_lower" value="0"/><upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="asoc_Usuario_Conflicto_conflicto_upper" value="*"/></ownedEnd>
+    </packagedElement>
+
+    <packagedElement xmi:type="uml:Dependency" xmi:id="dep_GeneradorBackend_Diagrama" name="genera desde" client="GeneradorBackend" supplier="Diagrama"/>
+  </uml:Model>
+</xmi:XMI>

@@ -41,6 +41,7 @@ public class AuthController {
   private final CsrfTokenRepository csrf;
   private final LoginRateLimit rateLimit;
   private final String clientId;
+  private final String cookieSameSite;
 
   public AuthController(
       AuthService auth,
@@ -49,7 +50,8 @@ public class AuthController {
       SecurityContextRepository contexts,
       CsrfTokenRepository csrf,
       LoginRateLimit rateLimit,
-      @Value("${modela.google-client-id}") String clientId) {
+      @Value("${modela.google-client-id}") String clientId,
+      @Value("${server.servlet.session.cookie.same-site:lax}") String cookieSameSite) {
     this.auth = auth;
     this.google = google;
     this.current = current;
@@ -57,6 +59,7 @@ public class AuthController {
     this.csrf = csrf;
     this.rateLimit = rateLimit;
     this.clientId = clientId;
+    this.cookieSameSite = cookieSameSite;
   }
 
   @GetMapping("/health")
@@ -146,7 +149,7 @@ public class AuthController {
     cookie.setPath("/");
     cookie.setHttpOnly(true);
     cookie.setSecure(request.isSecure());
-    cookie.setAttribute("SameSite", "Lax");
+    cookie.setAttribute("SameSite", cookieSameSite);
     response.addCookie(cookie);
   }
 }

@@ -8,6 +8,14 @@ export class ApiError extends Error {
   }
 }
 
+// Empty in local development: Vite proxies /api to Spring Boot.
+// In production it is the public API origin, for example https://api.example.com.
+export const apiOrigin = (import.meta.env.VITE_API_ORIGIN ?? '').trim().replace(/\/+$/, '')
+
+export function apiUrl(path: string) {
+  return `${apiOrigin}/api${path}`
+}
+
 async function request(path: string, options: RequestInit = {}): Promise<Response> {
   const method = options.method ?? 'GET'
   const headers = new Headers(options.headers)
@@ -18,11 +26,11 @@ async function request(path: string, options: RequestInit = {}): Promise<Respons
   }
   let response: Response
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(apiUrl(path), {
       ...options,
       signal: options.signal ?? AbortSignal.timeout(10000),
       headers,
-      credentials: 'same-origin',
+      credentials: apiOrigin ? 'include' : 'same-origin',
       cache: 'no-store',
     })
   } catch {

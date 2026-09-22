@@ -18,9 +18,14 @@ class MobileEditorPage extends StatefulWidget {
 }
 
 class _MobileEditorPageState extends State<MobileEditorPage> {
+  static const _defaultServerUrl = String.fromEnvironment(
+    'MODELA_API_URL',
+    defaultValue: 'http://127.0.0.1:8080',
+  );
+
   final _store = LocalDiagramStore();
   final _sessionStore = LocalSessionStore();
-  final _loginUrl = TextEditingController(text: 'http://127.0.0.1:8080');
+  final _loginUrl = TextEditingController(text: _defaultServerUrl);
   final _loginEmail = TextEditingController();
   final _loginPassword = TextEditingController();
   LocalEditorState? _state;
@@ -29,6 +34,7 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
   bool _syncing = false;
   bool _loading = true;
   bool _loggingIn = false;
+  bool _showServerSettings = false;
   String? _loginError;
   String? _notice;
   bool _noticeError = false;
@@ -55,10 +61,17 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
   Future<void> _restore() async {
     final loaded = await _store.load();
     final session = await _sessionStore.load();
+    final savedServerUrl = await _sessionStore.loadServerUrl();
     if (!mounted) return;
     setState(() {
       _state = loaded;
-      if (session != null) _client = _clientFromSession(session);
+      if (savedServerUrl != null && savedServerUrl.isNotEmpty) {
+        _loginUrl.text = savedServerUrl;
+      }
+      if (session != null) {
+        _client = _clientFromSession(session);
+        _loginUrl.text = session.baseUrl;
+      }
       _loading = false;
     });
   }
@@ -69,6 +82,17 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
     onSessionChanged: (next) => unawaited(_sessionStore.save(next)),
   );
 
+  Future<void> _signOut() async {
+    await _sessionStore.clear();
+    if (!mounted) return;
+    setState(() {
+      _client = null;
+      _loginEmail.clear();
+      _loginPassword.clear();
+      _loginError = null;
+      _showServerSettings = false;
+    });
+  }
   Future<void> _signIn() async {
     setState(() {
       _loggingIn = true;
@@ -81,6 +105,7 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
       );
       await next.login(_loginEmail.text.trim(), _loginPassword.text);
       await next.projects();
+      await _sessionStore.saveServerUrl(next.baseUrl);
       if (!mounted) return;
       setState(() {
         _client = next;
@@ -525,7 +550,7 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
     final state = _state!;
     final activeClient = _client;
     final url = TextEditingController(
-      text: _client?.baseUrl ?? 'http://127.0.0.1:8080',
+      text: _client?.baseUrl ?? _loginUrl.text,
     );
     final email = TextEditingController();
     final password = TextEditingController();
@@ -535,6 +560,7 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
     String? projectId = state.projectId;
     String? message;
     var busy = false;
+    var showServerSettings = false;
     if (activeClient != null) {
       try {
         projects = await activeClient.projects();
@@ -573,20 +599,39 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
                 const SizedBox(height: 12),
                 if (client == null) ...[
                   TextField(
-                    controller: url,
-                    keyboardType: TextInputType.url,
-                    decoration: const InputDecoration(
-                      labelText: 'URL de Modela',
-                      hintText: 'http://192.168.0.20:8080',
-                    ),
-                  ),
-                  TextField(
                     controller: email,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       labelText: 'Correo administrador',
                     ),
                   ),
+                  if (showServerSettings) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: url,
+                      keyboardType: TextInputType.url,
+                      decoration: const InputDecoration(
+                        labelText: 'Servidor de Modela',
+                        hintText: 'https://api.tudominio.com',
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setSheetState(() => showServerSettings = false),
+                        icon: const Icon(Icons.expand_less),
+                        label: const Text('Ocultar configuración'),
+                      ),
+                    ),
+                  ] else
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setSheetState(() => showServerSettings = true),
+                        icon: const Icon(Icons.settings_outlined),
+                        label: const Text('Configurar servidor'),
+                      ),
+                    ),
                   TextField(
                     controller: password,
                     obscureText: true,
@@ -611,6 +656,7 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
                                 email.text.trim(),
                                 password.text,
                               );
+                              await _sessionStore.saveServerUrl(next.baseUrl);
                               final listed = await next.projects();
                               setSheetState(() {
                                 client = next;
@@ -1084,20 +1130,37 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
                   ),
                   const SizedBox(height: 20),
                   TextField(
-                    controller: _loginUrl,
-                    keyboardType: TextInputType.url,
-                    decoration: const InputDecoration(
-                      labelText: 'URL de Modela',
-                      hintText: 'http://192.168.0.20:8080',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
                     controller: _loginEmail,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(labelText: 'Correo'),
                   ),
                   const SizedBox(height: 12),
+                  if (_showServerSettings) ...[
+                    TextField(
+                      controller: _loginUrl,
+                      keyboardType: TextInputType.url,
+                      decoration: const InputDecoration(
+                        labelText: 'Servidor de Modela',
+                        hintText: 'https://api.tudominio.com',
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() => _showServerSettings = false),
+                        icon: const Icon(Icons.expand_less),
+                        label: const Text('Ocultar configuración'),
+                      ),
+                    ),
+                  ] else
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() => _showServerSettings = true),
+                        icon: const Icon(Icons.settings_outlined),
+                        label: const Text('Configurar servidor'),
+                      ),
+                    ),
                   TextField(
                     controller: _loginPassword,
                     obscureText: true,
@@ -1171,6 +1234,11 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
             onPressed: _rename,
             tooltip: 'Renombrar',
             icon: const Icon(Icons.edit),
+          ),
+          IconButton(
+            onPressed: _signOut,
+            tooltip: 'Cerrar sesión',
+            icon: const Icon(Icons.logout),
           ),
         ],
       ),

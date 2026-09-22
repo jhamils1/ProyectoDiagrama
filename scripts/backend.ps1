@@ -2,8 +2,24 @@ param([ValidateSet('run','test','package')][string]$Action = 'run')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $settingsPath = Join-Path $projectRoot '.local/backend.json'
-if (-not (Test-Path $settingsPath)) { throw 'Ejecuta primero scripts/setup-backend.ps1.' }
+$setupScript = Join-Path $PSScriptRoot 'setup-backend.ps1'
+if (-not (Test-Path $settingsPath)) {
+  & $setupScript
+  if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar PostgreSQL local.' }
+}
 $settings = Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json
+$databaseData = Join-Path $projectRoot '.local/postgres'
+$pgCtl = Join-Path ([string]$settings.POSTGRES_BIN) 'pg_ctl.exe'
+if ((Test-Path $pgCtl) -and (Test-Path $databaseData)) {
+  & $pgCtl status -D $databaseData *> $null
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host 'Iniciando PostgreSQL local...'
+    & $setupScript -PostgresBin ([string]$settings.POSTGRES_BIN)
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar PostgreSQL local.' }
+    $settings = Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json
+  }
+}
+
 $serverAddressOverride = $env:SERVER_ADDRESS
 $previous = @{}
 foreach ($entry in $settings.PSObject.Properties) {

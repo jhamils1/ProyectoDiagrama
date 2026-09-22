@@ -20,7 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 class DiagramLiveHandlerTest {
   final DiagramService diagrams = mock(DiagramService.class);
   final ObjectMapper json = new ObjectMapper();
-  final DiagramLiveHandler handler = new DiagramLiveHandler(diagrams, json);
+  final DiagramLiveHandler handler = new DiagramLiveHandler(diagrams, json, "");
   final UUID project = UUID.randomUUID(), diagram = UUID.randomUUID(), user = UUID.randomUUID();
 
   record Client(WebSocketSession socket, MockHttpSession http, List<String> messages) {}

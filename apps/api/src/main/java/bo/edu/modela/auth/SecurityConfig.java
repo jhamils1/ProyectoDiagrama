@@ -5,8 +5,12 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.context.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,6 +19,9 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 import org.springframework.security.web.context.*;
 import org.springframework.security.web.csrf.*;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
@@ -22,7 +29,7 @@ public class SecurityConfig {
   org.springframework.security.core.userdetails.UserDetailsService noGeneratedAccounts() {
     return username -> {
       throw new org.springframework.security.core.userdetails.UsernameNotFoundException(
-          "Usa el método de acceso correspondiente.");
+          "Usa el mÃƒÂ©todo de acceso correspondiente.");
     };
   }
 
@@ -42,13 +49,32 @@ public class SecurityConfig {
   }
 
   @Bean
+  CorsConfigurationSource corsConfigurationSource(
+      @Value("${modela.cors-allowed-origins:}") String origins) {
+    var configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(
+        Arrays.stream(origins.split(","))
+            .map(String::trim)
+            .filter(value -> !value.isEmpty())
+            .toList());
+    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(List.of("Content-Type", "X-CSRF-TOKEN", "X-XSRF-TOKEN"));
+    configuration.setAllowCredentials(true);
+    configuration.setMaxAge(3600L);
+    var source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/api/**", configuration);
+    return source;
+  }
+
+  @Bean
   SecurityFilterChain security(
       HttpSecurity http,
       SecurityContextRepository contexts,
       CsrfTokenRepository csrf,
       UsuarioRepository users)
       throws Exception {
-    http.securityContext(c -> c.securityContextRepository(contexts))
+    http.cors(Customizer.withDefaults())
+        .securityContext(c -> c.securityContextRepository(contexts))
         .csrf(c -> c.csrfTokenRepository(csrf))
         .authorizeHttpRequests(
             a ->
@@ -69,14 +95,14 @@ public class SecurityConfig {
             e ->
                 e.authenticationEntryPoint(
                         (req, res, ex) ->
-                            error(res, 401, "NO_AUTENTICADO", "Debes iniciar sesión."))
+                            error(res, 401, "NO_AUTENTICADO", "Debes iniciar sesiÃƒÂ³n."))
                     .accessDeniedHandler(
                         (req, res, ex) ->
                             error(
                                 res,
                                 403,
                                 "SIN_PERMISO",
-                                "Permiso insuficiente o protección CSRF inválida. Recarga e intenta"
+                                "Permiso insuficiente o protecciÃƒÂ³n CSRF invÃƒÂ¡lida. Recarga e intenta"
                                     + " nuevamente.")))
         .formLogin(c -> c.disable())
         .httpBasic(c -> c.disable())
@@ -95,7 +121,7 @@ public class SecurityConfig {
                   var session = req.getSession(false);
                   if (session != null) session.invalidate();
                   SecurityContextHolder.clearContext();
-                  error(res, 401, "CUENTA_INACTIVA", "La cuenta ya no está disponible.");
+                  error(res, 401, "CUENTA_INACTIVA", "La cuenta ya no estÃƒÂ¡ disponible.");
                   return;
                 }
                 chain.doFilter(req, res);

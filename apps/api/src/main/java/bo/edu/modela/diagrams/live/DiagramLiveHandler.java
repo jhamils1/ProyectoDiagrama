@@ -5,6 +5,7 @@ import bo.edu.modela.diagrams.DiagramService;
 import jakarta.servlet.http.HttpSession;
 import java.net.URI;
 import java.util.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.http.server.*;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,10 +35,16 @@ public class DiagramLiveHandler extends TextWebSocketHandler implements Handshak
   private final Map<String, Peer> peers = new HashMap<>();
   private final DiagramService diagrams;
   private final ObjectMapper json;
+  private final Set<String> allowedOrigins;
 
-  public DiagramLiveHandler(DiagramService diagrams, ObjectMapper json) {
+  public DiagramLiveHandler(
+      DiagramService diagrams,
+      ObjectMapper json,
+      @Value("${modela.cors-allowed-origins:}") String configuredOrigins) {
     this.diagrams = diagrams;
     this.json = json;
+    this.allowedOrigins = Arrays.stream(configuredOrigins.split(","))
+        .map(String::trim).filter(value -> !value.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
   }
 
   @Override
@@ -48,8 +55,7 @@ public class DiagramLiveHandler extends TextWebSocketHandler implements Handshak
       String origin = request.getHeaders().getOrigin();
       URI uri = request.getURI();
       URI source = origin == null ? null : URI.create(origin);
-      if (source == null || !Objects.equals(source.getScheme(), uri.getScheme())
-          || !Objects.equals(source.getRawAuthority(), uri.getRawAuthority())) {
+      if (source == null || !allowed(source, uri)) {
         response.setStatusCode(HttpStatus.FORBIDDEN);
         return false;
       }
@@ -65,6 +71,12 @@ public class DiagramLiveHandler extends TextWebSocketHandler implements Handshak
       response.setStatusCode(HttpStatus.NOT_FOUND);
       return false;
     }
+  }
+
+  private boolean allowed(URI source, URI target) {
+    String sourceOrigin = source.getScheme() + "://" + source.getRawAuthority();
+    String targetOrigin = target.getScheme() + "://" + target.getRawAuthority();
+    return sourceOrigin.equals(targetOrigin) || allowedOrigins.contains(sourceOrigin);
   }
 
   private UUID sessionUser(HttpSession http) {

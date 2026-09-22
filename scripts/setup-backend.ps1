@@ -59,9 +59,22 @@ if (-not (Test-Path (Join-Path $dataDir 'PG_VERSION'))) {
     Add-Content -LiteralPath (Join-Path $dataDir 'postgresql.conf') -Value "`nlisten_addresses = '127.0.0.1'`nport = 55432"
   } finally { Remove-Item -LiteralPath $passwordFile -ErrorAction SilentlyContinue }
 }
-& (Join-Path $PostgresBin 'pg_ctl.exe') status -D $dataDir *> $null
+$pgCtl = Join-Path $PostgresBin 'pg_ctl.exe'
+& $pgCtl status -D $dataDir *> $null
 if ($LASTEXITCODE -ne 0) {
-  & (Join-Path $PostgresBin 'pg_ctl.exe') start -D $dataDir -l (Join-Path $localDir 'postgres.log') -w
+  $pidFile = Join-Path $dataDir 'postmaster.pid'
+  if (Test-Path $pidFile) {
+    $firstLine = (Get-Content -LiteralPath $pidFile -TotalCount 1 -ErrorAction SilentlyContinue).Trim()
+    $stale = $false
+    if ($firstLine -match '^\d+$') {
+      $stale = $null -eq (Get-Process -Id ([int]$firstLine) -ErrorAction SilentlyContinue)
+    }
+    if ($stale) {
+      Write-Host 'Eliminando bloqueo temporal antiguo de PostgreSQL...'
+      Remove-Item -LiteralPath $pidFile -Force
+    }
+  }
+  & $pgCtl start -D $dataDir -l (Join-Path $localDir 'postgres.log') -w
   if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar PostgreSQL en 55432.' }
 }
 $previousPassword = $env:PGPASSWORD
