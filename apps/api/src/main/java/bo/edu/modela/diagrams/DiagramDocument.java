@@ -42,7 +42,13 @@ public record DiagramDocument(
       UUID targetId,
       String name,
       String sourceMultiplicity,
-      String targetMultiplicity) {}
+      String targetMultiplicity,
+      UUID associationClassId) {
+    public RelationData(UUID id, String type, UUID sourceId, UUID targetId, String name,
+        String sourceMultiplicity, String targetMultiplicity) {
+      this(id, type, sourceId, targetId, name, sourceMultiplicity, targetMultiplicity, null);
+    }
+  }
 
   public DiagramDocument persisted(long revision, Instant time) {
     return new DiagramDocument(1, id, name.trim(), revision, time, classes, relations);
@@ -148,6 +154,11 @@ public record DiagramDocument(
       require(
           classIds.contains(r.sourceId) && classIds.contains(r.targetId),
           "Ambos extremos deben pertenecer al diagrama.");
+      require(
+          r.associationClassId == null || (r.type.equals("association")
+              && classIds.contains(r.associationClassId)
+              && !r.associationClassId.equals(r.sourceId) && !r.associationClassId.equals(r.targetId)),
+          "La clase de asociaciÃ³n debe ser una tercera clase del diagrama.");
       require(
           r.name != null && r.name.length() <= 80 && r.name.equals(r.name.trim()),
           "Nombre de relación inválido.");

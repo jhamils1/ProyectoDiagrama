@@ -77,6 +77,49 @@ class EaXmiWriterTest {
     }
   }
 
+  @Test void enterpriseArchitectExportUsesLegacyXmiAndPreservesAssociations() throws Exception {
+    var sale = clazz("Venta", false, List.of(attr("id", "Integer", "private", true, true)));
+    var product = clazz("Producto", false, List.of(attr("precio", "Integer", "private", false, true)));
+    var detail = clazz("Detalle", false, List.of(attr("cantidad", "Integer", "private", false, true)));
+    var xml = EaXmiWriter.writeEnterpriseArchitect11(model(List.of(sale, product, detail), List.of(
+        new RelationData(UUID.randomUUID(), "association", sale.id(), product.id(), "incluye", "*", "1..*", detail.id()))));
+    var text = new String(xml, java.nio.charset.Charset.forName("windows-1252"));
+    assertThat(text).contains("xmi.version=\"1.1\"", "UML:Association");
+    var inventory = EaXmiReader.read(xml);
+    assertThat(inventory.issues()).isEmpty();
+    assertThat(inventory.relations().getFirst().sourceMultiplicity()).isEqualTo("0..*");
+    assertThat(inventory.relations().getFirst().targetMultiplicity()).isEqualTo("1..*");
+    assertThat(inventory.relations().getFirst().associationClassId()).isNotBlank();
+  }
+
+  @Test void nativeEaEnvelopeKeepsPackageDiagramAndAssociationClassReferencesTogether() throws Exception {
+    var sale = new ClassData(UUID.randomUUID(), "Venta", false, new Position(300d, 40d),
+        List.of(attr("id", "Integer", "private", true, true)));
+    var product = new ClassData(UUID.randomUUID(), "Producto", false, new Position(800d, 40d), List.of());
+    var detail = new ClassData(UUID.randomUUID(), "Detalle", false, new Position(550d, 260d),
+        List.of(attr("cantidad", "Integer", "private", false, true), attr("precioUnit", "Integer", "private", false, true)));
+    var relation = new RelationData(UUID.randomUUID(), "association", sale.id(), product.id(), "", "*", "1..*", detail.id());
+    var bytes = EaXmiWriter.writeEnterpriseArchitect11(model(List.of(sale, product, detail), List.of(relation)));
+    var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+    factory.setNamespaceAware(true);
+    var document = factory.newDocumentBuilder().parse(new java.io.ByteArrayInputStream(bytes));
+    var xpath = javax.xml.xpath.XPathFactory.newInstance().newXPath();
+    assertThat(xpath.evaluate("/XMI/XMI.header/XMI.documentation/XMI.exporter", document)).isEqualTo("Enterprise Architect");
+    assertThat(xpath.evaluate("/XMI/XMI.header/XMI.documentation/XMI.exporterVersion", document)).isEqualTo("2.5");
+    var packages = document.getElementsByTagNameNS("omg.org/UML1.3", "Package");
+    assertThat(packages.getLength()).isEqualTo(1);
+    var pkg = (org.w3c.dom.Element) packages.item(0);
+    var diagram = (org.w3c.dom.Element) document.getElementsByTagNameNS("omg.org/UML1.3", "Diagram").item(0);
+    assertThat(diagram.getParentNode().getNodeName()).isEqualTo("XMI.content");
+    assertThat(diagram.getAttribute("owner")).isEqualTo(pkg.getAttribute("xmi.id"));
+    assertThat(pkg.getElementsByTagNameNS("omg.org/UML1.3", "Class").getLength()).isEqualTo(3);
+    assertThat(pkg.getElementsByTagNameNS("omg.org/UML1.3", "Association").getLength()).isEqualTo(1);
+    // Retain a real writer output for the optional EA COM import/round-trip check.
+    var output = java.nio.file.Path.of("target", "ea-interop", "association-class.xml");
+    java.nio.file.Files.createDirectories(output.getParent());
+    java.nio.file.Files.write(output, bytes);
+  }
+
   @Test void rejectsInvalidModelBeforeWriting() {
     var a = clazz("Nodo", false, List.of());
     var relation = new RelationData(UUID.randomUUID(), "association", a.id(), UUID.randomUUID(), "", "1", "0..*");

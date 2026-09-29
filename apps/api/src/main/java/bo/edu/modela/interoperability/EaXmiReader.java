@@ -1,6 +1,7 @@
 package bo.edu.modela.interoperability;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.Charset;
 import java.util.*;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -12,6 +13,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public final class EaXmiReader {
   private static final String XMI = "http://www.omg.org/spec/XMI/20131001";
   private static final String UML = "http://www.omg.org/spec/UML/20131001";
+  private static final String LEGACY_UML = "omg.org/UML1.3";
   public static final int MAX_BYTES = 2 * 1024 * 1024;
   private static final Map<String,String> TYPES = Map.ofEntries(
       Map.entry("string","String"), Map.entry("int","Integer"), Map.entry("integer","Integer"),
@@ -28,7 +30,12 @@ public final class EaXmiReader {
     public UmlClass { attributes = List.copyOf(attributes); }
   }
   public record Relation(String id, String type, String name, String sourceId, String targetId,
-      String sourceMultiplicity, String targetMultiplicity) {}
+      String sourceMultiplicity, String targetMultiplicity, String associationClassId) {
+    public Relation(String id, String type, String name, String sourceId, String targetId,
+        String sourceMultiplicity, String targetMultiplicity) {
+      this(id, type, name, sourceId, targetId, sourceMultiplicity, targetMultiplicity, null);
+    }
+  }
   public record Inventory(List<UmlClass> classes, List<Relation> relations, List<Issue> issues) {
     public Inventory { classes=List.copyOf(classes); relations=List.copyOf(relations); issues=List.copyOf(issues); }
   }
@@ -53,7 +60,9 @@ public final class EaXmiReader {
         @Override public void fatalError(org.xml.sax.SAXParseException e) throws SAXException { throw e; }
         @Override public void error(org.xml.sax.SAXParseException e) throws SAXException { throw e; }
       });
-      var root = builder.parse(new ByteArrayInputStream(bytes)).getDocumentElement();
+      var root = builder.parse(new ByteArrayInputStream(normalizeLegacyNamespace(bytes))).getDocumentElement();
+      if ("XMI".equals(root.getTagName()) && "1.1".equals(legacyVersion(root)))
+        return readEnterpriseArchitect11(root);
       if (!XMI.equals(root.getNamespaceURI()) || !"XMI".equals(root.getLocalName()))
         throw new IllegalArgumentException("Formato XMI no admitido; usa la exportación UML 2.5 acordada.");
       var all = root.getElementsByTagName("*");
@@ -133,6 +142,119 @@ public final class EaXmiReader {
     } catch (IllegalArgumentException e) { throw e; }
     catch (Exception e) { throw new IllegalArgumentException("XML inválido o no admitido; no se permiten DTD ni entidades externas.",e); }
   }
+
+  /** EA 2.5 emits xmi.version without declaring the xmi prefix. Declare it locally before parsing. */
+  private static byte[] normalizeLegacyNamespace(byte[] bytes) {
+    var charset = Charset.forName("windows-1252");
+    var xml = new String(bytes, charset);
+    if (!xml.contains("xmi.version=\"1.1\"") || xml.contains("xmlns:xmi=")) return bytes;
+    return xml.replaceFirst("<XMI\\b", "<XMI xmlns:xmi=\"http://www.omg.org/XMI\"").getBytes(charset);
+  }
+
+  /** Reads the XMI 1.1 dialect produced by legacy Enterprise Architect exports. */
+  private static Inventory readEnterpriseArchitect11(Element root) {
+    var classes = new ArrayList<UmlClass>();
+    var relations = new ArrayList<Relation>();
+    var issues = new ArrayList<Issue>();
+    var classIds = new HashSet<String>();
+
+    var classNodes = root.getElementsByTagNameNS(LEGACY_UML, "Class");
+    for (int i = 0; i < classNodes.getLength(); i++) {
+      var element = (Element) classNodes.item(i);
+      if ("true".equals(element.getAttribute("isRoot"))) continue;
+      var id = legacyId(element);
+      var attributes = new ArrayList<Attribute>();
+      var attributeNodes = element.getElementsByTagNameNS(LEGACY_UML, "Attribute");
+      for (int j = 0; j < attributeNodes.getLength(); j++) {
+        var attribute = (Element) attributeNodes.item(j);
+        var raw = legacyTaggedValue(attribute, "type");
+        var mapped = TYPES.get(raw.toLowerCase(Locale.ROOT));
+        var attributeId = legacyId(attribute);
+        if (!raw.isEmpty() && mapped == null)
+          issues.add(new Issue("TYPE_MAPPING_REQUIRED", attributeId,
+              element.getAttribute("name") + "." + attribute.getAttribute("name") + " usa el tipo " + raw + ".",
+              raw.equals("Real") ? "Double" : null, false));
+        // EA normally omits a multiplicity for scalar attributes. In that case it means one,
+        // unlike an association end where an omitted multiplicity is ambiguous.
+        var attributeMultiplicity = attribute.getAttribute("multiplicity");
+        attributes.add(new Attribute(attributeId, attribute.getAttribute("name"), raw,
+            raw.isEmpty() ? "" : mapped, attribute.getAttribute("visibility"), false,
+            attributeMultiplicity.isBlank() ? "1" : legacyMultiplicity(attribute, issues)));
+      }
+      classes.add(new UmlClass(id, element.getAttribute("name"), attributes,
+          "true".equals(element.getAttribute("isAbstract")), null));
+      classIds.add(id);
+    }
+
+    var associationNodes = root.getElementsByTagNameNS(LEGACY_UML, "Association");
+    for (int i = 0; i < associationNodes.getLength(); i++) {
+      var association = (Element) associationNodes.item(i);
+      var ends = new ArrayList<Element>();
+      var endNodes = association.getElementsByTagNameNS(LEGACY_UML, "AssociationEnd");
+      for (int j = 0; j < endNodes.getLength(); j++) ends.add((Element) endNodes.item(j));
+      var id = legacyId(association);
+      if (ends.size() != 2) {
+        issues.add(new Issue("ASSOCIATION_ENDS_INVALID", id,
+            ends.isEmpty() ? "Se encontrÃ³ una relaciÃ³n vacÃ­a que no conecta clases."
+                : "La relaciÃ³n estÃ¡ incompleta: falta uno de sus extremos.", null, ends.isEmpty()));
+        continue;
+      }
+      var source = ends.get(0);
+      var target = ends.get(1);
+      relations.add(new Relation(id, "association", association.getAttribute("name"),
+          source.getAttribute("type"), target.getAttribute("type"),
+          legacyMultiplicity(source, issues), legacyMultiplicity(target, issues),
+          legacyTaggedValue(association, "associationclass")));
+    }
+    for (var relation : relations) {
+      if (!classIds.contains(relation.sourceId()) || !classIds.contains(relation.targetId()))
+        issues.add(new Issue("CLASS_REFERENCE_MISSING", relation.id(),
+            "La relaciÃ³n referencia una clase que no estÃ¡ en el modelo."));
+      if (!relation.associationClassId().isBlank() && !classIds.contains(relation.associationClassId()))
+        issues.add(new Issue("ASSOCIATION_CLASS_MISSING", relation.id(),
+            "La clase de asociaciÃ³n referenciada no estÃ¡ en el modelo."));
+    }
+    return new Inventory(classes, relations, issues);
+  }
+
+  private static String legacyId(Element element) {
+    var namespaced = element.getAttributeNS("http://www.omg.org/XMI", "id");
+    return namespaced.isBlank() ? element.getAttribute("xmi.id") : namespaced;
+  }
+
+  private static String legacyVersion(Element root) {
+    var namespaced = root.getAttributeNS("http://www.omg.org/XMI", "version");
+    return namespaced.isBlank() ? root.getAttribute("xmi.version") : namespaced;
+  }
+
+  private static String legacyTaggedValue(Element element, String tag) {
+    var values = element.getElementsByTagNameNS(LEGACY_UML, "TaggedValue");
+    for (int i = 0; i < values.getLength(); i++) {
+      var value = (Element) values.item(i);
+      if (tag.equals(value.getAttribute("tag"))) return value.getAttribute("value");
+    }
+    return "";
+  }
+
+  private static String legacyMultiplicity(Element element, List<Issue> issues) {
+    var value = element.getAttribute("multiplicity");
+    if (value.isBlank()) {
+      var lower = legacyTaggedValue(element, "lowerBound");
+      var upper = legacyTaggedValue(element, "upperBound");
+      if (!lower.isBlank() && !upper.isBlank()) value = lower.equals(upper) ? lower : lower + ".." + upper;
+    }
+    value = value.trim();
+    if ("*".equals(value)) return "0..*";
+    if ("0..".equals(value)) return "0..*";
+    if ("1..".equals(value)) return "1..*";
+    if (value.isBlank()) {
+      issues.add(new Issue("MULTIPLICITY_MISSING", legacyId(element),
+          "Falta multiplicidad explÃ­cita; no se asignarÃ¡ por defecto."));
+      return null;
+    }
+    return value;
+  }
+
   private static boolean kind(Element e,String type) {
     var value=e.getAttributeNS(XMI,"type"); int colon=value.indexOf(':');
     return colon>0 && type.equals(value.substring(colon+1)) && UML.equals(e.lookupNamespaceURI(value.substring(0,colon)));

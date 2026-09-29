@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { X, ArrowRight } from 'lucide-react'
 import type { Diagram, ModelCommand, UmlRelation } from '../domain/model'
 
-type MultiplicityPreset = 'one-to-many' | 'one-to-one' | 'custom'
+type MultiplicityPreset = 'one-to-many' | 'one-to-one' | 'many-to-many' | 'custom'
 
 function presetFor(value: UmlRelation): MultiplicityPreset {
   if (value.sourceMultiplicity === '1' && value.targetMultiplicity === '0..*') return 'one-to-many'
   if (value.sourceMultiplicity === '1' && value.targetMultiplicity === '0..1') return 'one-to-one'
+  if ((value.sourceMultiplicity === '*' || value.sourceMultiplicity.endsWith('..*')) &&
+      (value.targetMultiplicity === '*' || value.targetMultiplicity.endsWith('..*'))) return 'many-to-many'
   return 'custom'
 }
 
@@ -113,11 +115,14 @@ export function RelationDialog({
                     setValue({ ...value, sourceMultiplicity: '1', targetMultiplicity: '0..*' })
                   } else if (next === 'one-to-one') {
                     setValue({ ...value, sourceMultiplicity: '1', targetMultiplicity: '0..1' })
+                  } else if (next === 'many-to-many') {
+                    setValue({ ...value, sourceMultiplicity: '*', targetMultiplicity: '0..*' })
                   }
                 }}
               >
                 <option value="one-to-many">Uno a muchos (1 — 0..*)</option>
                 <option value="one-to-one">Uno a uno (1 — 0..1)</option>
+                <option value="many-to-many">Muchos a muchos (* — 0..*)</option>
                 <option value="custom">Personalizada</option>
               </select>
             </label>

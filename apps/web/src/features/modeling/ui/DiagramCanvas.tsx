@@ -13,11 +13,16 @@ import {
 import { ClassNode, type ClassFlowNode } from './ClassNode'
 import { GeneralizationEdge } from './GeneralizationEdge'
 import { AssociationEdge } from './AssociationEdge'
+import { AssociationClassEdge } from './AssociationClassEdge'
 import { generalizationLine } from './generalizationGeometry'
 import type { Diagram, ModelCommand, UmlRelation } from '../domain/model'
 
 const nodeTypes = { umlClass: ClassNode }
-const edgeTypes = { generalization: GeneralizationEdge, association: AssociationEdge }
+const edgeTypes = {
+  generalization: GeneralizationEdge,
+  association: AssociationEdge,
+  associationClass: AssociationClassEdge,
+}
 const ariaLabels = {
   'controls.ariaLabel': 'Controles del lienzo',
   'controls.zoomIn.ariaLabel': 'Acercar',
@@ -85,27 +90,58 @@ export function DiagramCanvas({
       height: node.measured?.height ?? 100,
     }
   }
-  const edges: Edge[] = diagram.relations.map((r) => ({
-    id: r.id,
-    source: r.sourceId,
-    target: r.targetId,
-    type: r.sourceId === r.targetId ? 'smoothstep' : r.type,
-    data: {
-      ...generalizationLine(rectangle(r.sourceId), rectangle(r.targetId)),
-      sourceMultiplicity: r.sourceMultiplicity,
-      targetMultiplicity: r.targetMultiplicity,
-    },
-    label:
-      r.sourceId === r.targetId
-        ? `${r.sourceMultiplicity} · ${r.name || 'asociación'} · ${r.targetMultiplicity}`
-        : r.name || undefined,
-    markerEnd: r.type === 'generalization' ? 'uml-inheritance' : undefined,
-    style: { stroke: '#737c91', strokeWidth: 1.6 },
-    labelStyle: { fill: '#566079', fontSize: 11 },
-    labelBgStyle: { fill: '#fff' },
-    labelBgPadding: [8, 5],
-    labelBgBorderRadius: 5,
-  }))
+  const edges: Edge[] = diagram.relations.flatMap((r) => {
+    const relation: Edge = {
+      id: r.id,
+      source: r.sourceId,
+      target: r.targetId,
+      type: r.sourceId === r.targetId ? 'smoothstep' : r.type,
+      data: {
+        ...generalizationLine(rectangle(r.sourceId), rectangle(r.targetId)),
+        sourceMultiplicity: r.sourceMultiplicity,
+        targetMultiplicity: r.targetMultiplicity,
+      },
+      label:
+        r.sourceId === r.targetId
+          ? `${r.sourceMultiplicity} · ${r.name || 'asociación'} · ${r.targetMultiplicity}`
+          : r.name || undefined,
+      markerEnd: r.type === 'generalization' ? 'uml-inheritance' : undefined,
+      style: { stroke: '#737c91', strokeWidth: 1.6 },
+      labelStyle: { fill: '#566079', fontSize: 11 },
+      labelBgStyle: { fill: '#fff' },
+      labelBgPadding: [8, 5],
+      labelBgBorderRadius: 5,
+    }
+    // EA represents an association class as an association plus its linked class.
+    // Show the conventional dashed link without making it a second editable relation.
+    const associationClass = r.type === 'association' && r.associationClassId
+      && diagram.classes.some((c) => c.id === r.associationClassId)
+      ? (() => {
+          const associationLine = generalizationLine(rectangle(r.sourceId), rectangle(r.targetId))
+          const start = {
+            x: (associationLine.start.x + associationLine.end.x) / 2,
+            y: (associationLine.start.y + associationLine.end.y) / 2,
+          }
+          const target = rectangle(r.associationClassId)
+          const center = { x: target.x + target.width / 2, y: target.y + target.height / 2 }
+          const dx = start.x - center.x
+          const dy = start.y - center.y
+          const scale = Math.max(Math.abs(dx) / (target.width / 2), Math.abs(dy) / (target.height / 2)) || 1
+          const end = { x: center.x + dx / scale, y: center.y + dy / scale }
+          return [{
+            id: `${r.id}:association-class`,
+            source: r.sourceId,
+            target: r.associationClassId,
+            type: 'associationClass',
+            data: { start, end },
+            selectable: false,
+            focusable: false,
+            style: { stroke: '#737c91', strokeWidth: 1.4, strokeDasharray: '6 5' },
+          } satisfies Edge]
+        })()
+      : []
+    return [relation, ...associationClass]
+  })
   return (
     <div
       className="canvas"

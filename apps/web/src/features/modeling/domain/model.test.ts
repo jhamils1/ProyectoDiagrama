@@ -203,4 +203,14 @@ describe('P-CU08: editar, validar y eliminar', () => {
     expect(renamed.relations[0].name).toBe('contiene')
     expect(applyCommand(renamed, { type: 'deleteRelation', id: r.id }).relations).toEqual([])
   })
+  it('crea una clase Detalle para una asociación muchos a muchos', () => {
+    const d = withClasses()
+    const linked = applyCommand(d, {
+      type: 'upsertRelation',
+      value: { ...relation(d), sourceMultiplicity: '*', targetMultiplicity: '0..*' },
+    })
+    expect(linked.classes).toHaveLength(3)
+    expect(linked.classes[2].name).toBe('Detalle')
+    expect(linked.relations[0].associationClassId).toBe(linked.classes[2].id)
+  })
 })

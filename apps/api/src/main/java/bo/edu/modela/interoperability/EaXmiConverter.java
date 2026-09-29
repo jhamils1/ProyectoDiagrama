@@ -79,7 +79,8 @@ public final class EaXmiConverter {
       boolean inheritance="generalization".equals(r.type());
       // Existing model requires multiplicity strings even for inheritance, where they have no UML meaning.
       relations.add(new RelationData(ids.get(r.id()),r.type(),ids.get(r.sourceId()),ids.get(r.targetId()),r.name(),
-          inheritance?"1":r.sourceMultiplicity(),inheritance?"1":r.targetMultiplicity()));
+          inheritance?"1":r.sourceMultiplicity(),inheritance?"1":r.targetMultiplicity(),
+          r.associationClassId()==null || r.associationClassId().isBlank() ? null : ids.get(r.associationClassId())));
     }
     notices.add("Se crean identificadores internos nuevos. Un atributo llamado id no se marca como identificador salvo isID=true explícito en el XML.");
     var document=new DiagramDocument(1,UUID.randomUUID(),diagramName,0L,Instant.now(),classes,relations);

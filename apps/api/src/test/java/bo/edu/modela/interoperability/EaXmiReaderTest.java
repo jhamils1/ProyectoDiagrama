@@ -8,6 +8,28 @@ class EaXmiReaderTest {
   byte[] sample() throws Exception {
     try(var in=getClass().getResourceAsStream("/interoperability/ea-sample.xml")) { return in.readAllBytes(); }
   }
+  byte[] legacySample() throws Exception {
+    try(var in=getClass().getResourceAsStream("/interoperability/ea-legacy-prueba-a.xml")) { return in.readAllBytes(); }
+  }
+  @Test void readsEnterpriseArchitectXmi11AndNormalizesLegacyMultiplicities() throws Exception {
+    var result=EaXmiReader.read(legacySample());
+    assertThat(result.classes()).extracting(EaXmiReader.UmlClass::name)
+        .contains("Venta","Cliente","Vendedor","Producto","Detalle");
+    assertThat(result.classes().stream().filter(c->c.name().equals("Producto")).findFirst().orElseThrow().attributes())
+        .extracting(EaXmiReader.Attribute::mappedType).containsOnly("Integer");
+    assertThat(result.relations()).extracting(EaXmiReader.Relation::sourceMultiplicity)
+        .contains("0..*","1");
+    assertThat(result.relations()).extracting(EaXmiReader.Relation::targetMultiplicity)
+        .contains("1..*","0..*");
+    var saleId = result.classes().stream().filter(c -> c.name().equals("Venta")).findFirst().orElseThrow().id();
+    var productId = result.classes().stream().filter(c -> c.name().equals("Producto")).findFirst().orElseThrow().id();
+    var saleProduct = result.relations().stream()
+        .filter(r -> r.sourceId().equals(saleId) && r.targetId().equals(productId)).findFirst().orElseThrow();
+    assertThat(saleProduct.targetMultiplicity()).isEqualTo("1..*");
+    assertThat(saleProduct.associationClassId()).isNotBlank();
+    assertThat(result.classes()).extracting(EaXmiReader.UmlClass::id)
+        .contains(saleProduct.associationClassId());
+  }
   @Test void readsRealEaSampleWithoutInventingTypesOrLosingInvalidAssociation() throws Exception {
     var result=EaXmiReader.read(sample());
     assertThat(result.classes()).extracting(EaXmiReader.UmlClass::name).containsExactly("Cliente","ClientePremium","Pedido");

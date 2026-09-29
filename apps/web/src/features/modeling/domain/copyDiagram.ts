@@ -14,6 +14,7 @@ export function copyLocalDiagram(original: Diagram): Diagram {
     r.id = crypto.randomUUID()
     r.sourceId = ids.get(r.sourceId)!
     r.targetId = ids.get(r.targetId)!
+    if (r.associationClassId) r.associationClassId = ids.get(r.associationClassId)!
   }
   return validateDiagram(copy)
 }

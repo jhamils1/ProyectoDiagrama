@@ -21,7 +21,7 @@ public class XmiExportController {
     if (revision != snapshot.revision()) throw ApiException.conflict("El diagrama cambió. Actualiza antes de exportar.");
     return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML).cacheControl(CacheControl.noStore())
         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"diagrama-" + id + "-r" + revision + ".xml\"")
-        .body(EaXmiWriter.write(snapshot.document()));
+        .body(EaXmiWriter.writeEnterpriseArchitect11(snapshot.document()));
   }
 
   @ExceptionHandler(IllegalArgumentException.class)

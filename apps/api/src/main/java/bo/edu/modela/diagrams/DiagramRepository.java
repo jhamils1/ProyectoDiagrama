@@ -92,7 +92,8 @@ public class DiagramRepository {
                         r.destinoId,
                         r.nombre,
                         r.multiplicidadOrigen,
-                        r.multiplicidadDestino))
+                        r.multiplicidadDestino,
+                        r.claseAsociacionId))
             .toList());
     // A proposal may read and replace the graph in the same transaction. Bulk deletion does
     // not detach these rows: keep the aggregate/header managed, but release graph identities.
@@ -151,6 +152,7 @@ public class DiagramRepository {
       row.nombre = r.name();
       row.multiplicidadOrigen = r.sourceMultiplicity();
       row.multiplicidadDestino = r.targetMultiplicity();
+      row.claseAsociacionId = r.associationClassId();
       row.orden = order++;
       em.persist(row);
     }

@@ -59,6 +59,8 @@ export const relationSchema = z.object({
   name: z.string().trim().max(80),
   sourceMultiplicity: multiplicity,
   targetMultiplicity: multiplicity,
+  // Optional so existing local diagrams remain valid; the server uses null when absent.
+  associationClassId: uuid.nullable().optional(),
 })
 export const diagramSchema = z.object({
   schemaVersion: z.literal(1),
@@ -104,6 +106,14 @@ export function validateDiagram(input: unknown): Diagram {
   for (const r of diagram.relations) {
     if (!classIds.has(r.sourceId) || !classIds.has(r.targetId))
       throw new ModelError('Ambos extremos deben pertenecer a este diagrama.')
+    if (
+      r.associationClassId &&
+      (!classIds.has(r.associationClassId) ||
+        r.type !== 'association' ||
+        r.associationClassId === r.sourceId ||
+        r.associationClassId === r.targetId)
+    )
+      throw new ModelError('La clase de asociación debe ser una tercera clase del diagrama.')
     const key = JSON.stringify([r.type, r.sourceId, r.targetId, r.name.toLowerCase()])
     if (relationKeys.has(key)) throw new ModelError('Ya existe esa relación.')
     relationKeys.add(key)
@@ -199,9 +209,47 @@ export function applyCommand(input: Diagram, command: ModelCommand): Diagram {
       break
     }
     case 'upsertRelation': {
+      const isMany = (multiplicity: string) => multiplicity === '*' || multiplicity.endsWith('..*')
+      const needsAssociationClass =
+        command.value.type === 'association' &&
+        isMany(command.value.sourceMultiplicity) &&
+        isMany(command.value.targetMultiplicity)
+      let relation = command.value
+      if (needsAssociationClass && !relation.associationClassId) {
+        const source = getClass(relation.sourceId)
+        const target = getClass(relation.targetId)
+        const usedAssociationClasses = new Set(
+          next.relations.map((item) => item.associationClassId).filter(Boolean),
+        )
+        let associationClass = next.classes.find(
+          (item) => item.name.toLowerCase() === 'detalle' && !usedAssociationClasses.has(item.id),
+        )
+        if (!associationClass) {
+          let suffix = ''
+          let number = 2
+          while (next.classes.some((c) => c.name.toLowerCase() === `detalle${suffix}`.toLowerCase())) {
+            suffix = String(number++)
+          }
+          associationClass = {
+            id: crypto.randomUUID(),
+            name: `Detalle${suffix}`,
+            abstract: false,
+            attributes: [],
+            position: {
+              x: (source.position.x + target.position.x) / 2,
+              y: (source.position.y + target.position.y) / 2 + 180,
+            },
+          }
+          next.classes.push(associationClass)
+        }
+        relation = { ...relation, associationClassId: associationClass.id }
+      } else if (!needsAssociationClass && relation.associationClassId) {
+        // Keep the class and its attributes. Only detach it when the relation stops being many-to-many.
+        relation = { ...relation, associationClassId: null }
+      }
       const index = next.relations.findIndex((r) => r.id === command.value.id)
-      if (index < 0) next.relations.push(command.value)
-      else next.relations[index] = command.value
+      if (index < 0) next.relations.push(relation)
+      else next.relations[index] = relation
       break
     }
     case 'deleteRelation':

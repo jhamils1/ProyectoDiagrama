@@ -11,6 +11,9 @@ public class RelacionUML {
   public UUID origenId;
   public UUID destinoId;
 
+  /** Optional third class that owns attributes of an association (for example Venta--Producto -> Detalle). */
+  public UUID claseAsociacionId;
+
   @Column(length = 20)
   public String tipo;
 
