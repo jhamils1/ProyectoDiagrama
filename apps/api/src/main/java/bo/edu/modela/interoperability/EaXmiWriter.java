@@ -118,14 +118,18 @@ public final class EaXmiWriter {
         for (var a : c.attributes()) {
           legacyElement(xml, "Attribute"); legacyId(xml, legacyElementId(a.id())); attr(xml, "name", a.name()); attr(xml, "visibility", a.visibility());
           attr(xml, "changeable", "none"); attr(xml, "ownerScope", "instance"); attr(xml, "targetScope", "instance");
-          attr(xml, "isID", a.identifier().toString()); attr(xml, "multiplicity", a.required() ? "1" : "0..1");
+          attr(xml, "isID", a.identifier().toString());
           legacyElement(xml, "StructuralFeature.type"); legacyElement(xml, "Classifier");
           xml.writeAttribute("xmi.idref", "type_" + a.dataType()); xml.writeEndElement(); xml.writeEndElement();
           legacyElement(xml, "ModelElement.taggedValue");
           legacyTag(xml, "type", legacyType(a.dataType()));
           legacyTag(xml, "ea_guid", "{" + a.id().toString().toUpperCase(Locale.ROOT) + "}");
           legacyTag(xml, "position", String.valueOf(attributePosition++));
-          legacyTag(xml, "lowerBound", a.required() ? "1" : "0"); legacyTag(xml, "upperBound", "1");
+          // EA renders every non-default attribute bound beside its type, for
+          // example "String [0..1]". Its own course-compatible XMI emits 1..1
+          // attributes, so keep bounds out of this legacy presentation export.
+          // Association-end multiplicities are exported separately and intact.
+          legacyTag(xml, "lowerBound", "1"); legacyTag(xml, "upperBound", "1");
           legacyTag(xml, "containment", "Not Specified"); legacyTag(xml, "ordered", "0");
           legacyTag(xml, "static", "0"); legacyTag(xml, "collection", "false");
           xml.writeEndElement();

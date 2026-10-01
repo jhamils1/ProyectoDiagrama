@@ -85,6 +85,7 @@ class EaXmiWriterTest {
         new RelationData(UUID.randomUUID(), "association", sale.id(), product.id(), "incluye", "*", "1..*", detail.id()))));
     var text = new String(xml, java.nio.charset.Charset.forName("windows-1252"));
     assertThat(text).contains("xmi.version=\"1.1\"", "UML:Association");
+    assertThat(text).doesNotContain("multiplicity=\"0..1\"");
     var inventory = EaXmiReader.read(xml);
     assertThat(inventory.issues()).isEmpty();
     assertThat(inventory.relations().getFirst().sourceMultiplicity()).isEqualTo("0..*");
@@ -95,7 +96,8 @@ class EaXmiWriterTest {
   @Test void nativeEaEnvelopeKeepsPackageDiagramAndAssociationClassReferencesTogether() throws Exception {
     var sale = new ClassData(UUID.randomUUID(), "Venta", false, new Position(300d, 40d),
         List.of(attr("id", "Integer", "private", true, true)));
-    var product = new ClassData(UUID.randomUUID(), "Producto", false, new Position(800d, 40d), List.of());
+    var product = new ClassData(UUID.randomUUID(), "Producto", false, new Position(800d, 40d),
+        List.of(attr("nombre", "String", "private", false, false)));
     var detail = new ClassData(UUID.randomUUID(), "Detalle", false, new Position(550d, 260d),
         List.of(attr("cantidad", "Integer", "private", false, true), attr("precioUnit", "Integer", "private", false, true)));
     var relation = new RelationData(UUID.randomUUID(), "association", sale.id(), product.id(), "", "*", "1..*", detail.id());
