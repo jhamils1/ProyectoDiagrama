@@ -859,16 +859,18 @@ a {
   opacity: 0;
 }
 .class-node.is-selected .uml-target-handle,
+.class-node.is-connecting .uml-target-handle,
 .react-flow__handle.connectingto,
 .react-flow__handle.valid {
   opacity: 1;
 }
-.relationship-drag-handle {
+.react-flow__handle.relationship-drag-handle {
   width: 38px;
   height: 38px;
-  border: 1px solid #7153ce;
+  border: 2px solid #fff;
   border-radius: 50%;
-  background: #7257d9;
+  background: #7257d9 !important;
+  opacity: 1 !important;
   box-shadow: 0 3px 9px #4d3d8b38;
   cursor: crosshair;
   z-index: 3;

@@ -2,11 +2,11 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { ArrowRight, KeyRound } from 'lucide-react'
 import { visibilitySymbols, type UmlClass } from '../domain/model'
 
-export type ClassFlowNode = Node<{ uml: UmlClass }, 'umlClass'>
+export type ClassFlowNode = Node<{ uml: UmlClass; connecting?: boolean }, 'umlClass'>
 export function ClassNode({ data, selected }: NodeProps<ClassFlowNode>) {
   const c = data.uml
   return (
-    <div className={`class-node ${selected ? 'is-selected' : ''}`}>
+    <div className={`class-node ${selected ? 'is-selected' : ''} ${data.connecting ? 'is-connecting' : ''}`}>
       <Handle id="target-left" type="target" position={Position.Left} className="uml-target-handle" />
       <Handle id="target-right" type="target" position={Position.Right} className="uml-target-handle" />
       <Handle id="target-top" type="target" position={Position.Top} className="uml-target-handle" />

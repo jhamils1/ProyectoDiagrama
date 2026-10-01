@@ -67,6 +67,7 @@ export function DiagramCanvas({
     return () => { newClassPosition.current = null }
   }, [newClassPosition])
   const [positions, setPositions] = useState<Record<string, XYPosition>>({})
+  const [connecting, setConnecting] = useState(false)
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>(
     {},
   )
@@ -76,11 +77,11 @@ export function DiagramCanvas({
         id: c.id,
         type: 'umlClass',
         position: positions[c.id] ?? c.position,
-        data: { uml: c },
+        data: { uml: c, connecting },
         selected: c.id === selectedId,
         measured: dimensions[c.id],
       })),
-    [diagram.classes, positions, dimensions, selectedId],
+    [diagram.classes, positions, dimensions, selectedId, connecting],
   )
   const rectangle = (id: string) => {
     const node = nodes.find((n) => n.id === id)!
@@ -235,6 +236,8 @@ export function DiagramCanvas({
           })
         }}
         onConnect={connect}
+        onConnectStart={() => setConnecting(true)}
+        onConnectEnd={() => setConnecting(false)}
         onEdgeClick={(_, edge) => {
           const r = diagram.relations.find((r) => r.id === edge.id)
           if (r) editRelation(r)
