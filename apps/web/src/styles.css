@@ -865,6 +865,8 @@ a {
   opacity: 1;
 }
 .react-flow__handle.relationship-drag-handle {
+  top: 18px;
+  right: -6px;
   width: 26px;
   height: 28px;
   border: 0;
@@ -876,6 +878,16 @@ a {
   place-items: center;
   color: #545968;
   z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+}
+.class-node.is-selected .relationship-drag-handle.connectablestart {
+  opacity: 1;
+  pointer-events: all;
+}
+.class-node.is-connecting:not(.is-selected):hover {
+  outline: 2px dashed #7153ce;
+  outline-offset: 4px;
 }
 .react-flow__handle.relationship-drag-handle::after {
   content: "↑";

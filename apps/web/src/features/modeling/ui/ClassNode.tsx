@@ -3,13 +3,13 @@ import { KeyRound } from 'lucide-react'
 import { visibilitySymbols, type UmlClass } from '../domain/model'
 
 export type ClassFlowNode = Node<{ uml: UmlClass; connecting?: boolean }, 'umlClass'>
-export function ClassNode({ data, selected }: NodeProps<ClassFlowNode>) {
+export function ClassNode({ data, selected, isConnectable }: NodeProps<ClassFlowNode>) {
   const c = data.uml
   return (
     <div className={`class-node ${selected ? 'is-selected' : ''} ${data.connecting ? 'is-connecting' : ''}`}>
-      <Handle id="target-left" type="target" position={Position.Left} className="uml-target-handle" />
-      <Handle id="target-top" type="target" position={Position.Top} className="uml-target-handle" />
-      <Handle id="target-bottom" type="target" position={Position.Bottom} className="uml-target-handle" />
+      <Handle id="target-left" type="target" position={Position.Left} className="uml-target-handle" isConnectable={isConnectable} isConnectableStart={false} />
+      <Handle id="target-top" type="target" position={Position.Top} className="uml-target-handle" isConnectable={isConnectable} isConnectableStart={false} />
+      <Handle id="target-bottom" type="target" position={Position.Bottom} className="uml-target-handle" isConnectable={isConnectable} isConnectableStart={false} />
       <div className="class-heading">
         <strong className={c.abstract ? 'abstract' : ''}>{c.name}</strong>
       </div>
@@ -29,16 +29,18 @@ export function ClassNode({ data, selected }: NodeProps<ClassFlowNode>) {
           ))
         )}
       </div>
-      {selected && (
+      {/* Keep the handle mounted so React Flow measures it before selection. */}
         <Handle
           id="relationship-source"
           type="source"
           position={Position.Right}
           className="relationship-drag-handle"
-          aria-label={`Arrastra desde ${c.name} hacia otra clase para crear una relacion`}
-          title="Arrastra hacia otra clase para crear una relacion"
+          isConnectable={isConnectable}
+          isConnectableStart={!!selected && isConnectable}
+          aria-hidden={!selected || !isConnectable}
+          aria-label={`Arrastra desde ${c.name} hacia otra clase para crear una relación`}
+          title="Arrastra hacia otra clase para crear una relación"
         />
-      )}
     </div>
   )
 }

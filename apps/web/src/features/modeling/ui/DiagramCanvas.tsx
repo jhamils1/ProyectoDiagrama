@@ -5,6 +5,7 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  ConnectionLineType,
   type Connection,
   type Edge,
   type XYPosition,
@@ -235,9 +236,31 @@ export function DiagramCanvas({
             return next
           })
         }}
-        onConnect={connect}
-        onConnectStart={() => setConnecting(true)}
-        onConnectEnd={() => setConnecting(false)}
+        onConnect={(connection) => { if (!busy) connect(connection) }}
+        connectOnClick={false}
+        connectionLineType={ConnectionLineType.Straight}
+        connectionLineStyle={{ stroke: '#545968', strokeWidth: 1.6, strokeDasharray: '6 4' }}
+        onConnectStart={() => {
+          setConnecting(true)
+          setEditing?.('connection', true)
+        }}
+        onConnectEnd={(event, connection) => {
+          setConnecting(false)
+          setEditing?.('connection', false)
+          // Native handle drops already invoke onConnect. Also accept the body
+          // of a class, as in EA's quick linker, without creating a duplicate.
+          if (busy || connection.isValid || !connection.fromNode || event.type === 'touchcancel') return
+          const point = 'changedTouches' in event ? event.changedTouches[0] : event
+          if (!point) return
+          const element = document.elementFromPoint(point.clientX, point.clientY)
+          const target = element?.closest<HTMLElement>('.react-flow__node')
+          const targetId = target?.dataset.id
+          if (targetId && canvas.current?.contains(target!) &&
+              targetId !== connection.fromNode.id && diagram.classes.some((c) => c.id === targetId)) {
+            connect({ source: connection.fromNode.id, target: targetId,
+              sourceHandle: connection.fromHandle?.id ?? null, targetHandle: null })
+          }
+        }}
         onEdgeClick={(_, edge) => {
           const r = diagram.relations.find((r) => r.id === edge.id)
           if (r) editRelation(r)
