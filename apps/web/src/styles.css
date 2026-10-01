@@ -872,20 +872,17 @@ a {
   background: transparent !important;
   box-shadow: none;
   cursor: crosshair;
-  z-index: 3;
-}
-.relationship-drag-icon {
-  position: absolute;
-  right: -25px;
-  top: 50%;
   display: grid;
-  width: 24px;
-  height: 28px;
   place-items: center;
   color: #545968;
-  pointer-events: none;
-  transform: translateY(-50%);
-  z-index: 4;
+  z-index: 3;
+}
+.react-flow__handle.relationship-drag-handle::after {
+  content: "↑";
+  font-family: Arial, sans-serif;
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1;
 }
 .react-flow__controls {
   box-shadow: 0 2px 8px #2f305410;
