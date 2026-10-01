@@ -274,7 +274,7 @@ export function DiagramCanvas({
         fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#b9c2d2" />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#98a5ba" />
         <Controls showInteractive={false} />
         <MiniMap
           nodeColor="#dfe2ff"
