@@ -8,7 +8,6 @@ export function ClassNode({ data, selected }: NodeProps<ClassFlowNode>) {
   return (
     <div className={`class-node ${selected ? 'is-selected' : ''} ${data.connecting ? 'is-connecting' : ''}`}>
       <Handle id="target-left" type="target" position={Position.Left} className="uml-target-handle" />
-      <Handle id="target-right" type="target" position={Position.Right} className="uml-target-handle" />
       <Handle id="target-top" type="target" position={Position.Top} className="uml-target-handle" />
       <Handle id="target-bottom" type="target" position={Position.Bottom} className="uml-target-handle" />
       <div className="class-heading">
