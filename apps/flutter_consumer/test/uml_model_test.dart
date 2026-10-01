@@ -58,6 +58,30 @@ void main() {
     expect(diagram.validate(), isNull);
   });
 
+  test('preserves an association class in the server document contract', () {
+    final venta = UmlClass(id: newUuid(), name: 'Venta');
+    final producto = UmlClass(id: newUuid(), name: 'Producto');
+    final detalle = UmlClass(id: newUuid(), name: 'Detalle');
+    final diagram = UmlDiagram.empty().changed(
+      classes: [venta, producto, detalle],
+      relations: [
+        UmlRelation(
+          id: newUuid(),
+          type: 'association',
+          sourceId: venta.id,
+          targetId: producto.id,
+          sourceMultiplicity: '*',
+          targetMultiplicity: '1..*',
+          associationClassId: detalle.id,
+        ),
+      ],
+    );
+
+    final restored = UmlDiagram.fromJson(diagram.toJson());
+    expect(restored.relations.single.associationClassId, detalle.id);
+    expect(restored.validate(), isNull);
+  });
+
   test('local assistant identifies missing identifiers without a network call', () {
     final diagram = UmlDiagram.empty().changed(
       classes: [UmlClass(id: newUuid(), name: 'Cliente')],

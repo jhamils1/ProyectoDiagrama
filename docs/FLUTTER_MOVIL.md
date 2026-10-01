@@ -8,6 +8,7 @@
 - Marcar clases abstractas.
 - Crear, editar y eliminar atributos con tipo, visibilidad, identificador y obligatoriedad.
 - Crear asociaciones y herencias con multiplicidades.
+- Crear asociaciones muchos a muchos con una clase intermedia: permite elegir una clase existente o crea/reutiliza `Detalle`, que se sincroniza como `associationClassId` y se muestra punteada en la web y en Enterprise Architect al exportar.
 - Validar nombres, identificadores y extremos de relaciones antes de sincronizar.
 - Guardar cada cambio inmediatamente en el almacenamiento local del teléfono mediante `SharedPreferences`.
 

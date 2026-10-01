@@ -18,6 +18,8 @@ class MobileEditorPage extends StatefulWidget {
 }
 
 class _MobileEditorPageState extends State<MobileEditorPage> {
+  static const _automaticAssociationClass = '__automatic_association_class__';
+
   static const _defaultServerUrl = String.fromEnvironment(
     'MODELA_API_URL',
     defaultValue: 'http://127.0.0.1:8080',
@@ -249,7 +251,10 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
         classes: diagram.classes.where((item) => item.id != value.id).toList(),
         relations: diagram.relations
             .where(
-              (item) => item.sourceId != value.id && item.targetId != value.id,
+              (item) =>
+                  item.sourceId != value.id &&
+                  item.targetId != value.id &&
+                  item.associationClassId != value.id,
             )
             .toList(),
       ),
@@ -389,6 +394,8 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
         editing?.targetId ?? classes.firstWhere((item) => item.id != source).id;
     var sourceMultiplicity = editing?.sourceMultiplicity ?? '1';
     var targetMultiplicity = editing?.targetMultiplicity ?? '0..*';
+    var associationClass =
+        editing?.associationClassId ?? _automaticAssociationClass;
     final name = TextEditingController(text: editing?.name ?? '');
     final result = await showDialog<UmlRelation>(
       context: context,
@@ -434,6 +441,9 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
                           .firstWhere((item) => item.id != source)
                           .id;
                     }
+                    if (associationClass == source || associationClass == target) {
+                      associationClass = _automaticAssociationClass;
+                    }
                   }),
                 ),
                 DropdownButtonFormField<String>(
@@ -450,7 +460,12 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) => setModalState(() => target = value!),
+                  onChanged: (value) => setModalState(() {
+                    target = value!;
+                    if (associationClass == source || associationClass == target) {
+                      associationClass = _automaticAssociationClass;
+                    }
+                  }),
                 ),
                 TextField(
                   controller: name,
@@ -464,15 +479,48 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
                     decoration: const InputDecoration(
                       labelText: 'Multiplicidad de origen',
                     ),
-                    onChanged: (value) => sourceMultiplicity = value,
+                    onChanged: (value) =>
+                        setModalState(() => sourceMultiplicity = value),
                   ),
                   TextField(
                     controller: TextEditingController(text: targetMultiplicity),
                     decoration: const InputDecoration(
                       labelText: 'Multiplicidad de destino',
                     ),
-                    onChanged: (value) => targetMultiplicity = value,
+                    onChanged: (value) =>
+                        setModalState(() => targetMultiplicity = value),
                   ),
+                  if (_isMany(sourceMultiplicity) &&
+                      _isMany(targetMultiplicity)) ...[
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      initialValue: associationClass,
+                      decoration: const InputDecoration(
+                        labelText: 'Clase intermedia',
+                        helperText:
+                            'La asociacion muchos a muchos se exporta con una linea punteada.',
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: _automaticAssociationClass,
+                          child: Text('Crear o reutilizar Detalle'),
+                        ),
+                        ...classes
+                            .where(
+                              (item) =>
+                                  item.id != source && item.id != target,
+                            )
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item.id,
+                                child: Text(item.name),
+                              ),
+                            ),
+                      ],
+                      onChanged: (value) =>
+                          setModalState(() => associationClass = value!),
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -497,6 +545,13 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
                   targetMultiplicity: type == 'generalization'
                       ? '1'
                       : targetMultiplicity,
+                  associationClassId:
+                      type == 'association' &&
+                              _isMany(sourceMultiplicity) &&
+                              _isMany(targetMultiplicity) &&
+                              associationClass != _automaticAssociationClass
+                          ? associationClass
+                          : null,
                 ),
               ),
               child: const Text('Guardar'),
@@ -507,15 +562,64 @@ class _MobileEditorPageState extends State<MobileEditorPage> {
     );
     if (result == null) return;
     final diagram = _state!.diagram;
-    final relations = [...diagram.relations];
-    final index = relations.indexWhere((item) => item.id == result.id);
-    if (index < 0) {
-      relations.add(result);
-    } else {
-      relations[index] = result;
+    var classes = [...diagram.classes];
+    var relation = result;
+    if (_needsAssociationClass(relation)) {
+      if (relation.associationClassId == null) {
+        final used = diagram.relations
+            .map((item) => item.associationClassId)
+            .whereType<String>()
+            .toSet();
+        UmlClass? detail;
+        for (final item in classes) {
+          if (item.name.toLowerCase() == 'detalle' && !used.contains(item.id)) {
+            detail = item;
+            break;
+          }
+        }
+        if (detail == null) {
+          var suffix = '';
+          var number = 2;
+          final names = classes.map((item) => item.name.toLowerCase()).toSet();
+          while (names.contains('detalle$suffix'.toLowerCase())) {
+            suffix = '${number++}';
+          }
+          final sourceClass = classes.firstWhere(
+            (item) => item.id == relation.sourceId,
+          );
+          final targetClass = classes.firstWhere(
+            (item) => item.id == relation.targetId,
+          );
+          detail = UmlClass(
+            id: newUuid(),
+            name: 'Detalle$suffix',
+            x: (sourceClass.x + targetClass.x) / 2,
+            y: (sourceClass.y + targetClass.y) / 2 + 180,
+          );
+          classes.add(detail);
+        }
+        relation = relation.withAssociationClass(detail!.id);
+      }
+    } else if (relation.associationClassId != null) {
+      relation = relation.withAssociationClass(null);
     }
-    await _change(diagram.changed(relations: relations));
+    final relations = [...diagram.relations];
+    final index = relations.indexWhere((item) => item.id == relation.id);
+    if (index < 0) {
+      relations.add(relation);
+    } else {
+      relations[index] = relation;
+    }
+    await _change(diagram.changed(classes: classes, relations: relations));
   }
+
+  bool _isMany(String value) =>
+      value.trim() == '*' || value.trim().endsWith('..*');
+
+  bool _needsAssociationClass(UmlRelation relation) =>
+      relation.type == 'association' &&
+      _isMany(relation.sourceMultiplicity) &&
+      _isMany(relation.targetMultiplicity);
 
   Future<void> _sync() async {
     final state = _state!;

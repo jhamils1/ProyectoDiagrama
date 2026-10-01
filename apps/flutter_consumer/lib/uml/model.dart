@@ -141,6 +141,7 @@ class UmlRelation {
     this.name = '',
     this.sourceMultiplicity = '1',
     this.targetMultiplicity = '0..*',
+    this.associationClassId,
   });
 
   final String id;
@@ -150,6 +151,18 @@ class UmlRelation {
   final String name;
   final String sourceMultiplicity;
   final String targetMultiplicity;
+  final String? associationClassId;
+
+  UmlRelation withAssociationClass(String? value) => UmlRelation(
+    id: id,
+    type: type,
+    sourceId: sourceId,
+    targetId: targetId,
+    name: name,
+    sourceMultiplicity: sourceMultiplicity,
+    targetMultiplicity: targetMultiplicity,
+    associationClassId: value,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -159,6 +172,7 @@ class UmlRelation {
     'name': name,
     'sourceMultiplicity': sourceMultiplicity,
     'targetMultiplicity': targetMultiplicity,
+    'associationClassId': associationClassId,
   };
 
   factory UmlRelation.fromJson(Map<String, dynamic> json) => UmlRelation(
@@ -169,6 +183,7 @@ class UmlRelation {
     name: json['name'] as String? ?? '',
     sourceMultiplicity: json['sourceMultiplicity'] as String? ?? '1',
     targetMultiplicity: json['targetMultiplicity'] as String? ?? '0..*',
+    associationClassId: json['associationClassId'] as String?,
   );
 }
 
@@ -285,6 +300,14 @@ class UmlDiagram {
       }
       if (!const {'association', 'generalization'}.contains(relation.type)) {
         return 'Tipo de relación inválido.';
+      }
+      final associationClassId = relation.associationClassId;
+      if (associationClassId != null &&
+          (relation.type != 'association' ||
+              !ids.contains(associationClassId) ||
+              associationClassId == relation.sourceId ||
+              associationClassId == relation.targetId)) {
+        return 'La clase intermedia debe ser una tercera clase del diagrama.';
       }
     }
     return null;
