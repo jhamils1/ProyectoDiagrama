@@ -1,5 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
-import { KeyRound } from 'lucide-react'
+import { ArrowRight, KeyRound } from 'lucide-react'
 import { visibilitySymbols, type UmlClass } from '../domain/model'
 
 export type ClassFlowNode = Node<{ uml: UmlClass }, 'umlClass'>
@@ -7,7 +7,10 @@ export function ClassNode({ data, selected }: NodeProps<ClassFlowNode>) {
   const c = data.uml
   return (
     <div className={`class-node ${selected ? 'is-selected' : ''}`}>
-      <Handle type="target" position={Position.Left} />
+      <Handle id="target-left" type="target" position={Position.Left} className="uml-target-handle" />
+      <Handle id="target-right" type="target" position={Position.Right} className="uml-target-handle" />
+      <Handle id="target-top" type="target" position={Position.Top} className="uml-target-handle" />
+      <Handle id="target-bottom" type="target" position={Position.Bottom} className="uml-target-handle" />
       <div className="class-heading">
         <strong className={c.abstract ? 'abstract' : ''}>{c.name}</strong>
       </div>
@@ -27,7 +30,21 @@ export function ClassNode({ data, selected }: NodeProps<ClassFlowNode>) {
           ))
         )}
       </div>
-      <Handle type="source" position={Position.Right} />
+      {selected && (
+        <>
+          <span className="relationship-drag-icon" aria-hidden="true">
+            <ArrowRight size={19} strokeWidth={2.4} />
+          </span>
+          <Handle
+            id="relationship-source"
+            type="source"
+            position={Position.Right}
+            className="relationship-drag-handle"
+            aria-label={`Arrastra desde ${c.name} hacia otra clase para crear una relacion`}
+            title="Arrastra hacia otra clase para crear una relacion"
+          />
+        </>
+      )}
     </div>
   )
 }
