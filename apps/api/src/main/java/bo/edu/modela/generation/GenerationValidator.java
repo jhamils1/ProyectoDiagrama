@@ -54,6 +54,14 @@ public final class GenerationValidator {
     }
     for (var r : document.relations()) {
       if (r.type().equals("generalization")) continue;
+      if (r.associationClassId() != null && many(r.sourceMultiplicity()) && many(r.targetMultiplicity())) {
+        continue;
+      }
+      if (r.associationClassId() != null) {
+        issues.add(new Issue("ASSOCIATION_CLASS_MULTIPLICITY_INVALID", r.id(),
+            "La clase intermedia requiere multiplicidad muchos en ambos extremos."));
+        continue;
+      }
       if (!((r.sourceMultiplicity().equals("1") && Set.of("0..*", "0..1").contains(r.targetMultiplicity()))
           || (r.targetMultiplicity().equals("1") && Set.of("0..*", "0..1").contains(r.sourceMultiplicity())))) {
         issues.add(new Issue("MULTIPLICITY_UNSUPPORTED", r.id(),
@@ -61,5 +69,9 @@ public final class GenerationValidator {
       }
     }
     return new Result(issues);
+  }
+
+  private static boolean many(String multiplicity) {
+    return "*".equals(multiplicity) || multiplicity.endsWith("..*");
   }
 }

@@ -61,6 +61,19 @@ public final class BackendGenerator {
     for (var c : model.classes()) links.put(c.id(), new ArrayList<>());
     for (var r : model.relations()) {
       if (!r.type().equals("association")) continue;
+      if (r.associationClassId() != null) {
+        var source = model.classes().stream().filter(c -> c.id().equals(r.sourceId())).findFirst().orElseThrow();
+        var target = model.classes().stream().filter(c -> c.id().equals(r.targetId())).findFirst().orElseThrow();
+        var detail = model.classes().stream().filter(c -> c.id().equals(r.associationClassId())).findFirst().orElseThrow();
+        String field = "r" + key(r.id());
+        // A UML association class becomes two owning references in JPA. This
+        // preserves Detail's attributes instead of reducing it to @ManyToMany.
+        links.get(detail.id()).add(new Link(field + "Source", source, true, false));
+        links.get(source.id()).add(new Link(field + "SourceItems", detail, false, false));
+        links.get(detail.id()).add(new Link(field + "Target", target, true, false));
+        links.get(target.id()).add(new Link(field + "TargetItems", detail, false, false));
+        continue;
+      }
       var oneId = r.sourceMultiplicity().equals("1") ? r.sourceId() : r.targetId();
       var manyId = r.sourceMultiplicity().equals("1") ? r.targetId() : r.sourceId();
       boolean oneToOne = r.sourceMultiplicity().equals("0..1") || r.targetMultiplicity().equals("0..1");

@@ -85,6 +85,28 @@ class BackendGeneratorTest {
     assertThat(files.get(root + "dto/PersonaResponse.java")).contains("java.lang.Long " + field + "ItemId");
     compile(files);
   }
+  @Test void associationClassGeneratesTwoOwningReferencesFromDetalle() throws Exception {
+    var venta = clazz("Venta", "nombre");
+    var producto = clazz("Producto", "nombre");
+    var detalle = clazz("Detalle", "cantidad");
+    var relation = new RelationData(UUID.randomUUID(), "association", venta.id(), producto.id(),
+        "", "*", "1..*", detalle.id());
+    var files = BackendGenerator.files(new DiagramDocument(1, UUID.randomUUID(), "Venta Producto", 0L,
+        Instant.EPOCH, List.of(venta, producto, detalle), List.of(relation)));
+    String root = "src/main/java/com/example/generated/";
+    String field = "r" + relation.id().toString().replace("-", "");
+    assertThat(files.get(root + "entity/Detalle.java")).contains(
+        "@jakarta.persistence.ManyToOne", "public com.example.generated.entity.Venta " + field + "Source",
+        "public com.example.generated.entity.Producto " + field + "Target");
+    assertThat(files.get(root + "entity/Venta.java")).contains(
+        "@jakarta.persistence.OneToMany(mappedBy=\"" + field + "Source\")");
+    assertThat(files.get(root + "entity/Producto.java")).contains(
+        "@jakarta.persistence.OneToMany(mappedBy=\"" + field + "Target\")");
+    assertThat(files.get(root + "dto/DetalleRequest.java")).contains(
+        "java.lang.Long " + field + "SourceId", "java.lang.Long " + field + "TargetId");
+    compile(files);
+  }
+
   @Test void rejectsJavaKeywordsAndReservedRecordNames() {
     var model = model(clazz("class", "nombre"), clazz("Pedido", "getClass"), false);
     assertThatThrownBy(() -> BackendGenerator.zip(model)).isInstanceOfSatisfying(BackendGenerator.InvalidModel.class,

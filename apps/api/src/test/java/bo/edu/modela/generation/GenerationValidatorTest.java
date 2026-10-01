@@ -79,6 +79,15 @@ class GenerationValidatorTest {
     }
   }
 
+  @Test void acceptsManyToManyWhenItHasAnAssociationClass() {
+    var venta = clazz("Venta", false, attribute("id", "Long", true));
+    var producto = clazz("Producto", false, attribute("id", "Long", true));
+    var detalle = clazz("Detalle", false, attribute("id", "Long", true));
+    var relation = new RelationData(UUID.randomUUID(), "association", venta.id(), producto.id(),
+        "", "*", "1..*", detalle.id());
+    assertThat(GenerationValidator.validate(document(List.of(venta, producto, detalle), relation)).eligible()).isTrue();
+  }
+
   @Test void reusesExistingValidationForBrokenReferences() {
     var a = clazz("Cliente", false, attribute("id", "Long", true));
     var absent = clazz("Pedido", false, attribute("id", "Long", true));
