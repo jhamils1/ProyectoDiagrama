@@ -865,25 +865,24 @@ a {
   opacity: 1;
 }
 .react-flow__handle.relationship-drag-handle {
-  width: 38px;
-  height: 38px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #7257d9 !important;
-  opacity: 1 !important;
-  box-shadow: 0 3px 9px #4d3d8b38;
+  width: 26px;
+  height: 28px;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
   cursor: crosshair;
   z-index: 3;
 }
 .relationship-drag-icon {
   position: absolute;
-  right: -38px;
+  right: -25px;
   top: 50%;
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 24px;
+  height: 28px;
   place-items: center;
-  color: #fff;
+  color: #545968;
   pointer-events: none;
   transform: translateY(-50%);
   z-index: 4;

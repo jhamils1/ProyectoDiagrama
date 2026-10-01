@@ -1,5 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
-import { ArrowRight, KeyRound } from 'lucide-react'
+import { ArrowUp, KeyRound } from 'lucide-react'
 import { visibilitySymbols, type UmlClass } from '../domain/model'
 
 export type ClassFlowNode = Node<{ uml: UmlClass; connecting?: boolean }, 'umlClass'>
@@ -33,7 +33,7 @@ export function ClassNode({ data, selected }: NodeProps<ClassFlowNode>) {
       {selected && (
         <>
           <span className="relationship-drag-icon" aria-hidden="true">
-            <ArrowRight size={19} strokeWidth={2.4} />
+            <ArrowUp size={23} strokeWidth={2.3} />
           </span>
           <Handle
             id="relationship-source"
