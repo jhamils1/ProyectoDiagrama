@@ -29,6 +29,7 @@ import { RelationDialog } from './features/modeling/ui/RelationDialog'
 import { DiagramActivityDialog } from './features/modeling/ui/DiagramActivityDialog'
 import { ConversationDialog } from './features/conversation/ConversationDialog'
 import type { Presence, ConnectionStatus } from './features/modeling/infrastructure/diagramLive'
+import type { User } from './shared/api'
 import '@xyflow/react/dist/style.css'
 
 
@@ -80,8 +81,10 @@ import { GenerateBackendButton, type GenerationSource } from './features/generat
 export function EditorView({
   editor,
   remote,
+  currentUser,
 }: {
   editor: EditorController
+  currentUser?: Pick<User, 'nombre' | 'rol'>
   remote?: {
     projectName: string
     backHref: string
@@ -164,7 +167,7 @@ export function EditorView({
   }
   return (
     <div className="app-shell">
-      <aside id="editor-sidebar" className="sidebar" hidden={!sidebarVisible}>
+      <aside id="editor-sidebar" className="sidebar editor-sidebar" data-visible={sidebarVisible} inert={!sidebarVisible} aria-hidden={!sidebarVisible}>
         <a className="brand" href="/" aria-label="Modela, inicio">
           <span className="brand-mark">
             <GitBranch size={23} />
@@ -236,15 +239,9 @@ export function EditorView({
           </>
         )}
         <div className="sidebar-bottom">
-          <div className="ai-note">
-            <Sparkles size={20} />
-            <strong>Asistente compartido</strong>
-            <span>Consulta y edita el diagrama mediante instrucciones.</span>
-            <span className="upcoming-badge">Edición acotada</span>
-          </div>
           <div className="sidebar-foot">
             <span className="status-dot" />
-            Primer parcial · SW1
+            Segundo parcial · SW1
           </div>
         </div>
       </aside>
@@ -262,8 +259,8 @@ export function EditorView({
             >
               {sidebarVisible ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
             </button>
-            <FolderOpen size={16} />
-            <span>{remote?.projectName ?? 'Espacio local'}</span>
+            <a href="/workspace" className="breadcrumb-link breadcrumb-folder" aria-label="Ver todos los proyectos" title="Ver todos los proyectos"><FolderOpen size={16} /></a>
+            {remote ? <a className="breadcrumb-link" href={remote.backHref}>{remote.projectName}</a> : <span>Espacio local</span>}
             <ChevronRight size={14} />
             <strong>Editor de clases</strong>
           </div>
@@ -277,7 +274,10 @@ export function EditorView({
             <a className="shared-workspace-link" href={remote?.backHref ?? '/workspace'}>
               {remote ? 'Volver' : 'Acceder a proyectos'}
             </a>
-            <span className="user-avatar">M</span>
+            {currentUser ? <div className="editor-identity" aria-label={`Sesión de ${currentUser.nombre}, ${currentUser.rol === 'ADMINISTRADOR' ? 'administrador' : 'colaborador'}`}>
+              <span className="user-avatar">{currentUser.nombre.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span>
+              <span className="editor-identity-text"><strong>{currentUser.nombre}</strong><small>{currentUser.rol === 'ADMINISTRADOR' ? 'Administrador' : 'Colaborador'}</small></span>
+            </div> : <span className="editor-local-label">Editor local</span>}
           </div>
         </header>
         <div className="document-header">
@@ -339,7 +339,7 @@ export function EditorView({
             )}
             {!active && <p className="document-subtitle">Organiza tus ideas, clase por clase.</p>}
           </div>
-          {active && (
+          {active && (saving || !!editor.error || !remote || !!remote.localCopy || remote.readOnly) && (
             <span className={`save-status ${saving ? 'saving' : ''}`} role="status">
               {saving ? <LoaderCircle size={15} className="spin" /> : <Check size={15} />}
               {saving
@@ -371,10 +371,10 @@ export function EditorView({
             ))}
             {remote.generationSource && active && <button className="activity-open"
               onClick={() => setActivityOpen(true)}>Actividad del diagrama</button>}
-            {remote.generationSource && active && <button className="conversation-open"
+            {remote.generationSource && active && <button className="secondary conversation-open"
               aria-expanded={conversationOpen} aria-controls="shared-assistant-panel"
               disabled={!conversationOpen && (pendingFields || renaming)} title={!conversationOpen && (pendingFields || renaming) ? 'Guarda o cancela los campos abiertos.' : undefined}
-              onClick={() => { setConversationMounted(true); setConversationOpen(open => !open) }}>Asistente IA compartido</button>}
+              onClick={() => { setConversationMounted(true); setConversationOpen(open => !open) }}><Sparkles size={16} /> Asistente IA · Qwen3</button>}
           </div>
         )}
         {needRefresh && (

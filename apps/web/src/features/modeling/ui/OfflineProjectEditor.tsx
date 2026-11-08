@@ -8,10 +8,12 @@ import { ConflictDialog } from './ConflictDialog'
 
 export function OfflineProjectEditor({
   userId,
+  currentUser,
   projectId,
   diagramId,
 }: {
   userId: string
+  currentUser?: { nombre: string; rol: 'ADMINISTRADOR' | 'COLABORADOR' }
   projectId: string
   diagramId: string
 }) {
@@ -215,6 +217,7 @@ export function OfflineProjectEditor({
   return (
     <>
       <EditorView
+        currentUser={currentUser}
         key={viewGeneration}
         editor={editor}
         remote={{

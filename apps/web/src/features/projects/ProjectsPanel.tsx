@@ -90,24 +90,10 @@ export function ProjectsPanel({
         <>
           <div className="project-grid">
             {result.items.map((p) => (
-              <article className="project-card" key={p.id}>
-                <div className="project-card-top">
-                  <span className="project-folder">
-                    <Folder size={22} />
-                  </span>
-                  <span className="permission-pill">
-                    {p.permiso === 'ADMINISTRACION'
-                      ? 'Administración'
-                      : p.permiso === 'EDICION'
-                        ? 'Edición'
-                        : 'Consulta'}
-                  </span>
-                </div>
-                <h2>{p.nombre}</h2>
-                <p>{p.descripcion || 'Sin descripción.'}</p>
-                <span className="project-date">
-                  Creado el {new Date(p.fechaCreacion).toLocaleDateString('es-BO')}
-                </span>
+              <article className="project-card project-overview-card" key={p.id}>
+                <h2><a href={`/workspace?project=${p.id}`}>{p.nombre}</a></h2>
+                {p.descripcion && <p>{p.descripcion}</p>}
+                {!admin && <span className="project-access">{p.permiso === 'EDICION' ? 'Puede editar' : 'Solo consulta'}</span>}
                 <div className="project-card-actions">
                   <a className="text-button" href={`/workspace?project=${p.id}`}>
                     Diagramas <ArrowUpRight size={15} />
@@ -119,11 +105,11 @@ export function ProjectsPanel({
                         Participantes
                       </button>
                       <button
-                        className="icon-button"
+                        className="text-button"
                         aria-label={`Editar proyecto ${p.nombre}`}
                         onClick={() => setEditing(p)}
                       >
-                        <Pencil size={15} />
+                        <Pencil size={15} /> Cambiar nombre
                       </button>
                       <button
                         className="icon-button danger"
@@ -150,18 +136,6 @@ export function ProjectsPanel({
           />
         </>
       )}
-      <div className="local-drafts-callout">
-        <div>
-          <strong>Tu espacio de modelado local sigue disponible</strong>
-          <p>
-            Puedes copiar un borrador desde la lista de diagramas de un proyecto. El original se
-            conserva en este navegador.
-          </p>
-        </div>
-        <a href="/">
-          Abrir editor local <ArrowUpRight size={16} />
-        </a>
-      </div>
       {editing && (
         <ProjectForm
           value={editing}

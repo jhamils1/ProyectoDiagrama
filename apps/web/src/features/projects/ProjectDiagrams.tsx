@@ -1,7 +1,7 @@
 import { copyLocalDiagram } from '../modeling/domain/copyDiagram'
 import { useEffect, useRef, useState } from 'react'
 import { Plus, ArrowLeft, Layers3, Trash2, Upload } from 'lucide-react'
-import { api, errorMessage, type Project, type PageResult } from '../../shared/api'
+import { api, errorMessage, type Project, type PageResult, type User } from '../../shared/api'
 import { createDiagram, type Diagram } from '../modeling/domain/model'
 import { diagramRepository } from '../modeling/infrastructure/diagramRepository'
 import { useProjectEditor, type DiagramEnvelope } from '../modeling/application/useProjectEditor'
@@ -24,10 +24,12 @@ const href = (project: string, diagram?: string) =>
 
 export function ProjectDiagrams({
   userId,
+  currentUser,
   projectId,
   diagramId,
 }: {
   userId: string
+  currentUser?: Pick<User, 'nombre' | 'rol'>
   projectId: string
   diagramId: string | null
 }) {
@@ -56,15 +58,17 @@ export function ProjectDiagrams({
       </main>
     )
   if (diagramId)
-    return <ProjectEditor key={diagramId} userId={userId} project={project} diagramId={diagramId} />
+    return <ProjectEditor key={diagramId} userId={userId} currentUser={currentUser} project={project} diagramId={diagramId} />
   return <DiagramList project={project} />
 }
 function ProjectEditor({
   userId,
+  currentUser,
   project,
   diagramId,
 }: {
   userId: string
+  currentUser?: Pick<User, 'nombre' | 'rol'>
   project: Project
   diagramId: string
 }) {
@@ -75,16 +79,18 @@ function ProjectEditor({
     return () => window.removeEventListener('offline', goOffline)
   }, [])
   if (offline)
-    return <OfflineProjectEditor userId={userId} projectId={project.id} diagramId={diagramId} />
-  return <OnlineProjectEditor userId={userId} project={project} diagramId={diagramId} />
+    return <OfflineProjectEditor userId={userId} currentUser={currentUser} projectId={project.id} diagramId={diagramId} />
+  return <OnlineProjectEditor userId={userId} currentUser={currentUser} project={project} diagramId={diagramId} />
 }
 
 function OnlineProjectEditor({
   userId,
+  currentUser,
   project,
   diagramId,
 }: {
   userId: string
+  currentUser?: Pick<User, 'nombre' | 'rol'>
   project: Project
   diagramId: string
 }) {
@@ -96,6 +102,7 @@ function OnlineProjectEditor({
   return (
     <>
       <EditorView
+        currentUser={currentUser}
         key={`${state.generation}:${state.viewGeneration}`}
         editor={state.editor}
         remote={{

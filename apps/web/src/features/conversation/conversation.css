@@ -51,7 +51,9 @@
 .conversation-local-source:focus-within { outline: 2px solid #b498ff; outline-offset: 3px; }
 .conversation-panel button:disabled { opacity: .5; cursor: not-allowed; }
 .conversation-notice { flex-shrink: 0; order: 2; margin: 0; padding: 6px 0; color: #edc18d; font-size: 12px; line-height: 1.5; }
-.live-presence .conversation-open { color: #6953c7; background: transparent; text-decoration: underline; }
+.live-presence .conversation-open { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-color: #343a5d; background: #252b47; color: #fff; text-decoration: none; }
+.live-presence .conversation-open:hover { background: #374167; border-color: #56618c; }
+.live-presence .conversation-open[aria-expanded="true"] { border-color: #7765d8; background: #41396e; color: #fff; }
 .conversation-engine { flex-shrink: 0; order: 2; padding: 8px 0; border-top: 1px solid #353344; }
 .conversation-engine strong { color: #cdc2e2; font-size: 11px; }
 .conversation-engine p { color: #bcb7cd; font-size: 11px; line-height: 1.5; margin: 4px 0; }

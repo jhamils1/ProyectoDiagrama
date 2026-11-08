@@ -155,9 +155,9 @@ export default function AccountWorkspace() {
     )
   if (!user) return <LoginPage key={error} onSuccess={success} initialError={error} />
   if (projectId && diagramId && (route.has('offline') || offline))
-    return <OfflineProjectEditor userId={user.id} projectId={projectId} diagramId={diagramId} />
+    return <OfflineProjectEditor userId={user.id} currentUser={user} projectId={projectId} diagramId={diagramId} />
   if (projectId && diagramId && !offline)
-    return <ProjectDiagrams userId={user.id} projectId={projectId} diagramId={diagramId} />
+    return <ProjectDiagrams userId={user.id} currentUser={user} projectId={projectId} diagramId={diagramId} />
   return (
     <div className="app-shell account-shell">
       <aside className="sidebar">

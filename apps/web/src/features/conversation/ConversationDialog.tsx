@@ -69,7 +69,7 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
       {...resize.separator} />}
     <header className="conversation-heading">
       <span className="conversation-brand" aria-hidden="true"><Sparkles size={22} /></span>
-      <div><h2 id="conversation-title">Asistente IA compartido</h2>
+      <div><h2 id="conversation-title">Asistente IA · Qwen3</h2>
         <p>Consulta y edita con tu equipo</p></div>
       <button className="icon-button" type="button" aria-label={expanded ? 'Restaurar tamaño del asistente' : 'Ampliar asistente a pantalla completa'}
         title={expanded ? 'Restaurar tamaño' : 'Ampliar a pantalla completa'} aria-pressed={expanded} onClick={() => setExpanded(value => !value)}>
