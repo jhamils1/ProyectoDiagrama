@@ -19,25 +19,33 @@ export async function cacheSelectedModel(files: File[], manifest: ResourceManife
   const selected = manifest.files.map(expected => {
     const relative = expected.url.replace(/^\/ai\//, '')
     const matches = files.filter(file => {
-      const path = file.webkitRelativePath.replace(/\\/g, '/')
+      const path = (file.webkitRelativePath || '').replace(/\\/g, '/')
       return path === relative || path.endsWith('/' + relative)
     })
-    if (matches.length !== 1 || matches[0].size !== expected.bytes)
+    // Some browsers do not expose folder-relative paths. Names and sizes only
+    // identify candidates; the pinned SHA-256 decides which file is accepted.
+    const candidates = matches.length ? matches : files.filter(file => file.name === relative.split('/').at(-1) && file.size === expected.bytes)
+    const sized = candidates.filter(file => file.size === expected.bytes)
+    if (!sized.length)
       throw new Error(`No se encontró el archivo correcto ${relative}. Selecciona la carpeta public/ai completa.`)
-    return matches[0]
+    return sized
   })
   for (const [index, expected] of manifest.files.entries()) {
     signal.throwIfAborted()
     const existing = await cachedResource(cache, expected.url, false)
     if (existing?.headers.get('x-modela-sha256') === expected.sha256) continue
-    const file = selected[index]
-    progress(`Leyendo archivo local ${index + 1}/${selected.length}: ${file.name}…`)
-    const bytes = await file.arrayBuffer()
-    signal.throwIfAborted()
-    progress(`Verificando archivo local: ${file.name}…`)
-    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
-      .map(value => value.toString(16).padStart(2, '0')).join('')
-    if (hash !== expected.sha256) throw new Error(`El archivo ${file.name} no coincide con la versión de Qwen requerida.`)
+    let verified: { file: File; bytes: ArrayBuffer; hash: string } | undefined
+    for (const file of selected[index]) {
+      progress(`Leyendo archivo local ${index + 1}/${selected.length}: ${file.name}…`)
+      const bytes = await file.arrayBuffer()
+      signal.throwIfAborted()
+      progress(`Verificando archivo local: ${file.name}…`)
+      const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+        .map(value => value.toString(16).padStart(2, '0')).join('')
+      if (hash === expected.sha256) { verified = { file, bytes, hash }; break }
+    }
+    if (!verified) throw new Error(`El archivo ${expected.url.split('/').at(-1)} no coincide con la versión de Qwen requerida.`)
+    const { file, bytes, hash } = verified
     signal.throwIfAborted()
     const contentType = file.name.endsWith('.wasm') ? 'application/wasm'
       : file.name.endsWith('.mjs') ? 'application/javascript' : file.name.endsWith('.json') ? 'application/json' : 'application/octet-stream'

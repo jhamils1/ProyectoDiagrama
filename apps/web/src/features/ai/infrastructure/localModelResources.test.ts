@@ -37,16 +37,27 @@ test('prepara archivos locales verificados sin enviarlos por red', async () => {
   expect(fetchSpy).not.toHaveBeenCalled()
 })
 
+test('acepta rutas relativas ausentes pero sigue verificando el contenido', async () => {
+  const { cache, entries, manifest, file } = setup()
+  await cacheSelectedModel([file(undefined, '')], manifest, cache, () => {}, new AbortController().signal)
+  expect(entries.has('/ai/manifest-qwen3-1.7b-external.json')).toBe(true)
+})
+
 test('rechaza archivos modificados y no publica el manifiesto', async () => {
   const { cache, entries, manifest, file } = setup()
   await expect(cacheSelectedModel([file('archivo local de pruebX')], manifest, cache, () => {}, new AbortController().signal)).rejects.toThrow()
   expect(entries.has('/ai/manifest-qwen3-1.7b-external.json')).toBe(false)
 })
 
-test('rechaza una carpeta incompleta o ambigua', async () => {
-  const { cache, entries, manifest, file } = setup()
+test('rechaza una carpeta incompleta', async () => {
+  const { cache, entries, manifest } = setup()
   const signal = new AbortController().signal
   await expect(cacheSelectedModel([], manifest, cache, () => {}, signal)).rejects.toThrow()
-  await expect(cacheSelectedModel([file(), file()], manifest, cache, () => {}, signal)).rejects.toThrow()
   expect(entries.has('/ai/manifest-qwen3-1.7b-external.json')).toBe(false)
+})
+
+test('si faltan rutas, identifica el archivo correcto por su huella entre nombres repetidos', async () => {
+  const { cache, entries, manifest, file } = setup()
+  await cacheSelectedModel([file('archivo local de pruebX', ''), file(undefined, '')], manifest, cache, () => {}, new AbortController().signal)
+  expect(await entries.get('/ai/models/model.bin')?.text()).toBe('archivo local de prueba')
 })
