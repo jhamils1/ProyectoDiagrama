@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/projects/{project}/diagrams/{diagram}/changes")
 public class ChangeController {
-  public record Proposal(@NotNull UUID id, @NotNull @PositiveOrZero Long baseRevision, @NotNull DiagramDocument document, UUID authorId) {}
+  public record Proposal(@NotNull UUID id, @NotNull @PositiveOrZero Long baseRevision, @NotNull DiagramDocument document, UUID authorId, String assistantInstruction) {}
   public record Resolution(@NotNull @PositiveOrZero Long comparedRevision, @NotNull Map<String,DiagramMerge.Choice> choices) {}
   public record Creation(@NotNull UUID id, @NotNull UUID authorId, @NotNull DiagramDocument document) {}
   private final ChangeService service;
@@ -29,7 +29,7 @@ public class ChangeController {
   }
   @PostMapping ChangeService.Response propose(@PathVariable UUID project,@PathVariable UUID diagram,@Valid @RequestBody Proposal body) {
     if(body.authorId()!=null && !body.authorId().equals(users.get().id)) throw ApiException.forbidden();
-    return service.propose(project,diagram,body.id(),body.baseRevision(),body.document());
+    return service.propose(project,diagram,body.id(),body.baseRevision(),body.document(),body.assistantInstruction());
   }
   @PostMapping("/{change}/resolve") ChangeService.Response resolve(@PathVariable UUID project,@PathVariable UUID diagram,@PathVariable UUID change,@Valid @RequestBody Resolution body) {
     return service.resolve(project,diagram,change,body.comparedRevision(),body.choices());

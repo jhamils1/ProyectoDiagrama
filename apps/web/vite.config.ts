@@ -4,6 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Worker-only dependencies otherwise trigger a first-use optimizer reload while
+  // Qwen is loading, destroying the page's pending request in development.
+  optimizeDeps: { include: ['@huggingface/transformers', '@huggingface/transformers-structured-output'] },
   worker: { format: 'es' },
   server: { proxy: { '/api': { target: 'http://127.0.0.1:8080', changeOrigin: false, ws: true } } },
   preview: {

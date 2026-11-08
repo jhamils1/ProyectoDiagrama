@@ -2,6 +2,8 @@ package bo.edu.modela.diagrams.changes;
 
 import bo.edu.modela.auth.CurrentUser;
 import bo.edu.modela.diagrams.*;
+import bo.edu.modela.conversation.ConversationService;
+import bo.edu.modela.diagrams.activity.DiagramActivityDiff;
 import bo.edu.modela.shared.ApiException;
 import java.time.Instant;
 import java.util.*;
@@ -12,15 +14,16 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 public class ChangeService {
   public record Response(UUID id, String status, long baseRevision, long comparedRevision,
-      DiagramDocument proposed, List<DiagramMerge.Difference> conflicts, DiagramService.Envelope current) {}
+      DiagramDocument proposed, List<DiagramMerge.Difference> conflicts, DiagramService.Envelope current, boolean assistantRecorded) {}
   private final ChangeRepository rows;
   private final DiagramService diagrams;
   private final DiagramMerge merge;
   private final CurrentUser users;
   private final ObjectMapper json;
+  private final ConversationService conversation;
   public ChangeService(ChangeRepository rows, DiagramService diagrams, DiagramMerge merge,
-      CurrentUser users, ObjectMapper json) {
-    this.rows=rows; this.diagrams=diagrams; this.merge=merge; this.users=users; this.json=json;
+      CurrentUser users, ObjectMapper json, ConversationService conversation) {
+    this.rows=rows; this.diagrams=diagrams; this.merge=merge; this.users=users; this.json=json; this.conversation=conversation;
   }
   private DiagramDocument decode(String value) { return json.readValue(value, DiagramDocument.class); }
   private Cambio own(UUID diagram, UUID id) {
@@ -37,7 +40,8 @@ public class ChangeService {
       var compared=decode(rows.version(c.diagramaId,c.revisionComparada).contenido);
       differences=merge.merge(base,proposal,compared,Map.of()).conflicts();
     }
-    return new Response(c.id,c.estado,c.revisionBase,c.revisionComparada,proposal,differences,current);
+    return new Response(c.id,c.estado,c.revisionBase,c.revisionComparada,proposal,differences,current,
+        conversation.hasAppliedEdit(c.diagramaId,c.id));
   }
   @Transactional(readOnly=true)
   public List<UUID> pending(UUID project, UUID diagram) {
@@ -74,7 +78,9 @@ public class ChangeService {
   }
 
   @Transactional
-  public Response propose(UUID project, UUID diagram, UUID id, long baseRevision, DiagramDocument proposal) {
+  public Response propose(UUID project, UUID diagram, UUID id, long baseRevision, DiagramDocument proposal, String assistantInstruction) {
+    if (assistantInstruction != null && (assistantInstruction.isBlank() || assistantInstruction.length() > 1500 || assistantInstruction.indexOf(0) >= 0))
+      throw DiagramMerge.invalid();
     var current=diagrams.forWrite(project,diagram);
     proposal.validate();
     if(!diagram.equals(proposal.id())) throw DiagramMerge.invalid();
@@ -94,7 +100,19 @@ public class ChangeService {
     c.valorAnterior=version.contenido; c.valorPropuesto=json.writeValueAsString(proposal);
     c.estado="PENDIENTE"; c.fechaCreacion=Instant.now(); rows.insert(c);
     var result=merge.merge(base,proposal,current.document(),Map.of());
-    if(result.conflicts().isEmpty()) return apply(project,c,current,result.document());
+    if(result.conflicts().isEmpty()) {
+      var saved = apply(project,c,current,result.document());
+      if (assistantInstruction != null) {
+        var diff = DiagramActivityDiff.between(current.document(), saved.current().document());
+        var created = diff.stream().filter(d -> d.kind().equals("class") && d.action().equals("created")).toList();
+        String answer = diff.isEmpty() ? "No se realizaron cambios en el diagrama."
+            : created.size() == 1 && diff.size() == 1 ? "La clase " + created.getFirst().label() + " ha sido creada."
+            : "Los cambios solicitados se guardaron en el diagrama. Consulta la actividad para ver el detalle.";
+        conversation.recordAppliedEdit(project, diagram, id, assistantInstruction, answer, saved.current().revision());
+        return response(c, saved.current());
+      }
+      return saved;
+    }
     compare(c,current,result.conflicts());
     return response(c,current);
   }

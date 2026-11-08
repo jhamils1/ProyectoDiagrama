@@ -5,6 +5,15 @@ import { DiagramRepository } from '../../modeling/infrastructure/diagramReposito
 import { labDiagram } from './corpus'
 import { editorExamples, requestedEditorOperations, reviewedEditorCommand } from './editorProposal'
 
+it.each(['crea clase factura', 'crea la clase factura'])('prepara sin modelo: %s', instruction => {
+  const base = labDiagram([])
+  const command = reviewedEditorCommand(instruction, base, {
+    status: 'propose', operations: requestedEditorOperations(instruction),
+  })
+  expect(applyCommand(base, command).classes.map(c => c.name)).toEqual(['factura'])
+  expect(base.classes).toHaveLength(0)
+})
+
 it.each(editorExamples)('admite y revisa el comando de presentación: %s', (instruction) => {
   const base = labDiagram(['Lancha', 'Capitan', 'Embarcacion', 'Cliente', 'Pedido', ...(instruction.startsWith('La clase') ? ['automóvil', 'vehiculo'] : [])])
   const before = JSON.stringify(base)

@@ -415,6 +415,12 @@ a {
   border-bottom: 1px solid #e2e5ee;
   background: #fff;
 }
+.editor-stage { display: flex; position: relative; flex: 1; min-height: 0; min-width: 0; }
+.editor-main { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; }
+.editor-stage[data-assistant-open="true"] .editor-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+.editor-stage[data-assistant-open="true"] .toolbar-group { justify-content: flex-start; }
+.editor-stage[data-assistant-open="true"] .editor-remote-actions { margin-right: 0; }
+.editor-stage[data-assistant-open="true"] .live-sync-status { display: none; }
 .toolbar-group {
   display: flex;
   align-items: center;

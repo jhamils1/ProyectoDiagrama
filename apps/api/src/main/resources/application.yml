@@ -1,6 +1,10 @@
 spring:
   application:
     name: modela-api
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   datasource:
     url: ${DB_URL:jdbc:postgresql://127.0.0.1:55432/modela}
     username: ${DB_USERNAME:modela}
@@ -29,6 +33,8 @@ server:
     include-message: never
     include-stacktrace: never
 modela:
+  shared-files:
+    uploads-enabled: false
   cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   google-client-id: ${GOOGLE_CLIENT_ID:}
   bootstrap:

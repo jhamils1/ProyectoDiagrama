@@ -28,10 +28,10 @@ export function requestedEditorOperations(instruction: string, diagram?: Diagram
     return [association]
   }
   const text = instruction.trim().replace(/\s+/g, ' ')
-  let match = text.match(pattern(`Crea la clase ${identifier}`))
+  let match = text.match(pattern(`Crea (?:la )?clase ${identifier}`))
   if (match) return [operationSchema.parse({ type: 'addClass', name: match[1] })]
   match = text.match(
-    pattern(`Crea la clase ${identifier} con (?:el )?atributo ${identifier}`),
+    pattern(`Crea (?:la )?clase ${identifier} con (?:el )?atributo ${identifier}`),
   )
   if (match)
     return [

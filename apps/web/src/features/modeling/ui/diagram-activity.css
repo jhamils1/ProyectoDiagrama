@@ -1,0 +1,10 @@
+.diagram-activity { width: min(680px, calc(100vw - 32px)); max-height: 80vh; overflow-y: auto; }
+.activity-heading, .activity-author { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.activity-heading h2 { margin: 0; }
+.diagram-activity > p { line-height: 1.5; }
+.activity-list { list-style: none; padding: 0; margin: 20px 0; }
+.activity-list > li { border-top: 1px solid #e0e3ed; padding: 16px 0; }
+.activity-author span, .activity-list time, .activity-note { color: #616579; font-size: 12px; }
+.activity-list ul { padding-left: 20px; margin-top: 10px; }
+.activity-list ul li { margin: 8px 0; overflow-wrap: anywhere; line-height: 1.5; }
+.live-presence .activity-open { margin-left: auto; color: #6953c7; background: transparent; text-decoration: underline; }

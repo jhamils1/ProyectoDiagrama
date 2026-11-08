@@ -11,6 +11,8 @@ public class VersionDiagrama {
   public UUID diagramaId;
   public long numero;
   public Instant fechaCreacion;
+  public UUID autorId;
+  public String autorNombre;
 
   @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
   @Column(columnDefinition = "jsonb", nullable = false)

@@ -159,13 +159,15 @@ public class DiagramRepository {
     em.flush();
   }
 
-  public void snapshot(Diagrama d, String content) {
+  public void snapshot(Diagrama d, String content, UUID authorId, String authorName) {
     var v = new VersionDiagrama();
     v.id = UUID.randomUUID();
     v.diagramaId = d.id;
     v.numero = d.versionActual;
     v.fechaCreacion = d.fechaActualizacion;
     v.contenido = content;
+    v.autorId = authorId;
+    v.autorNombre = authorName;
     em.persist(v);
     em.flush();
   }

@@ -9,9 +9,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class ApiErrors {
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  ResponseEntity<?> fileTooLarge(MaxUploadSizeExceededException ex) {
+    return ResponseEntity.status(413).body(Map.of("code", "ARCHIVO_MUY_GRANDE", "message", "El archivo supera el límite de 5 MB."));
+  }
   @ExceptionHandler(ApiException.class)
   ResponseEntity<?> application(ApiException ex) {
     return ResponseEntity.status(ex.status)

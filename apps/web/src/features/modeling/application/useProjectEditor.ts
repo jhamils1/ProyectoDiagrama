@@ -23,6 +23,7 @@ export type ProposalResponse = {
   proposed: Diagram
   conflicts: { path: string; label: string; base: unknown; local: unknown; server: unknown }[]
   current: DiagramEnvelope
+  assistantRecorded?: boolean
 }
 export function useProjectEditor(projectId: string, diagramId: string) {
   const [envelope, setEnvelope] = useState<DiagramEnvelope | null>(null)
@@ -38,7 +39,7 @@ export function useProjectEditor(projectId: string, diagramId: string) {
   const [reviewing, setReviewing] = useState(false)
   const attempt = useRef<{
     signature: string
-    body: { id: string; baseRevision: number; document: Diagram }
+    body: { id: string; baseRevision: number; document: Diagram; assistantInstruction?: string }
   } | null>(null)
   const busy = useRef(false)
   const stopped = useRef(false)
@@ -245,7 +246,7 @@ export function useProjectEditor(projectId: string, diagramId: string) {
       invalidate()
     }
   }, [path, generation, retainProposal])
-  async function execute(command: ModelCommand) {
+  async function execute(command: ModelCommand, assistantInstruction?: string) {
     const previous = current.current
     if (!previous || busy.current || blocked || previous.permiso === 'CONSULTA') return false
     busy.current = true
@@ -253,7 +254,7 @@ export function useProjectEditor(projectId: string, diagramId: string) {
     setSaving(true)
     setError(null)
     try {
-      const signature = JSON.stringify(command)
+      const signature = JSON.stringify([command, assistantInstruction])
       if (attempt.current?.signature !== signature)
         attempt.current = {
           signature,
@@ -261,6 +262,7 @@ export function useProjectEditor(projectId: string, diagramId: string) {
             id: crypto.randomUUID(),
             baseRevision: previous.revision,
             document: applyCommand(previous.document, command),
+            assistantInstruction,
           },
         }
       const result = await api<ProposalResponse>(`${path}/changes`, {
@@ -278,6 +280,8 @@ export function useProjectEditor(projectId: string, diagramId: string) {
       }
       current.current = saved
       setEnvelope(saved)
+      if (assistantInstruction && !result.assistantRecorded)
+        setError('El cambio se guardó, pero el backend no confirmó el historial del asistente. Reinicia el backend con la versión actual.')
       return true
     } catch (e) {
       if (epoch.current !== lifecycle) return false

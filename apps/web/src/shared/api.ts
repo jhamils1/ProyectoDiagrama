@@ -19,7 +19,7 @@ export function apiUrl(path: string) {
 async function request(path: string, options: RequestInit = {}): Promise<Response> {
   const method = options.method ?? 'GET'
   const headers = new Headers(options.headers)
-  if (options.body) headers.set('Content-Type', 'application/json')
+  if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   if (!['GET', 'HEAD'].includes(method)) {
     const token = await api<{ headerName: string; token: string }>('/auth/csrf')
     headers.set(token.headerName, token.token)

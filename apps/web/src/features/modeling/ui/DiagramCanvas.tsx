@@ -63,10 +63,27 @@ export function DiagramCanvas({
     newClassPosition.current = () => {
       const bounds = canvas.current!.getBoundingClientRect()
       const center = flow.current?.screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }) ?? { x: 120, y: 50 }
-      return { x: center.x - 120, y: center.y - 50 }
+      const origin = { x: center.x - 120, y: center.y - 50 }
+      const topLeft = flow.current?.screenToFlowPosition({ x: bounds.left, y: bounds.top })
+      const bottomRight = flow.current?.screenToFlowPosition({ x: bounds.right, y: bounds.bottom })
+      if (!topLeft || !bottomRight) return origin
+      // Choose an on-screen location with as little overlap as possible.
+      const maxX = Math.max(topLeft.x, bottomRight.x - 240)
+      const maxY = Math.max(topLeft.y, bottomRight.y - 100)
+      const clamp = (n: number, low: number, high: number) => Math.max(low, Math.min(n, high))
+      const candidates = [0, -1, 1].flatMap(y => [0, -1, 1].map(x => ({
+        x: clamp(origin.x + x * 260, topLeft.x, maxX),
+        y: clamp(origin.y + y * 140, topLeft.y, maxY),
+      })))
+      const overlap = (candidate: XYPosition) => diagram.classes.reduce((total, item) => {
+        const width = Math.max(0, Math.min(candidate.x + 240, item.position.x + 240) - Math.max(candidate.x, item.position.x))
+        const height = Math.max(0, Math.min(candidate.y + 100, item.position.y + 100) - Math.max(candidate.y, item.position.y))
+        return total + width * height
+      }, 0)
+      return candidates.reduce((best, candidate) => overlap(candidate) < overlap(best) ? candidate : best)
     }
     return () => { newClassPosition.current = null }
-  }, [newClassPosition])
+  }, [newClassPosition, diagram.classes])
   const [positions, setPositions] = useState<Record<string, XYPosition>>({})
   const [connecting, setConnecting] = useState(false)
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>(

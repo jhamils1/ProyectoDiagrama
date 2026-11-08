@@ -58,7 +58,7 @@ export function useEditor() {
       setSaving(false)
     }
   }
-  async function execute(command: ModelCommand) {
+  async function execute(command: ModelCommand, _assistantInstruction?: string) {
     if (!active || busy.current) return false
     try {
       return await persist(applyCommand(active, command), active)

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import {
@@ -26,10 +26,11 @@ import { createClass, type UmlRelation, type Diagram } from './features/modeling
 import { DiagramCanvas } from './features/modeling/ui/DiagramCanvas'
 import { Inspector } from './features/modeling/ui/Inspector'
 import { RelationDialog } from './features/modeling/ui/RelationDialog'
+import { DiagramActivityDialog } from './features/modeling/ui/DiagramActivityDialog'
+import { ConversationDialog } from './features/conversation/ConversationDialog'
 import type { Presence, ConnectionStatus } from './features/modeling/infrastructure/diagramLive'
 import '@xyflow/react/dist/style.css'
 
-const EditorAssistant = lazy(() => import('./features/ai/ui/EditorAssistant'))
 
 function DeleteDialog({
   name,
@@ -104,7 +105,9 @@ export function EditorView({
   const [relation, setRelation] = useState<UmlRelation | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(false)
-  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [activityOpen, setActivityOpen] = useState(false)
+  const [conversationOpen, setConversationOpen] = useState(false)
+  const [conversationMounted, setConversationMounted] = useState(false)
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const notifyEditing = remote?.setEditing
   const [pendingFields, setPendingFields] = useState(false)
@@ -116,9 +119,9 @@ export function EditorView({
     [notifyEditing],
   )
   useLayoutEffect(() => {
-    notifyEditing?.('dialog', renaming || !!relation || deleting || assistantOpen)
+    notifyEditing?.('dialog', renaming || !!relation || deleting)
     return () => notifyEditing?.('dialog', false)
-  }, [notifyEditing, renaming, relation, deleting, assistantOpen])
+  }, [notifyEditing, renaming, relation, deleting])
   const [online, setOnline] = useState(navigator.onLine)
   const {
     offlineReady: [offlineReady],
@@ -235,8 +238,8 @@ export function EditorView({
         <div className="sidebar-bottom">
           <div className="ai-note">
             <Sparkles size={20} />
-            <strong>Asistencia local</strong>
-            <span>Comandos de texto con vista previa y confirmación.</span>
+            <strong>Asistente compartido</strong>
+            <span>Consulta y edita el diagrama mediante instrucciones.</span>
             <span className="upcoming-badge">Edición acotada</span>
           </div>
           <div className="sidebar-foot">
@@ -366,6 +369,12 @@ export function EditorView({
                 {user.sessions > 1 ? ` · ${user.sessions} conexiones` : ''}
               </span>
             ))}
+            {remote.generationSource && active && <button className="activity-open"
+              onClick={() => setActivityOpen(true)}>Actividad del diagrama</button>}
+            {remote.generationSource && active && <button className="conversation-open"
+              aria-expanded={conversationOpen} aria-controls="shared-assistant-panel"
+              disabled={!conversationOpen && (pendingFields || renaming)} title={!conversationOpen && (pendingFields || renaming) ? 'Guarda o cancela los campos abiertos.' : undefined}
+              onClick={() => { setConversationMounted(true); setConversationOpen(open => !open) }}>Asistente IA compartido</button>}
           </div>
         )}
         {needRefresh && (
@@ -423,6 +432,8 @@ export function EditorView({
           </div>
         ) : (
           <>
+            <div className="editor-stage" data-assistant-open={conversationOpen}>
+            <div className="editor-main">
             <div className="editor-toolbar">
               <div className="toolbar-group">
                 {remote && (
@@ -449,24 +460,12 @@ export function EditorView({
                 )}
                 {remote?.generationSource && <GenerateBackendButton
                   source={remote.generationSource}
-                  blocked={locked || !online || pendingFields || renaming || !!relation || deleting || assistantOpen}
+                  blocked={locked || !online || pendingFields || renaming || !!relation || deleting}
                 />}
                 {remote?.generationSource && <GenerateBackendButton format="xmi"
                   source={remote.generationSource}
-                  blocked={locked || !online || pendingFields || renaming || !!relation || deleting || assistantOpen}
+                  blocked={locked || !online || pendingFields || renaming || !!relation || deleting}
                 />}
-                <button
-                  className="secondary"
-                  disabled={locked || pendingFields || renaming}
-                  title={
-                    pendingFields || renaming
-                      ? 'Guarda o cancela los campos abiertos antes de usar IA.'
-                      : 'Editar mediante instrucciones concretas'
-                  }
-                  onClick={() => setAssistantOpen(true)}
-                >
-                  <Sparkles size={16} /> Asistente IA
-                </button>
                 <button
                   className="secondary"
                   onClick={() => newRelation()}
@@ -505,7 +504,7 @@ export function EditorView({
                   if (!locked) setRelation(r)
                 }}
               />
-              {selected ? (
+              {!conversationOpen && (selected ? (
                 <Inspector
                   key={`${selected.id}:${active.localRevision}`}
                   value={selected}
@@ -540,7 +539,17 @@ export function EditorView({
                     <small>Haz clic sobre una relación para editarla.</small>
                   </div>
                 </aside>
-              )}
+              ))}
+            </div>
+            </div>
+            {conversationMounted && remote?.generationSource && !remote.localCopy && (
+              <ConversationDialog key={active.id} projectId={remote.generationSource.projectId}
+                diagramId={active.id} revision={remote.generationSource.revision}
+                diagram={active} saving={saving} execute={editor.execute}
+                position={() => newClassPosition.current?.()} editorError={editor.error}
+                canEdit={!locked && !pendingFields && !renaming && !relation && !deleting && online}
+                visible={conversationOpen} close={() => setConversationOpen(false)} />
+            )}
             </div>
             <footer className="statusbar">
               <span>
@@ -569,16 +578,10 @@ export function EditorView({
           </>
         )}
       </main>
-      {assistantOpen && active && !remote?.readOnly && (
-        <Suspense fallback={<div role="status">Abriendo asistente…</div>}>
-          <EditorAssistant
-            key={active.id}
-            diagram={active}
-            saving={saving}
-            execute={editor.execute}
-            close={() => setAssistantOpen(false)}
-          />
-        </Suspense>
+      {activityOpen && active && remote?.generationSource && !remote.localCopy && (
+        <DiagramActivityDialog key={active.id}
+          projectId={remote.generationSource.projectId} diagramId={active.id}
+          revision={remote.generationSource.revision} close={() => setActivityOpen(false)} />
       )}
       {relation && active && (
         <RelationDialog

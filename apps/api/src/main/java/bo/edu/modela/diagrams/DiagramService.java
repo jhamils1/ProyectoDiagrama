@@ -155,7 +155,8 @@ public class DiagramService {
     diagrams.flush();
     diagrams.replace(doc);
     var saved = doc.persisted(d.revision, d.fechaActualizacion);
-    diagrams.snapshot(d, json.writeValueAsString(saved));
+    var author = current.get();
+    diagrams.snapshot(d, json.writeValueAsString(saved), author.id, author.nombre);
     events.publishEvent(new Changed(project, d.id));
     return result(d, saved, permission);
   }
@@ -177,7 +178,8 @@ public class DiagramService {
     diagrams.flush();
     diagrams.replace(doc);
     var saved = doc.persisted(d.revision, d.fechaActualizacion);
-    diagrams.snapshot(d, json.writeValueAsString(saved));
+    var author = current.get();
+    diagrams.snapshot(d, json.writeValueAsString(saved), author.id, author.nombre);
     events.publishEvent(new Changed(project, d.id));
     return result(d, saved, permission);
   }
