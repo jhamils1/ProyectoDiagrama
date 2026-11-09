@@ -26,12 +26,14 @@ export function useConversation(projectId: string, diagramId: string) {
   const [ready, setReady] = useState(false)
   const [denied, setDenied] = useState(false)
   const [sending, setSending] = useState(false)
+  const [canceling, setCanceling] = useState(false)
   const [readingOlder, setReadingOlder] = useState(false)
   const [error, setError] = useState('')
   const [syncError, setSyncError] = useState('')
   const [assistant, setAssistant] = useState<AssistantStatus | null>(null)
   const session = useRef<Session | null>(null)
   const attempt = useRef<{ id: string; content: string; ask: boolean; mode: 'LOCAL' | 'INTERNET' } | null>(null)
+  const onlineRequest = useRef<{ id: string; controller: AbortController } | null>(null)
 
   function alive(state: Session) { return !state.controller.signal.aborted && !state.denied }
   function signal(state: Session) {
@@ -68,6 +70,8 @@ export function useConversation(projectId: string, diagramId: string) {
         if (!alive(state)) return
         setMessages(previous => merge(previous, data.items))
         setAssistant(data.assistant ?? null)
+        if (data.assistant?.status === 'FALLIDA' && onlineRequest.current?.id === data.assistant.id)
+          onlineRequest.current.controller.abort()
         // Only ordered GET pages advance the cursor. A POST can return a later
         // message before concurrent participants' messages have been read.
         if (data.items.length) state.after = data.items[data.items.length - 1].sequence
@@ -118,14 +122,16 @@ export function useConversation(projectId: string, diagramId: string) {
       else {
         setAssistant(result)
         if (mode === 'INTERNET' && result.status === 'PENDIENTE') {
+          const online = new AbortController()
+          onlineRequest.current = { id: result.id, controller: online }
           try {
-            const online = await api<AssistantStatus | undefined>(`${path}/assistant/${result.id}/internet`, {
-              method: 'POST', signal: AbortSignal.any([state.controller.signal, AbortSignal.timeout(75000)]),
+            const response = await api<AssistantStatus | undefined>(`${path}/assistant/${result.id}/internet`, {
+              method: 'POST', signal: AbortSignal.any([state.controller.signal, online.signal, AbortSignal.timeout(75000)]),
             })
-            if (alive(state) && online) setAssistant(online)
+            if (alive(state) && response) setAssistant(response)
           } catch (e) {
-            if (alive(state) && !deny(state, e)) setError('No se pudo confirmar la consulta por internet. Revisa el historial antes de volver a preguntar.')
-          }
+            if (!online.signal.aborted && alive(state) && !deny(state, e)) setError('No se pudo confirmar la consulta por internet. Revisa el historial antes de volver a preguntar.')
+          } finally { if (onlineRequest.current?.controller === online) onlineRequest.current = null }
         }
       }
       attempt.current = null
@@ -143,28 +149,30 @@ export function useConversation(projectId: string, diagramId: string) {
     const state = session.current
     if (!state || !alive(state) || state.sending || !assistant || assistant.mode !== 'INTERNET' || assistant.status !== 'PENDIENTE') return
     state.sending = true; setSending(true); setError('')
+    const online = new AbortController()
+    onlineRequest.current = { id: assistant.id, controller: online }
     try {
       const result = await api<AssistantStatus | undefined>(`${path}/assistant/${assistant.id}/internet`, {
-        method: 'POST', signal: AbortSignal.any([state.controller.signal, AbortSignal.timeout(75000)]),
+        method: 'POST', signal: AbortSignal.any([state.controller.signal, online.signal, AbortSignal.timeout(75000)]),
       })
       if (alive(state) && result) setAssistant(result)
-    } catch (e) { if (alive(state) && !deny(state, e)) setError(errorMessage(e)) }
-    finally { state.sending = false; if (!state.controller.signal.aborted) setSending(false) }
+    } catch (e) { if (!online.signal.aborted && alive(state) && !deny(state, e)) setError(errorMessage(e)) }
+    finally { if (onlineRequest.current?.controller === online) onlineRequest.current = null; state.sending = false; if (!state.controller.signal.aborted) setSending(false) }
   }
 
-  async function switchInternet() {
+  async function cancelAssistant() {
     const state = session.current
-    if (!state || !alive(state) || state.sending || !assistant || assistant.mode === 'INTERNET'
-        || !['PENDIENTE', 'FALLIDA'].includes(assistant.status)) return
-    state.sending = true; setSending(true); setError('')
+    if (!state || !alive(state) || canceling || !assistant || !['PENDIENTE', 'PROCESANDO'].includes(assistant.status)) return false
+    const id = assistant.id
+    setCanceling(true); setError('')
     try {
-      const result = await api<AssistantStatus | undefined>(`${path}/assistant/${assistant.id}/switch-internet`, {
-        method: 'POST', signal: AbortSignal.any([state.controller.signal, AbortSignal.timeout(75000)]),
-      })
+      const result = await api<AssistantStatus>(`${path}/assistant/${id}/cancel`, { method: 'POST', signal: signal(state) })
       if (alive(state) && result) setAssistant(result)
-    } catch (e) { if (alive(state) && !deny(state, e)) setError(errorMessage(e)) }
-    finally { state.sending = false; if (!state.controller.signal.aborted) setSending(false) }
+      if (result.status === 'FALLIDA' && onlineRequest.current?.id === id) onlineRequest.current.controller.abort()
+      return result.status === 'FALLIDA'
+    } catch (e) { if (alive(state) && !deny(state, e)) setError(errorMessage(e)); return false }
+    finally { if (!state.controller.signal.aborted) setCanceling(false) }
   }
 
-  return { messages, before, ready, denied, sending, readingOlder, error, syncError, assistant, send, loadOlder, continueInternet, switchInternet }
+  return { messages, before, ready, denied, sending, canceling, readingOlder, error, syncError, assistant, send, loadOlder, continueInternet, cancelAssistant }
 }

@@ -104,6 +104,39 @@ class DiagramIntegrationTest {
   }
 
   @Test
+  void pendingQuestionCanBeCancelledByRequesterOrAdministratorWithoutChangingMode() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    UUID id = UUID.randomUUID();
+    askAssistant(doc, id, admin).andExpect(jsonPath("$.status").value("PENDIENTE"));
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/cancel").with(actor(collaborator)).with(csrf()))
+        .andExpect(status().isForbidden());
+    var claim = claimAssistant(doc, collaborator);
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/cancel").with(actor(admin)).with(csrf()))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("FALLIDA"))
+        .andExpect(jsonPath("$.mode").value("LOCAL"));
+    finishAssistant(doc, claim, collaborator, "Respuesta tardía", false).andExpect(status().isConflict());
+    askAssistant(doc, UUID.randomUUID(), collaborator).andExpect(jsonPath("$.status").value("PENDIENTE"));
+    verify(gemini, never()).generate(anyList());
+  }
+
+  @Test
+  void requesterCanCancelPendingInternetQuestionWithoutCallingGemini() throws Exception {
+    when(gemini.configured()).thenReturn(true);
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    UUID id = UUID.randomUUID();
+    mvc.perform(post(assistantPath(doc)).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", id, "content", "Explica este diseño", "mode", "INTERNET"))))
+        .andExpect(jsonPath("$.status").value("PENDIENTE"));
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/cancel").with(actor(collaborator)).with(csrf()))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("FALLIDA"))
+        .andExpect(jsonPath("$.mode").value("INTERNET"));
+    askAssistant(doc, UUID.randomUUID(), admin).andExpect(jsonPath("$.status").value("PENDIENTE"));
+    verify(gemini, never()).generate(anyList());
+  }
+
+  @Test
   void browserAssistantIsSharedIdempotentAndAttributedWithoutEditingUml() throws Exception {
     members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
     var doc = document(); create(doc, admin).andExpect(status().isCreated());
@@ -1131,6 +1164,45 @@ class DiagramIntegrationTest {
         .andExpect(status().isForbidden());
     mvc.perform(get(path()+"/"+base.get("id")+"/conversation").with(actor(admin)))
         .andExpect(jsonPath("$.items.length()").value(2));
+  }
+  @Test @SuppressWarnings("unchecked")
+  void deletingClassRecordsSharedAnswerAndRemovesItsRelations() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var base = document(); create(base, admin).andExpect(status().isCreated());
+    var edited = copy(base);
+    ((List<Map<String,Object>>) edited.get("classes")).removeIf(c -> c.get("name").equals("Pedido"));
+    ((List<Map<String,Object>>) edited.get("relations")).clear();
+    var body = Map.of("id", UUID.randomUUID(), "baseRevision", 0, "document", edited, "assistantInstruction", "elimina la clase Pedido");
+    mvc.perform(post(path()+"/"+base.get("id")+"/changes").with(actor(admin)).with(csrf())
+        .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APLICADO"));
+    mvc.perform(get(path()+"/"+base.get("id")+"/conversation").with(actor(collaborator)))
+        .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("La clase Pedido ha sido eliminada.")))
+        .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("Relaciones eliminadas: 1")));
+    mvc.perform(get(path()+"/"+base.get("id")).with(actor(collaborator)))
+        .andExpect(jsonPath("$.document.classes.length()").value(1))
+        .andExpect(jsonPath("$.document.relations.length()").value(0));
+  }
+  @Test @SuppressWarnings("unchecked")
+  void deletingAssociationClassKeepsAssociationAndClearsReference() throws Exception {
+    var base = copy(document());
+    String detail = UUID.randomUUID().toString();
+    ((List<Map<String,Object>>) base.get("classes")).add(new HashMap<>(Map.of(
+        "id", detail, "name", "Detalle", "abstract", false, "position", Map.of("x", 10, "y", 10), "attributes", List.of())));
+    ((List<Map<String,Object>>) base.get("relations")).getFirst().put("associationClassId", detail);
+    create(base, admin).andExpect(status().isCreated());
+    var edited = copy(base);
+    ((List<Map<String,Object>>) edited.get("classes")).removeIf(c -> c.get("name").equals("Detalle"));
+    ((List<Map<String,Object>>) edited.get("relations")).getFirst().put("associationClassId", null);
+    var body = Map.of("id", UUID.randomUUID(), "baseRevision", 0, "document", edited, "assistantInstruction", "elimina la clase Detalle");
+    mvc.perform(post(path()+"/"+base.get("id")+"/changes").with(actor(admin)).with(csrf())
+        .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APLICADO"));
+    mvc.perform(get(path()+"/"+base.get("id")+"/conversation").with(actor(admin)))
+        .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("Asociaciones desvinculadas: 1")));
+    mvc.perform(get(path()+"/"+base.get("id")).with(actor(admin)))
+        .andExpect(jsonPath("$.document.relations.length()").value(1))
+        .andExpect(jsonPath("$.document.relations[0].associationClassId").doesNotExist());
   }
   ResultActions resolveChange(Map<String,Object> doc, UUID change, long revision, Map<String,Object> choices, Usuario user) throws Exception {
     return mvc.perform(post(path()+"/"+doc.get("id")+"/changes/"+change+"/resolve").with(actor(user)).with(csrf())

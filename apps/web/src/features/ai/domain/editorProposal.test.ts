@@ -60,6 +60,26 @@ it('renombra con un nombre y destino expresos', () => {
     .toMatchObject([{ type: 'renameClass', name: 'Factura', newName: 'Recibo' }])
 })
 
+it.each(['elimina la clase gato', 'Borra la clase gato.', '¿Puedes eliminar la clase gato?'])('elimina únicamente la clase indicada: %s', instruction => {
+  const base = labDiagram(['gato', 'perro'])
+  const operations = requestedEditorOperations(instruction, base)
+  expect(operations).toMatchObject([{ type: 'deleteClass', name: 'gato' }])
+  const updated = applyCommand(base, reviewedEditorCommand(instruction, base, { status: 'propose', operations }))
+  expect(updated.classes.map(c => c.name)).toEqual(['perro'])
+  expect(base.classes).toHaveLength(2)
+})
+
+it.each(['No elimines la clase gato', '¿Debería eliminar la clase gato?', 'Elimina la clase gato y la clase perro', 'Elimina la clase gato y crea clase perro'])
+  ('no elimina a partir de preguntas, negaciones o varias acciones: %s', instruction => {
+    expect(() => requestedEditorOperations(instruction)).toThrow()
+  })
+
+it('rechaza eliminar una clase que no existe', () => {
+  const base = labDiagram(['perro'])
+  const instruction = 'Elimina la clase gato'
+  expect(() => reviewedEditorCommand(instruction, base, { status: 'propose', operations: requestedEditorOperations(instruction) })).toThrow()
+})
+
 it.each([
   'Elimina Lancha.',
   'Asocia Lancha con Capitan.',

@@ -106,9 +106,15 @@ public class ChangeService {
       if (assistantInstruction != null) {
         var diff = DiagramActivityDiff.between(current.document(), saved.current().document());
         var created = diff.stream().filter(d -> d.kind().equals("class") && d.action().equals("created")).toList();
+        var deleted = diff.stream().filter(d -> d.kind().equals("class") && d.action().equals("deleted")).toList();
+        long removedRelations = diff.stream().filter(d -> d.kind().equals("relation") && d.action().equals("deleted")).count();
+        long detachedAssociations = diff.stream().filter(d -> d.kind().equals("relation") && d.action().equals("updated") && d.property().equals("associationClass")).count();
         var methods = diff.stream().filter(d -> d.kind().equals("method") && d.action().equals("created")).toList();
         String answer = diff.isEmpty() ? "No se realizaron cambios en el diagrama."
             : created.size() == 1 && diff.size() == 1 ? "La clase " + created.getFirst().label() + " ha sido creada."
+            : deleted.size() == 1 && created.isEmpty() ? "La clase " + deleted.getFirst().label() + " ha sido eliminada."
+                + (removedRelations > 0 ? " Relaciones eliminadas: " + removedRelations + "." : "")
+                + (detachedAssociations > 0 ? " Asociaciones desvinculadas: " + detachedAssociations + "." : "")
             : methods.size() == 1 && diff.size() == 1 ? "El método " + methods.getFirst().label() + " ha sido agregado."
             : "Los cambios solicitados se guardaron en el diagrama. Consulta la actividad para ver el detalle.";
         conversation.recordAppliedEdit(project, diagram, id, assistantInstruction, answer, saved.current().revision());

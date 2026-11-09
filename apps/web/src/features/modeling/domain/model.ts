@@ -217,7 +217,7 @@ export function applyCommand(input: Diagram, command: ModelCommand): Diagram {
       next.classes = next.classes.filter((c) => c.id !== command.id)
       next.relations = next.relations.filter(
         (r) => r.sourceId !== command.id && r.targetId !== command.id,
-      )
+      ).map(r => r.associationClassId === command.id ? { ...r, associationClassId: null } : r)
       break
     }
     case 'upsertAttribute': {

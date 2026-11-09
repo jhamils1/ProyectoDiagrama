@@ -35,10 +35,10 @@ export function useSharedQwen(project: string, diagram: string, denied: boolean)
     state.client?.cancel()
     release(state)
   }
-  function stop() {
+  function stop(canceled = false) {
     dispose(); setBusy(false); setReady(false)
     setNeedsPreparation(false); setFailed(true)
-    setStatus('Preparación detenida en este navegador. La consulta sigue pendiente y otro participante puede atenderla.')
+    setStatus(canceled ? 'Consulta cancelada en este equipo.' : 'Preparación detenida en este navegador. La consulta sigue pendiente y otro participante puede atenderla.')
   }
   function yieldToOther() {
     dispose(); setBusy(false); setReady(false); setNeedsPreparation(false); setFailed(false)

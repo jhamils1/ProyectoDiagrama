@@ -59,7 +59,8 @@ function room() {
           if (body.assistantInstruction && !options.oldBackend) {
             add(body.assistantInstruction, name)
             const created = body.document.classes.at(-1)?.name
-            add(created ? `La clase ${created} ha sido creada.` : 'Los cambios solicitados se guardaron en el diagrama.', 'Asistente · edición', randomUUID(), { kind: 'ASISTENTE' })
+            const deleted = body.assistantInstruction.match(/^(?:elimina|borra) la clase (\S+)\.?$/i)?.[1]
+            add(deleted ? `La clase ${deleted} ha sido eliminada.` : created ? `La clase ${created} ha sido creada.` : 'Los cambios solicitados se guardaron en el diagrama.', 'Asistente · edición', randomUUID(), { kind: 'ASISTENTE' })
           }
           json = { status: 'APLICADO', assistantRecorded: !!body.assistantInstruction && !options.oldBackend, current: { revision: options.revision, versionActual: options.revision + 1,
             permiso: options.permission, document: savedDocument } }
@@ -107,6 +108,10 @@ function room() {
           options.failNextPost = false
           return route.fulfill({ status: 503, json: { message: 'No se pudo confirmar el envío.' } })
         }
+        json = assistant
+      }
+      else if (path.endsWith('/cancel')) {
+        if (assistant) { assistant.status = 'FALLIDA'; assistant.error = 'Consulta cancelada. Puedes seleccionar un modo y preguntar de nuevo.' }
         json = assistant
       }
       else if (path.endsWith('/switch-internet') || path.endsWith('/internet')) {
@@ -195,7 +200,6 @@ test('se puede elegir Gemini y no se envía nada hasta preguntar', async ({ page
   await state.install(page, 'Ana')
   await page.getByLabel('Modo de IA').click()
   await page.getByRole('button', { name: 'En línea · Gemini' }).click()
-  await expect(page.getByText(/se enviarán a Google/)).toBeVisible()
   expect(state.onlineCalls).toHaveLength(0)
   await page.getByLabel('Pregunta o consulta para la IA').fill('¿Cómo modelarías una computadora?')
   await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
@@ -204,21 +208,29 @@ test('se puede elegir Gemini y no se envía nada hasta preguntar', async ({ page
   await page.getByLabel('Modo de IA').click()
   await page.getByRole('button', { name: 'Local · Qwen' }).click()
   expect(state.onlineCalls).toHaveLength(1)
+  await page.getByLabel('Modo de IA').click()
+  await page.getByRole('button', { name: 'En línea · Gemini' }).click()
+  await page.reload()
+  await page.getByRole('button', { name: 'Asistente IA · Qwen3', exact: true }).click()
+  await expect(page.getByLabel('Modo de IA')).toContainText('En línea · Gemini')
+  expect(state.onlineCalls).toHaveLength(1)
 })
 
-test('si falla Qwen se solicita una acción explícita antes de usar Gemini', async ({ page }) => {
+test('si Qwen tarda la consulta se cancela y el cambio a Gemini es manual', async ({ page }) => {
   const state = room()
   await state.install(page, 'Ana')
-  await page.evaluate(() => { document.body.dataset.longContext = 'true' })
+  await page.evaluate(() => { document.body.dataset.stallQwen = 'true' })
   await page.getByLabel('Pregunta o consulta para la IA').fill('Explica la relación del diagrama')
   await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
-  const fallback = page.getByRole('button', { name: 'Responder esta consulta con Gemini' })
-  await expect(fallback).toBeVisible({ timeout: 15000 })
+  await expect(page.getByRole('button', { name: 'Cancelar consulta pendiente' })).toBeVisible({ timeout: 15000 })
   expect(state.onlineCalls).toHaveLength(0)
-  await fallback.click()
+  await page.getByRole('button', { name: 'Cancelar consulta pendiente' }).click()
+  await page.getByLabel('Modo de IA').click()
+  await page.getByRole('button', { name: 'En línea · Gemini' }).click()
+  await page.getByLabel('Pregunta o consulta para la IA').fill('Explica nuevamente la relación')
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
   await expect.poll(() => state.onlineCalls.length).toBe(1)
   await expect(page.getByText('Una sugerencia de prueba.')).toBeVisible()
-  expect(state.messages.filter(message => message.content === 'Explica la relación del diagrama')).toHaveLength(1)
 })
 
 test('Enter envía consultas y Mayús Enter agrega una línea', async ({ page }) => {
@@ -549,8 +561,32 @@ test('no crea una clase duplicada al repetir la instrucción', async ({ page }) 
   await input.fill('crea clase factura')
   await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
   await expect(page.getByText('Cambios guardados:', { exact: false })).toHaveCount(0)
-  await expect(page.getByRole('region', { name: 'Edición compartida' }).getByRole('status')).not.toBeEmpty()
+  await expect(page.getByText('Ya existe una clase con ese nombre.')).toBeVisible()
   expect(state.writes).toHaveLength(1)
+})
+
+test('crea y elimina la clase solicitada desde el asistente', async ({ page }) => {
+  const state = room()
+  state.options.permission = 'EDICION'
+  await state.install(page, 'Ana')
+  const input = page.getByLabel('Pregunta o consulta para la IA')
+  const send = page.getByRole('button', { name: 'Preguntar a la IA' })
+  await input.fill('crea la clase gato')
+  await send.click()
+  await expect(page.getByText('Cambios guardados: Crear clase gato.')).toBeVisible()
+  await input.fill('elimina la clase gato')
+  await send.click()
+  await expect(page.getByText('La clase gato ha sido eliminada.')).toBeVisible()
+  expect(state.writes).toHaveLength(2)
+  await expect(page.locator('.class-node').filter({ hasText: 'gato' })).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('.class-node').filter({ hasText: 'gato' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Asistente IA · Qwen3', exact: true }).click()
+  await input.fill('crea la clase gato')
+  await send.click()
+  await expect(page.getByText('Cambios guardados: Crear clase gato.')).toBeVisible()
+  expect(state.writes).toHaveLength(3)
+  await expect(page.locator('.class-node').filter({ hasText: 'gato' })).toHaveCount(1)
 })
 
 test('mantiene el mismo identificador en un reintento de guardado incierto', async ({ page }) => {

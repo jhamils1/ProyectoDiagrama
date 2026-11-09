@@ -76,6 +76,11 @@ public class ConversationController {
     return internet(project, diagram, id);
   }
 
+  @PostMapping("/assistant/{id}/cancel")
+  ResponseEntity<SharedAssistantService.RequestStatus> cancel(@PathVariable UUID project, @PathVariable UUID diagram, @PathVariable UUID id) {
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(assistant.cancel(project, diagram, id));
+  }
+
   @PostMapping("/proposals")
   ResponseEntity<ConversationService.Message> shareProposal(@PathVariable UUID project, @PathVariable UUID diagram,
       @Valid @RequestBody ShareProposal request) {

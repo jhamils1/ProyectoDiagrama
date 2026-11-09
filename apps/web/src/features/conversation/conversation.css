@@ -63,6 +63,8 @@
 .conversation-local-source:focus-within { outline: 2px solid #b498ff; outline-offset: 3px; }
 .conversation-panel button:disabled { opacity: .5; cursor: not-allowed; }
 .conversation-notice { flex-shrink: 0; order: 2; margin: 0; padding: 6px 0; color: #edc18d; font-size: 12px; line-height: 1.5; }
+.conversation-edit-feedback { flex-shrink: 0; max-height: 5em; overflow-y: auto; margin: 0; color: #edc18d; font-size: 11px; line-height: 1.4; }
+.conversation-cancel { flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #bcb7cd; font-size: 10px; }
 .live-presence .conversation-open { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-color: #343a5d; background: #252b47; color: #fff; text-decoration: none; }
 .live-presence .conversation-open:hover { background: #374167; border-color: #56618c; }
 .live-presence .conversation-open[aria-expanded="true"] { border-color: #7765d8; background: #41396e; color: #fff; }

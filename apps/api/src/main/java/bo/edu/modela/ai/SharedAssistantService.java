@@ -6,6 +6,7 @@ import bo.edu.modela.diagrams.DiagramService;
 import bo.edu.modela.diagrams.activity.DiagramActivityService;
 import bo.edu.modela.projects.ProyectoRepository;
 import bo.edu.modela.shared.ApiException;
+import bo.edu.modela.users.Usuario;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.Timestamp;
@@ -195,6 +196,19 @@ public class SharedAssistantService {
     if (job.context() == null || job.context().isBlank())
       throw ApiException.conflict("El contexto de esta consulta ya no está disponible. Vuelve a preguntar.");
     jdbc.update("UPDATE solicitud_ia_diagrama SET modo='INTERNET',estado='PENDIENTE',error=NULL,token=NULL,vencimiento=NULL,ejecutor_id=NULL,ejecutor_nombre=NULL,resultado_hash=NULL WHERE id=?", id);
+  }
+
+  @Transactional
+  public RequestStatus cancel(UUID project, UUID diagram, UUID id) {
+    var user = current.get();
+    lockAndAuthorize(project, diagram);
+    var job = job(diagram, id);
+    if (!job.requester().equals(user.id) && user.rol != Usuario.Rol.ADMINISTRADOR)
+      throw ApiException.forbidden();
+    if (!Set.of("PENDIENTE", "PROCESANDO").contains(job.status())) return status(job);
+    String message = "Consulta cancelada. Puedes seleccionar un modo y preguntar de nuevo.";
+    jdbc.update("UPDATE solicitud_ia_diagrama SET estado='FALLIDA',error=?,contexto='',token=NULL,vencimiento=NULL WHERE id=?", message, id);
+    return new RequestStatus(id, "FALLIDA", message, job.mode());
   }
 
   @Transactional

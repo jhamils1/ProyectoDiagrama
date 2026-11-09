@@ -20,7 +20,10 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
   const resize = usePanelResize()
   const follow = useRef(true)
   const [draft, setDraft] = useState('')
-  const [mode, setMode] = useState<'LOCAL' | 'INTERNET'>('LOCAL')
+  const [mode, setMode] = useState<'LOCAL' | 'INTERNET'>(() => {
+    try { return sessionStorage.getItem('modela-assistant-mode') === 'INTERNET' ? 'INTERNET' : 'LOCAL' }
+    catch { return 'LOCAL' }
+  })
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [displayed, setDisplayed] = useState(visible)
@@ -28,6 +31,9 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
   const qwen = useSharedQwen(projectId, diagramId, conversation.denied)
   const editing = useSharedEditing(diagram, revision, canEdit && !conversation.denied, execute, position)
   const editLocked = editing.busy || saving
+  useEffect(() => {
+    try { sessionStorage.setItem('modela-assistant-mode', mode) } catch { /* Storage can be disabled. */ }
+  }, [mode])
   useEffect(() => {
     if (visible) {
       setDisplayed(true)
@@ -127,8 +133,6 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
     </p>}
     {conversation.error && <p role="alert" className="conversation-notice">{conversation.error}</p>}
     {!conversation.denied && <section className="conversation-edit-preview" aria-label="Edición compartida">
-      {editing.status && <p role="status">{editing.status}</p>}
-      {editing.status && editorError && <p role="alert">{editorError}</p>}
       <details><summary>Ejemplos de consultas y sugerencias</summary>
         <ul><li>¿Cómo puedo mejorar mi diagrama?</li><li>Revisa la clase Factura</li>
           <li>¿Cómo puedo resolver los problemas de la clase Factura?</li><li>¿Cómo modelarías una devolución?</li></ul>
@@ -156,7 +160,7 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
           <button type="button" className="secondary" onClick={() => void qwen.prepare()}>Descargar desde el servidor</button>
         </>}
         {qwen.failed && conversation.assistant?.status === 'PENDIENTE' && <button type="button" className="secondary" onClick={() => void qwen.start()}>Reintentar en este equipo</button>}
-        {(qwen.busy || qwen.ready || qwen.needsPreparation) && <button type="button" className="secondary conversation-stop" onClick={qwen.stop}>Detener en este equipo</button>}
+        {(qwen.busy || qwen.ready || qwen.needsPreparation) && <button type="button" className="secondary conversation-stop" onClick={() => qwen.stop()}>Detener en este equipo</button>}
       </div>
       {qwen.needsPreparation && mode === 'LOCAL' && <p>Selecciona la carpeta <strong>apps/web/public/ai</strong> de tu proyecto. Los archivos del modelo permanecen en este equipo.</p>}
     </section>}
@@ -168,15 +172,15 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
       <button type="button" className="secondary" onClick={() => void conversation.continueInternet()}>Continuar consulta por internet</button>}
     {conversation.assistant?.status === 'FALLIDA' && <p role="status" className="conversation-notice">
       {conversation.assistant.error ?? 'La consulta de IA no pudo completarse.'}</p>}
-    {conversation.assistant && conversation.assistant.mode !== 'INTERNET' &&
-      (conversation.assistant.status === 'FALLIDA' || (conversation.assistant.status === 'PENDIENTE' && (qwen.failed || qwen.needsPreparation))) && <>
-      <p className="conversation-disclaimer">Puedes enviar esta consulta y su contexto a Google; puede consumir cuota o generar cargos.</p>
-      <button type="button" className="secondary" disabled={conversation.sending} onClick={() => {
-        setMode('INTERNET')
-        void conversation.switchInternet()
-      }}>Responder esta consulta con Gemini</button>
-    </>}
     </div>
+    {conversation.assistant && ['PENDIENTE', 'PROCESANDO'].includes(conversation.assistant.status) && <div className="conversation-cancel">
+      <button type="button" className="secondary" disabled={conversation.canceling} onClick={() => {
+        void conversation.cancelAssistant().then(canceled => { if (canceled && qwen.busy) qwen.stop(true) })
+      }}>{conversation.canceling ? 'Cancelando…' : 'Cancelar consulta pendiente'}</button>
+      <span>{conversation.assistant.mode === 'INTERNET' ? 'Google podría consumir cuota aunque la canceles. ' : ''}Solo quien preguntó o el administrador puede cancelarla.</span>
+    </div>}
+    {editing.status && <p className="conversation-edit-feedback" role="status">{editing.status}</p>}
+    {editing.status && editorError && <p className="conversation-edit-feedback" role="alert">{editorError}</p>}
     {!conversation.denied && <form onSubmit={event => {
       event.preventDefault()
       if (isEditingInstruction(draft)) { void editing.apply(draft.trim()).then(saved => { if (saved) { setDraft(''); follow.current = true } }); return }

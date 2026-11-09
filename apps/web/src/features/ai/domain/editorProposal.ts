@@ -19,6 +19,7 @@ export const editorExamples = [
   'Lancha hereda de Embarcacion.',
   'La clase automóvil hereda de vehiculo.',
   'Renombra Lancha a Velero.',
+  'Elimina la clase Lancha.',
   'Crear una asociación entre Cliente y Pedido, donde un Cliente puede tener muchos Pedidos y cada Pedido pertenece a un solo Cliente.',
 ]
 const identifier = '([A-Za-zÁÉÍÓÚÜÑáéíóúüñ_][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9_]{0,79})'
@@ -67,6 +68,9 @@ export function requestedEditorOperations(instruction: string, diagram?: Diagram
   match = text.match(methodPattern(`${rename} (?:(?:la )?clase )?${identifier} (?:a|como) ${identifier}`))
   if (match)
     return [operationSchema.parse({ type: 'renameClass', name: match[1], newName: match[2] })]
+  const remove = '(?:elimina|eliminar|borra|borrar|(?:puedes|podr[ií]as) (?:eliminar|borrar))'
+  match = text.match(methodPattern(`${remove} la clase ${identifier}`))
+  if (match) return [operationSchema.parse({ type: 'deleteClass', name: match[1] })]
   match = text.match(
     methodPattern(
       `${action} (?:(?:(?:el|un) )?atributo )?${identifier}(?: de tipo ${identifier}| sin tipo)?( obligatori[oa])? (?:a (?:la clase )?|en la clase |para (?:la clase )?)${identifier}`,
@@ -110,7 +114,7 @@ export function requestedEditorOperations(instruction: string, diagram?: Diagram
       }),
     ]
   throw new Error(
-    'Instrucción no disponible. Usa una de las formas de los ejemplos, cambiando nombres y tipos. La composición, agregación, borrado y otras modificaciones todavía no están disponibles por IA.',
+    'Instrucción no disponible. Usa una de las formas de los ejemplos, cambiando nombres y tipos. La composición, agregación y otras modificaciones todavía no están disponibles por IA.',
   )
 }
 
