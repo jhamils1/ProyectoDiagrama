@@ -16,6 +16,10 @@ final class AssistantAnswerQuality {
     String normalizedQuestion = normalize(question);
     if (!GREETINGS.contains(normalizedQuestion) && (GREETINGS.contains(normalizedAnswer)
         || (!normalizedQuestion.isEmpty() && normalizedAnswer.equals(normalizedQuestion)))) return FALLBACK;
+    // A lone restated or unrelated question is not an answer. Preserve explicit clarification requests.
+    String trimmed = answer.strip();
+    if (trimmed.endsWith("?") && !trimmed.matches("(?s).*[.!][\\s\\S]+")
+        && !normalizedAnswer.matches("^(puedes|podrias|necesito que|para poder|que tipo|cual es el objetivo|a que clase|de que clase|sobre que clase)\\b.*")) return FALLBACK;
     return answer.strip();
   }
 

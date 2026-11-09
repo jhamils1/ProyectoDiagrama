@@ -45,7 +45,9 @@ public class DiagramActivityService {
         ORDER BY v.numero DESC LIMIT ?
         """, (rs, row) -> {
       var previous = rs.getString("previous_content");
-      var changes = DiagramActivityDiff.between(
+      var changes = previous == null && rs.getLong("numero") > 1
+          ? List.of(new DiagramActivityDiff.Change("diagram", null, "", "unavailable", "", null, null))
+          : DiagramActivityDiff.between(
           previous == null ? null : json.readValue(previous, DiagramDocument.class),
           json.readValue(rs.getString("current_content"), DiagramDocument.class));
       return new Entry(rs.getLong("numero"), rs.getTimestamp("fecha_creacion").toInstant(),

@@ -4,11 +4,12 @@ import { api, ApiError, errorMessage } from '../../shared/api'
 export type ConversationMessage = {
   id: string; sequence: number; authorId: string | null; authorName: string
   content: string; createdAt: string; diagramRevision: number; kind?: string; executorName?: string | null
+  answerScope?: 'DIAGRAMA' | 'ACTIVIDAD' | 'CONCEPTO' | 'DESCONOCIDO' | null
   continuationQuestion?: string | null
   proposalInstruction?: string | null
   proposalData?: string | null
 }
-type AssistantStatus = { id: string; status: 'PENDIENTE' | 'PROCESANDO' | 'COMPLETADA' | 'FALLIDA'; error: string | null }
+type AssistantStatus = { id: string; status: 'PENDIENTE' | 'PROCESANDO' | 'COMPLETADA' | 'FALLIDA'; error: string | null; mode?: 'LOCAL' | 'INTERNET' }
 type ConversationPage = { items: ConversationMessage[]; nextBefore: number | null; nextAfter: number | null; assistant?: AssistantStatus | null }
 type Session = {
   controller: AbortController; denied: boolean; ready: boolean; after: number
@@ -30,7 +31,7 @@ export function useConversation(projectId: string, diagramId: string) {
   const [syncError, setSyncError] = useState('')
   const [assistant, setAssistant] = useState<AssistantStatus | null>(null)
   const session = useRef<Session | null>(null)
-  const attempt = useRef<{ id: string; content: string; ask: boolean } | null>(null)
+  const attempt = useRef<{ id: string; content: string; ask: boolean; mode: 'LOCAL' | 'INTERNET' } | null>(null)
 
   function alive(state: Session) { return !state.controller.signal.aborted && !state.denied }
   function signal(state: Session) {
@@ -99,22 +100,34 @@ export function useConversation(projectId: string, diagramId: string) {
     finally { state.readingOlder = false; if (!state.controller.signal.aborted) setReadingOlder(false) }
   }
 
-  async function send(content: string, ask = false) {
+  async function send(content: string, ask = false, mode: 'LOCAL' | 'INTERNET' = 'LOCAL') {
     const state = session.current
     const text = content.trim()
     if (!state || !alive(state) || !state.ready || state.sending || !text || text.length > 4000) return false
     state.sending = true
     setSending(true)
     setError('')
-    if (attempt.current?.content !== text || attempt.current.ask !== ask)
-      attempt.current = { id: crypto.randomUUID(), content: text, ask }
+    if (attempt.current?.content !== text || attempt.current.ask !== ask || attempt.current.mode !== mode)
+      attempt.current = { id: crypto.randomUUID(), content: text, ask, mode }
     try {
       const result = await api<ConversationMessage | AssistantStatus>(ask ? `${path}/assistant` : path, {
-        method: 'POST', body: JSON.stringify({ id: attempt.current.id, content: text }), signal: signal(state),
+        method: 'POST', body: JSON.stringify({ id: attempt.current.id, content: text, ...(ask ? { mode } : {}) }), signal: signal(state),
       })
       if (!alive(state)) return false
       if ('sequence' in result) setMessages(previous => merge(previous, [result]))
-      else setAssistant(result)
+      else {
+        setAssistant(result)
+        if (mode === 'INTERNET' && result.status === 'PENDIENTE') {
+          try {
+            const online = await api<AssistantStatus | undefined>(`${path}/assistant/${result.id}/internet`, {
+              method: 'POST', signal: AbortSignal.any([state.controller.signal, AbortSignal.timeout(75000)]),
+            })
+            if (alive(state) && online) setAssistant(online)
+          } catch (e) {
+            if (alive(state) && !deny(state, e)) setError('No se pudo confirmar la consulta por internet. Revisa el historial antes de volver a preguntar.')
+          }
+        }
+      }
       attempt.current = null
       return true
     } catch (e) {
@@ -126,5 +139,32 @@ export function useConversation(projectId: string, diagramId: string) {
     } finally { state.sending = false; if (!state.controller.signal.aborted) setSending(false) }
   }
 
-  return { messages, before, ready, denied, sending, readingOlder, error, syncError, assistant, send, loadOlder }
+  async function continueInternet() {
+    const state = session.current
+    if (!state || !alive(state) || state.sending || !assistant || assistant.mode !== 'INTERNET' || assistant.status !== 'PENDIENTE') return
+    state.sending = true; setSending(true); setError('')
+    try {
+      const result = await api<AssistantStatus | undefined>(`${path}/assistant/${assistant.id}/internet`, {
+        method: 'POST', signal: AbortSignal.any([state.controller.signal, AbortSignal.timeout(75000)]),
+      })
+      if (alive(state) && result) setAssistant(result)
+    } catch (e) { if (alive(state) && !deny(state, e)) setError(errorMessage(e)) }
+    finally { state.sending = false; if (!state.controller.signal.aborted) setSending(false) }
+  }
+
+  async function switchInternet() {
+    const state = session.current
+    if (!state || !alive(state) || state.sending || !assistant || assistant.mode === 'INTERNET'
+        || !['PENDIENTE', 'FALLIDA'].includes(assistant.status)) return
+    state.sending = true; setSending(true); setError('')
+    try {
+      const result = await api<AssistantStatus | undefined>(`${path}/assistant/${assistant.id}/switch-internet`, {
+        method: 'POST', signal: AbortSignal.any([state.controller.signal, AbortSignal.timeout(75000)]),
+      })
+      if (alive(state) && result) setAssistant(result)
+    } catch (e) { if (alive(state) && !deny(state, e)) setError(errorMessage(e)) }
+    finally { state.sending = false; if (!state.controller.signal.aborted) setSending(false) }
+  }
+
+  return { messages, before, ready, denied, sending, readingOlder, error, syncError, assistant, send, loadOlder, continueInternet, switchInternet }
 }

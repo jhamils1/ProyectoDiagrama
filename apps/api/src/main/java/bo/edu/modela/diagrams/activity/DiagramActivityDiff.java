@@ -50,6 +50,9 @@ public final class DiagramActivityDiff {
         result.put(a.id(), new Element("attribute", c.name() + "." + a.name(),
             fields("name", a.name(), "class", c.id(), "dataType", a.dataType(),
                 "visibility", a.visibility(), "identifier", a.identifier(), "required", a.required())));
+      for (var m : c.methods())
+        result.put(m.id(), new Element("method", c.name() + "." + m.name() + "()",
+            fields("name", m.name(), "class", c.id(), "returnType", m.returnType(), "visibility", m.visibility())));
     }
     for (var r : doc.relations())
       result.put(r.id(), new Element("relation",

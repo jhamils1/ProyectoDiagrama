@@ -34,6 +34,32 @@ async function readDrafts(page: Page): Promise<Diagram[]> {
   )
 }
 
+test('los métodos se crean, editan y eliminan y persisten al recargar', async ({ page }) => {
+  await newDraft(page)
+  await addClass(page, 'Venta')
+  await page.getByRole('button', { name: 'Agregar método' }).click()
+  await page.getByLabel('Nombre del método').fill('calcularTotal')
+  await page.getByLabel('Tipo de retorno').selectOption('Decimal')
+  await page.getByRole('button', { name: 'Guardar método' }).click()
+  await expect(page.locator('.class-node')).toContainText('calcularTotal()')
+  await page.reload()
+  await page.locator('.class-node').filter({ hasText: 'Venta' }).click()
+  await page.getByRole('button', { name: 'Editar método calcularTotal' }).click()
+  await page.getByLabel('Nombre del método').fill('encender')
+  await page.getByLabel('Tipo de retorno').selectOption('void')
+  await page.getByLabel('Visibilidad del método').selectOption('private')
+  await page.getByRole('button', { name: 'Guardar método' }).click()
+  await page.reload()
+  await page.locator('.class-node').filter({ hasText: 'Venta' }).click()
+  expect((await readDrafts(page))[0].classes[0].methods).toMatchObject([
+    { name: 'encender', returnType: 'void', visibility: 'private' },
+  ])
+  await expect(page.locator('.class-node')).toContainText('encender(): void')
+  await page.getByRole('button', { name: 'Eliminar método encender' }).click()
+  await page.reload()
+  expect((await readDrafts(page))[0].classes[0].methods).toEqual([])
+})
+
 test('Suprimir en una clase pide confirmación y no borra al editar texto', async ({ page }) => {
   await newDraft(page)
   await addClass(page, 'Vehiculo')

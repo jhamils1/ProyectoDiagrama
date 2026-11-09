@@ -62,6 +62,12 @@ public class DiagramRepository {
           .add(
               new AttributeData(
                   a.id, a.nombre, a.tipoDato, a.visibilidad, a.identificador, a.obligatorio));
+    List<MetodoUML> methods = classes.isEmpty() ? List.of() : em.createQuery(
+        "from MetodoUML where claseId in :ids order by orden", MetodoUML.class)
+        .setParameter("ids", classes.stream().map(c -> c.id).toList()).getResultList();
+    Map<UUID, List<MethodData>> groupedMethods = new HashMap<>();
+    for (var m : methods) groupedMethods.computeIfAbsent(m.claseId, k -> new ArrayList<>())
+        .add(new MethodData(m.id, m.nombre, m.tipoRetorno, m.visibilidad));
     var relations =
         em.createQuery("from RelacionUML where diagramaId=:d order by orden", RelacionUML.class)
             .setParameter("d", d.id)
@@ -80,7 +86,8 @@ public class DiagramRepository {
                         c.nombre,
                         c.abstracta,
                         new Position(c.posicionX, c.posicionY),
-                        grouped.getOrDefault(c.id, List.of())))
+                        grouped.getOrDefault(c.id, List.of()),
+                        groupedMethods.getOrDefault(c.id, List.of())))
             .toList(),
         relations.stream()
             .map(
@@ -98,6 +105,7 @@ public class DiagramRepository {
     // A proposal may read and replace the graph in the same transaction. Bulk deletion does
     // not detach these rows: keep the aggregate/header managed, but release graph identities.
     attrs.forEach(em::detach);
+    methods.forEach(em::detach);
     relations.forEach(em::detach);
     classes.forEach(em::detach);
     return document;
@@ -105,6 +113,8 @@ public class DiagramRepository {
 
   public void replace(DiagramDocument doc) {
     // Snapshot history is immutable; only the current graph is replaced atomically.
+    em.createQuery("delete from MetodoUML where claseId in (select id from ClaseUML where diagramaId=:d)")
+        .setParameter("d", doc.id()).executeUpdate();
     em.createQuery(
             "delete from AtributoUML where claseId in (select id from ClaseUML where"
                 + " diagramaId=:d)")
@@ -139,6 +149,13 @@ public class DiagramRepository {
         attr.obligatorio = a.required();
         attr.orden = attributeOrder++;
         em.persist(attr);
+      }
+      int methodOrder = 0;
+      for (var m : c.methods()) {
+        var method = new MetodoUML();
+        method.id = m.id(); method.claseId = c.id(); method.nombre = m.name();
+        method.tipoRetorno = m.returnType(); method.visibilidad = m.visibility(); method.orden = methodOrder++;
+        em.persist(method);
       }
     }
     order = 0;

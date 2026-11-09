@@ -1,0 +1,13 @@
+# IA local e internet
+
+Para conservar la clave de desarrollo local, crea `.local/gemini.env` con una línea `GEMINI_API_KEY=tu_clave` y ejecuta `scripts/backend.ps1 run`. La carpeta `.local` está excluida de Git. Una variable de entorno `GEMINI_API_KEY` ya definida tiene prioridad. Este archivo solo configura el backend local y no debe compartirse ni utilizarse en el frontend.
+
+El asistente usa Qwen local por defecto. El selector permite elegir Gemini por internet para una consulta nueva. Ante un fallo local o recursos no preparados, la persona que formuló la consulta puede pulsar «Responder esta consulta con Gemini»: la pregunta no se duplica. Esa acción envía a Google el contexto limitado del diagrama, la actividad reciente y la conversación reciente. Las respuestas y sus autores de tipo modelo se guardan para el equipo. Algunas consultas se responden mediante reglas internas y no necesitan ejecutar ningún modelo.
+
+El backend requiere `GEMINI_API_KEY`; si falta, no realiza solicitudes externas. El modelo se configura opcionalmente con `GEMINI_MODEL` (por defecto `gemini-3.5-flash-lite`); disponibilidad y precios dependen de la cuenta y región. No guardar claves en el código, el repositorio, capturas ni en el frontend. Para pruebas locales, configura la variable en el entorno de la terminal que arranque `scripts/backend.ps1 run`. Para AWS, utiliza un mecanismo de secretos del servicio y configura el backend solo cuando se decida probarlo. El acceso a Google de los colaboradores usa otra configuración y no proporciona una clave Gemini.
+
+El modo internet puede consumir cuota o generar cargos. No hay presupuesto automático implementado. Las condiciones de tratamiento de datos dependen del plan; consulta las condiciones vigentes del proveedor. Una solicitud inconclusa tras una pérdida de confirmación no se reintenta automáticamente para evitar cobros duplicados. Una consulta por internet solo puede iniciarla quien la formuló y la reserva impide que Qwen la procese al mismo tiempo.
+
+La migración V19 añade un modo con valor predeterminado LOCAL para preservar solicitudes anteriores. Fue aplicada en la base local `modela_test`, no en AWS. La integración se verificó con Gemini simulado; todavía hace falta configurar una clave y realizar una prueba real consciente de la cuota, y probarlo con dos personas antes de considerarlo verificado en producción.
+
+Las 209 pruebas de backend y 198 pruebas unitarias web pasaron, al igual que la compilación web. Dos pruebas de interfaz con proveedor simulado verificaron la selección y el cambio explícito desde un fallo local; los casos pasaron, pero el proceso de Playwright quedó esperando al terminar y se detuvo manualmente.

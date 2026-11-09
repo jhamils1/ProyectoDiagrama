@@ -54,4 +54,22 @@ class DiagramActivityDiffTest {
     assertThat(DiagramActivityDiff.between(original, after)).singleElement()
         .satisfies(c -> assertThat(c.property()).isEqualTo("associationClass"));
   }
+
+  @Test void recordsMethodCreationAndReturnTypeChanges() {
+    var original = doc(product("Producto", "Decimal", new Position(0d, 0d)), "1");
+    var existing = original.classes().getFirst();
+    var methodId = UUID.randomUUID();
+    var added = new ClassData(existing.id(), existing.name(), existing.abstractClass(), existing.position(),
+        existing.attributes(), List.of(new MethodData(methodId, "encender", "void", "public")));
+    var addedDoc = doc(added, "1");
+    assertThat(DiagramActivityDiff.between(original, addedDoc)).singleElement().satisfies(change -> {
+      assertThat(change.kind()).isEqualTo("method");
+      assertThat(change.action()).isEqualTo("created");
+      assertThat(change.label()).isEqualTo("Producto.encender()");
+    });
+    var updated = new ClassData(existing.id(), existing.name(), existing.abstractClass(), existing.position(),
+        existing.attributes(), List.of(new MethodData(methodId, "encender", "Boolean", "public")));
+    assertThat(DiagramActivityDiff.between(addedDoc, doc(updated, "1"))).singleElement()
+        .satisfies(change -> assertThat(change.property()).isEqualTo("returnType"));
+  }
 }

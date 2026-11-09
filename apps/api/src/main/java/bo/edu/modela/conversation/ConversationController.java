@@ -1,6 +1,8 @@
 package bo.edu.modela.conversation;
 
 import bo.edu.modela.ai.SharedAssistantService;
+import bo.edu.modela.ai.GeminiClient;
+import bo.edu.modela.shared.ApiException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.UUID;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/projects/{project}/diagrams/{diagram}/conversation")
 public class ConversationController {
   public record Send(@NotNull UUID id, @NotBlank @Size(max = 4000) String content) {}
+  public record Ask(@NotNull UUID id, @NotBlank @Size(max = 1500) String content, String mode) {}
   public record Complete(@NotNull UUID token, @Size(max = 4000) String content, boolean failed,
       @Size(max = 40) String failureReason) {}
   public record Release(@NotNull UUID token) {}
@@ -19,7 +22,8 @@ public class ConversationController {
       @Size(max = 16000) String proposalData) {}
   private final ConversationService service;
   private final SharedAssistantService assistant;
-  public ConversationController(ConversationService service, SharedAssistantService assistant) { this.service = service; this.assistant = assistant; }
+  private final GeminiClient gemini;
+  public ConversationController(ConversationService service, SharedAssistantService assistant, GeminiClient gemini) { this.service = service; this.assistant = assistant; this.gemini = gemini; }
 
   @GetMapping
   ResponseEntity<ConversationService.Page> list(@PathVariable UUID project, @PathVariable UUID diagram,
@@ -37,9 +41,39 @@ public class ConversationController {
 
   @PostMapping("/assistant")
   ResponseEntity<SharedAssistantService.RequestStatus> ask(@PathVariable UUID project, @PathVariable UUID diagram,
-      @Valid @RequestBody Send request) {
+      @Valid @RequestBody Ask request) {
+    if ("INTERNET".equals(request.mode()) && !gemini.configured())
+      throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "IA_INTERNET_NO_CONFIGURADA", "La IA por internet aún no está configurada en el servidor.");
     return ResponseEntity.accepted().cacheControl(CacheControl.noStore())
-        .body(assistant.request(project, diagram, request.id(), request.content()));
+        .body(assistant.request(project, diagram, request.id(), request.content(), request.mode()));
+  }
+
+  @GetMapping("/assistant/internet/status")
+  ResponseEntity<java.util.Map<String, Boolean>> internetStatus(@PathVariable UUID project, @PathVariable UUID diagram) {
+    assistant.checkAccess(project, diagram);
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(java.util.Map.of("available", gemini.configured()));
+  }
+
+  @PostMapping("/assistant/{id}/internet")
+  ResponseEntity<SharedAssistantService.RequestStatus> internet(@PathVariable UUID project, @PathVariable UUID diagram, @PathVariable UUID id) {
+    if (!gemini.configured()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "IA_INTERNET_NO_CONFIGURADA", "La IA por internet aún no está configurada en el servidor.");
+    var claim = assistant.claimInternet(project, diagram, id);
+    if (claim == null) return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    String answer;
+    try { answer = gemini.generate(claim.messages()); }
+    catch (RuntimeException ex) {
+      return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+          .body(assistant.completeInternet(project, diagram, id, claim.token(), "", true));
+    }
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+        .body(assistant.completeInternet(project, diagram, id, claim.token(), answer, false));
+  }
+
+  @PostMapping("/assistant/{id}/switch-internet")
+  ResponseEntity<SharedAssistantService.RequestStatus> switchInternet(@PathVariable UUID project, @PathVariable UUID diagram, @PathVariable UUID id) {
+    if (!gemini.configured()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "IA_INTERNET_NO_CONFIGURADA", "La IA por internet aún no está configurada en el servidor.");
+    assistant.switchToInternet(project, diagram, id);
+    return internet(project, diagram, id);
   }
 
   @PostMapping("/proposals")

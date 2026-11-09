@@ -71,6 +71,18 @@ class BackendGeneratorTest {
   @Test void reversedRelationAndJavaTypeNamesCompile() throws Exception {
     compile(unpack(BackendGenerator.zip(model(clazz("String", "value"), clazz("Long", "text"), true))));
   }
+  @Test void umlMethodsDoNotChangeGeneratedBackend() throws Exception {
+    var client = clazz("Cliente", "nombre");
+    var order = clazz("Pedido", "detalle");
+    var original = model(client, order, false);
+    var withMethod = new ClassData(client.id(), client.name(), client.abstractClass(), client.position(),
+        client.attributes(), List.of(new MethodData(UUID.randomUUID(), "encender", "void", "public")));
+    var changed = new DiagramDocument(original.schemaVersion(), original.id(), original.name(), original.localRevision(),
+        original.updatedAt(), List.of(withMethod, order), original.relations());
+    changed.validate();
+    assertThat(BackendGenerator.files(changed)).isEqualTo(BackendGenerator.files(original));
+    compile(unpack(BackendGenerator.zip(changed)));
+  }
   @Test void oneToOneGeneratesUniqueOwningReferenceAndOptionalInverse() throws Exception {
     var persona = clazz("Persona", "nombre");
     var perfil = clazz("Perfil", "biografia");

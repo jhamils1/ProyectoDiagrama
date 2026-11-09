@@ -23,6 +23,43 @@ class DiagramFactsTest {
     return new RelationData(UUID.randomUUID(), "association", cliente, pedido, "compra", source, target);
   }
 
+  @Test void explainsCapabilitiesAndAsksForMissingAttributeContext() {
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Ventas", 0L, Instant.now(), List.of(type(cliente, "Computadora")), List.of());
+    assertThat(DiagramFacts.answerQuestion(doc, "que puedes realizar?"))
+        .contains("consultar el diagrama", "instrucciones de edición admitidas");
+    assertThat(DiagramFacts.answerQuestion(doc, "que atributos coloco"))
+        .contains("¿Para qué clase", "no tendré que suponerlo");
+    assertThat(DiagramFacts.answerQuestion(doc, "¿Qué puedes realizar y crea una clase?")) .isNull();
+  }
+
+  @Test void suggestionsExplainHowToAddressObservedClassIssuesWithoutInventingRequirements() {
+    var untyped = new DiagramDocument.AttributeData(UUID.randomUUID(), "fecha", "", "private", false, false);
+    var method = new DiagramDocument.MethodData(UUID.randomUUID(), "encender", "", "public");
+    var item = new ClassData(cliente, "Cliente", false, new DiagramDocument.Position(0.0, 0.0), List.of(untyped), List.of(method));
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Ventas", 0L, Instant.now(),
+        List.of(item, type(pedido, "Pedido")), List.of());
+    for (String question : List.of("Revisa la clase Cliente", "¿Qué sugerencias propones para la clase Cliente?",
+        "¿Cómo puedo resolver los problemas de la clase Cliente?", "¿Cómo mejorarías la clase Cliente?"))
+      assertThat(DiagramFacts.answerQuestion(doc, question)).as(question)
+          .contains("Cliente", "fecha no tiene tipo", "selecciona uno adecuado", "encender() no tiene retorno", "void", "multiplicidades", "no modifica")
+          .doesNotContain("La clase Pedido no tiene");
+    assertThat(DiagramFacts.answerQuestion(doc, "Revisa la clase Factura")).contains("No puedo identificar");
+    assertThat(DiagramFacts.answerQuestion(doc, "Revisa la clase Cliente y crea Factura")).isNull();
+    assertThat(DiagramFacts.answerQuestion(doc, "Revisa el diagrama")).contains("Cliente.encender() no tiene retorno");
+    assertThat(DiagramFacts.answerQuestion(doc, "¿Cómo puedo mejorar mi diagrama?")).contains("Revisión básica");
+  }
+
+  @Test void classSuggestionsRespectAssociationClassesAndAmbiguousNames() {
+    var connected = new RelationData(UUID.randomUUID(), "association", cliente, pedido, "", "1", "0..*", detalle);
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Ventas", 0L, Instant.now(),
+        List.of(type(cliente, "Cliente"), type(pedido, "Pedido"), type(detalle, "Detalle")), List.of(connected));
+    assertThat(DiagramFacts.answerQuestion(doc, "Revisa la clase Detalle"))
+        .contains("No tiene atributos propios").doesNotContain("No tiene relaciones registradas");
+    var ambiguous = new DiagramDocument(1, UUID.randomUUID(), "Ventas", 0L, Instant.now(),
+        List.of(type(cliente, "Categoria"), type(pedido, "Categoría")), List.of());
+    assertThat(DiagramFacts.answerQuestion(ambiguous, "Revisa la clase Categoria")).contains("forma inequívoca");
+  }
+
   @Test void reviewReportsOnlyObservableIssuesAndKeepsAssociationClassesConnected() {
     var untyped = new DiagramDocument.AttributeData(UUID.randomUUID(), "numero", "", "private", false, false);
     var client = new ClassData(cliente, "Cliente", false, new DiagramDocument.Position(0.0, 0.0), List.of(untyped));
@@ -37,6 +74,21 @@ class DiagramFactsTest {
         .isEqualTo("Clases del diagrama: Cliente, Pedido, Detalle.");
     var empty = new DiagramDocument(1, UUID.randomUUID(), "Vacío", 0L, Instant.now(), List.of(), List.of());
     assertThat(DiagramFacts.answerQuestion(empty, "Revisa mi diagrama")).contains("no contiene clases");
+  }
+
+  @Test void recognizesCommonReviewAndClassQuestionsWithoutDroppingOtherInstructions() {
+    var doc = new DiagramDocument(1, UUID.randomUUID(), "Ventas", 0L, Instant.now(),
+        List.of(type(cliente, "Cliente"), type(pedido, "Pedido")), List.of());
+    for (String question : List.of("¿Puedes revisar mi diagrama?", "¿Puedes analizar este diagrama de clases?",
+        "¿Qué mejoras sugieres para el diagrama?", "¿Tiene errores este diagrama?"))
+      assertThat(DiagramFacts.answerQuestion(doc, question)).as(question)
+          .contains("Revisión básica", "sugerencias", "no comprueba todas las reglas");
+    for (String question : List.of("¿Cuáles son las clases?", "¿Qué clases hay en mi diagrama?", "Lista las clases del diagrama"))
+      assertThat(DiagramFacts.answerQuestion(doc, question)).as(question)
+          .isEqualTo("Clases del diagrama: Cliente, Pedido.");
+    for (String question : List.of("Revisa el diagrama y crea Factura", "Lista las clases del diagrama y elimina Cliente",
+        "¿Qué mejoras sugieres para el diagrama y crea Factura?"))
+      assertThat(DiagramFacts.answerQuestion(doc, question)).as(question).isNull();
   }
 
   @Test void associationEndsAreReadFromTheOppositeClass() {

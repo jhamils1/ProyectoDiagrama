@@ -40,4 +40,13 @@ public class UsuarioService {
     u.activo = active;
     return UsuarioDto.of(users.saveAndFlush(u));
   }
+
+  @Transactional
+  public UsuarioDto updateOwnAdminName(String name, long revision) {
+    var user = current.admin();
+    if (user.revision != revision)
+      throw ApiException.conflict("La cuenta cambió. Recarga antes de guardar.");
+    user.nombre = name.trim();
+    return UsuarioDto.of(users.saveAndFlush(user));
+  }
 }

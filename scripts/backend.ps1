@@ -35,6 +35,16 @@ foreach ($entry in $settings.PSObject.Properties) {
 }
 $previousJava = $env:JAVA_HOME
 $previousDebug = $env:DEBUG
+$previousGeminiKey = $env:GEMINI_API_KEY
+$geminiSettingsPath = Join-Path $projectRoot '.local/gemini.env'
+if ([string]::IsNullOrWhiteSpace($env:GEMINI_API_KEY) -and (Test-Path -LiteralPath $geminiSettingsPath)) {
+  foreach ($line in Get-Content -LiteralPath $geminiSettingsPath) {
+    if ($line -match '^\s*GEMINI_API_KEY\s*=\s*(.*?)\s*$') {
+      $env:GEMINI_API_KEY = $Matches[1].Trim('"').Trim("'")
+      break
+    }
+  }
+}
 # Some development shells define DEBUG globally; do not log authentication payloads.
 $env:DEBUG = 'false'
 $env:JAVA_HOME = Join-Path $projectRoot '.tools/jdk-21'
@@ -49,5 +59,6 @@ try {
   Pop-Location
   $env:JAVA_HOME = $previousJava
   $env:DEBUG = $previousDebug
+  $env:GEMINI_API_KEY = $previousGeminiKey
   foreach ($entry in $previous.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process') }
 }

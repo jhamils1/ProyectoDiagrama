@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.*;
 
 import bo.edu.modela.auth.*;
+import bo.edu.modela.ai.GeminiClient;
 import bo.edu.modela.projects.*;
 import bo.edu.modela.users.*;
 import java.util.*;
@@ -29,6 +31,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class DiagramIntegrationTest {
+  @MockitoBean GeminiClient gemini;
   String assistantPath(Map<String, Object> doc) { return path() + "/" + doc.get("id") + "/conversation/assistant"; }
   ResultActions askAssistant(Map<String, Object> doc, UUID id, Usuario user) throws Exception {
     return mvc.perform(post(assistantPath(doc)).with(actor(user)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
@@ -44,6 +47,60 @@ class DiagramIntegrationTest {
     return mvc.perform(post(assistantPath(doc) + "/" + claim.get("id").asString() + "/complete")
         .with(actor(user)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
         .content(json.writeValueAsString(Map.of("token", claim.get("token").asString(), "content", answer, "failed", failed))));
+  }
+
+  @Test
+  void failedLocalQuestionCanBeExplicitlyCompletedViaInternetWithoutDuplicatingQuestion() throws Exception {
+    when(gemini.configured()).thenReturn(true);
+    when(gemini.generate(anyList())).thenReturn("Considera una fecha si el requisito lo necesita.");
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    UUID id = UUID.randomUUID();
+    askAssistant(doc, id, collaborator).andExpect(status().isAccepted());
+    var claim = claimAssistant(doc, admin);
+    finishAssistant(doc, claim, admin, "", true).andExpect(jsonPath("$.status").value("FALLIDA"));
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/switch-internet").with(actor(admin)).with(csrf())).andExpect(status().isForbidden());
+    verify(gemini, never()).generate(anyList());
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/switch-internet").with(actor(collaborator)).with(csrf()))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETADA"));
+    for (var user : List.of(admin, collaborator))
+      mvc.perform(get(path()+"/"+doc.get("id")+"/conversation").with(actor(user)))
+          .andExpect(jsonPath("$.items.length()").value(2))
+          .andExpect(jsonPath("$.items[1].authorName").value("Gemini · IA por internet"));
+    verify(gemini, times(1)).generate(anyList());
+  }
+
+  @Test
+  void internetModeUsesServerProviderOnceAndSharesTheResponse() throws Exception {
+    when(gemini.configured()).thenReturn(true);
+    when(gemini.generate(anyList())).thenReturn("Podrías añadir un atributo nombre según los requisitos.");
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    UUID id = UUID.randomUUID();
+    mvc.perform(post(assistantPath(doc)).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", id, "content", "¿Cómo mejorarías este diseño?", "mode", "INTERNET"))))
+        .andExpect(status().isAccepted()).andExpect(jsonPath("$.mode").value("INTERNET"));
+    mvc.perform(post(assistantPath(doc) + "/claim").with(actor(admin)).with(csrf())).andExpect(status().isNoContent());
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/internet").with(actor(admin)).with(csrf())).andExpect(status().isForbidden());
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/internet").with(actor(collaborator)).with(csrf()))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETADA"));
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/internet").with(actor(collaborator)).with(csrf())).andExpect(status().isNoContent());
+    verify(gemini, times(1)).generate(argThat(messages -> messages.get(0).content().contains("Eres el asistente UML")
+        && !messages.get(0).content().contains("/no_think") && messages.get(1).content().contains("Pedido")));
+    for (var user : List.of(admin, collaborator))
+      mvc.perform(get(path()+"/"+doc.get("id")+"/conversation").with(actor(user)))
+          .andExpect(jsonPath("$.items[1].authorName").value("Gemini · IA por internet"))
+          .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("atributo nombre")));
+    mvc.perform(get(path()+"/"+doc.get("id")+"/state").with(actor(admin))).andExpect(jsonPath("$.revision").value(0));
+  }
+
+  @Test
+  void internetModeFailsSafelyIfNotConfigured() throws Exception {
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    mvc.perform(post(assistantPath(doc)).with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", UUID.randomUUID(), "content", "Explícame el modelo", "mode", "INTERNET"))))
+        .andExpect(status().isServiceUnavailable());
+    verify(gemini, never()).generate(anyList());
   }
 
   @Test
@@ -76,6 +133,21 @@ class DiagramIntegrationTest {
     update(doc, 0, collaborator).andExpect(status().isForbidden());
     mvc.perform(get(path() + "/" + doc.get("id") + "/state").with(actor(admin)))
         .andExpect(jsonPath("$.revision").value(0));
+  }
+
+  @Test
+  void openModelAnswerPersistsItsScopeForBothParticipants() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    mvc.perform(post(assistantPath(doc)).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", UUID.randomUUID(), "content", "¿Qué opinas de este modelo?"))))
+        .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value("PENDIENTE"));
+    var claim = claimAssistant(doc, admin);
+    finishAssistant(doc, claim, admin, "El modelo contiene clientes y pedidos.", false).andExpect(status().isOk());
+    for (var user : List.of(admin, collaborator))
+      mvc.perform(get(path() + "/" + doc.get("id") + "/conversation").with(actor(user)))
+          .andExpect(status().isOk()).andExpect(jsonPath("$.items[1].answerScope").value("DIAGRAMA"))
+          .andExpect(jsonPath("$.items[1].diagramRevision").value(0));
   }
 
   @Test
@@ -256,6 +328,68 @@ class DiagramIntegrationTest {
   }
 
   @Test
+  void assistantClarifiesCapabilitiesAndRejectsAnUnrelatedQuestionFromTheModel() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    for (String question : List.of("que puedes realizar?", "que atributos coloco"))
+      mvc.perform(post(assistantPath(doc)).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+          .content(json.writeValueAsString(Map.of("id", UUID.randomUUID(), "content", question))))
+          .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value("COMPLETADA"));
+    askAssistant(doc, UUID.randomUUID(), collaborator).andExpect(status().isAccepted());
+    var claim = claimAssistant(doc, admin);
+    finishAssistant(doc, claim, admin, "¿Qué cambios se realizaron en la clase lámpara?", false).andExpect(status().isOk());
+    for (var user : List.of(admin, collaborator))
+      mvc.perform(get(path()+"/"+doc.get("id")+"/conversation").with(actor(user)))
+          .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("consultar el diagrama")))
+          .andExpect(jsonPath("$.items[3].content", org.hamcrest.Matchers.containsString("¿Para qué clase")))
+          .andExpect(jsonPath("$.items[5].authorName").value("Asistente · respuesta no disponible"))
+          .andExpect(jsonPath("$.items[5].content", org.hamcrest.Matchers.containsString("Actualmente no tengo una respuesta adecuada")));
+  }
+
+  @Test
+  void sharedDiagramReviewSuggestsStepsWithoutChangingTheDiagram() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document();
+    var classes = new ArrayList<>((List<Map<String, Object>>) doc.get("classes"));
+    classes.add(Map.of("id", UUID.randomUUID().toString(), "name", "Factura", "abstract", false,
+        "position", Map.of("x", 25, "y", 25), "attributes", List.of(), "methods", List.of(Map.of(
+            "id", UUID.randomUUID().toString(), "name", "calcular", "returnType", "", "visibility", "public"))));
+    doc.put("classes", classes);
+    create(doc, admin).andExpect(status().isCreated());
+    mvc.perform(post(assistantPath(doc)).with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", UUID.randomUUID(), "content", "¿Cómo puedo resolver los problemas de la clase Factura?"))))
+        .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value("COMPLETADA"));
+    for (var user : List.of(admin, collaborator))
+      mvc.perform(get(path()+"/"+doc.get("id")+"/conversation").with(actor(user)))
+          .andExpect(status().isOk()).andExpect(jsonPath("$.items[1].answerScope").value("DIAGRAMA"))
+          .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("calcular() no tiene retorno")))
+          .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("usa void")))
+          .andExpect(jsonPath("$.items[1].content", org.hamcrest.Matchers.containsString("no modifica el diagrama")));
+    mvc.perform(get(path()+"/"+doc.get("id")+"/state").with(actor(admin))).andExpect(jsonPath("$.revision").value(0));
+  }
+
+  @Test
+  void participantReviewIsSharedAndUsesOnlyRecordedChanges() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.EDICION));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    var classes = new ArrayList<>((List<Map<String, Object>>) doc.get("classes"));
+    classes.add(Map.of("id", UUID.randomUUID().toString(), "name", "Factura", "abstract", false,
+        "position", Map.of("x", 25, "y", 25), "attributes", List.of(), "methods", List.of()));
+    doc.put("classes", classes);
+    update(doc, 0, collaborator).andExpect(status().isOk());
+    mvc.perform(post(assistantPath(doc)).with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", UUID.randomUUID(), "content", "Revisa el trabajo de " + collaborator.nombre))))
+        .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value("COMPLETADA"));
+    for (var user : List.of(admin, collaborator)) {
+      String answer = json.readTree(mvc.perform(get(path()+"/"+doc.get("id")+"/conversation").with(actor(user)))
+          .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("items").get(1).path("content").asString();
+      assertThat(answer).contains(collaborator.nombre, "Factura", "no tiene atributos ni métodos", "otras personas pudieron modificar")
+          .doesNotContain("clase Cliente no tiene");
+    }
+    mvc.perform(get(path()+"/"+doc.get("id")+"/state").with(actor(admin))).andExpect(jsonPath("$.revision").value(1));
+  }
+
+  @Test
   void activityQuestionsShowRecordedAuthorsWithoutGuessingHistoricalAuthors() throws Exception {
     members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.EDICION));
     var doc = document(); create(doc, admin).andExpect(status().isCreated());
@@ -359,7 +493,7 @@ class DiagramIntegrationTest {
     create(doc, admin).andExpect(status().isCreated());
     doc.put("name", "Ventas actualizado por colaborador");
     update(doc, 0, collaborator).andExpect(status().isOk());
-    for (String question : List.of("¿Cuáles son las clases del diagrama?", "Revisa el diagrama"))
+    for (String question : List.of("¿Cuáles son las clases?", "¿Puedes revisar mi diagrama?"))
       mvc.perform(post(assistantPath(doc)).with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
           .content(json.writeValueAsString(Map.of("id", UUID.randomUUID(), "content", question))))
           .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value("COMPLETADA"));
@@ -1517,6 +1651,77 @@ class DiagramIntegrationTest {
             jdbc.queryForObject(
                 "select count(*) from diagrama where proyecto_id=?", Integer.class, project.id))
         .isEqualTo(1);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void methodsAreSavedEditedDeletedAndRecovered() throws Exception {
+    var doc = document();
+    create(doc, admin).andExpect(status().isCreated());
+    var classes = (List<Map<String, Object>>) doc.get("classes");
+    var first = new HashMap<>(classes.getFirst());
+    String methodId = UUID.randomUUID().toString();
+    first.put("methods", List.of(Map.of("id", methodId, "name", "calcularTotal", "returnType", "Decimal", "visibility", "public")));
+    doc.put("classes", List.of(first, classes.get(1)));
+    update(doc, 0, admin).andExpect(status().isOk());
+    mvc.perform(get(path() + "/" + doc.get("id")).with(actor(admin)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.document.classes[0].methods[0].name").value("calcularTotal"))
+        .andExpect(jsonPath("$.document.classes[0].methods[0].returnType").value("Decimal"));
+    first.put("methods", List.of(Map.of("id", methodId, "name", "encender", "returnType", "void", "visibility", "private")));
+    update(doc, 1, admin).andExpect(status().isOk());
+    mvc.perform(get(path() + "/" + doc.get("id")).with(actor(admin)))
+        .andExpect(jsonPath("$.document.classes[0].methods[0].name").value("encender"))
+        .andExpect(jsonPath("$.document.classes[0].methods[0].returnType").value("void"))
+        .andExpect(jsonPath("$.document.classes[0].methods[0].visibility").value("private"));
+    first.put("methods", List.of());
+    update(doc, 2, admin).andExpect(status().isOk());
+    mvc.perform(get(path() + "/" + doc.get("id")).with(actor(admin)))
+        .andExpect(jsonPath("$.document.classes[0].methods.length()").value(0));
+  }
+
+  @Test @SuppressWarnings("unchecked")
+  void oldClientsCannotEraseMethodsAndConcurrentChangesAreMerged() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.EDICION));
+    var initial = copy(document());
+    create(initial, admin).andExpect(status().isCreated());
+    var newer = copy(initial);
+    var newerClasses = (List<Map<String,Object>>) newer.get("classes");
+    var method = Map.of("id", UUID.randomUUID().toString(), "name", "encender", "returnType", "void", "visibility", "public");
+    newerClasses.getFirst().put("methods", List.of(method));
+    propose(newer, UUID.randomUUID(), 0, admin).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APLICADO"));
+    var legacy = copy(initial); legacy.put("name", "Cambio de versión antigua");
+    propose(legacy, UUID.randomUUID(), 0, collaborator).andExpect(status().isConflict())
+        .andExpect(jsonPath("$.message", org.hamcrest.Matchers.containsString("métodos")));
+    update(legacy, 1, admin).andExpect(status().isConflict());
+    var concurrent = copy(initial);
+    ((List<Map<String,Object>>)concurrent.get("classes")).getFirst().put("methods", List.of());
+    concurrent.put("name", "Venta actualizada");
+    propose(concurrent, UUID.randomUUID(), 0, collaborator).andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("APLICADO"))
+        .andExpect(jsonPath("$.current.document.name").value("Venta actualizada"))
+        .andExpect(jsonPath("$.current.document.classes[0].methods[0].name").value("encender"));
+    mvc.perform(get(path()+"/"+initial.get("id")).with(actor(collaborator)))
+        .andExpect(jsonPath("$.document.classes[0].methods[0].returnType").value("void"));
+  }
+
+  @Test @SuppressWarnings("unchecked")
+  void conflictingMethodEditsRequireResolution() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.EDICION));
+    var base = copy(document());
+    String id = UUID.randomUUID().toString();
+    ((List<Map<String,Object>>)base.get("classes")).getFirst().put("methods", List.of(
+        Map.of("id", id, "name", "encender", "returnType", "void", "visibility", "public")));
+    create(base, admin).andExpect(status().isCreated());
+    var first = copy(base); var second = copy(base);
+    ((List<Map<String,Object>>)first.get("classes")).getFirst().put("methods", List.of(
+        Map.of("id", id, "name", "activar", "returnType", "void", "visibility", "public")));
+    ((List<Map<String,Object>>)second.get("classes")).getFirst().put("methods", List.of(
+        Map.of("id", id, "name", "iniciar", "returnType", "void", "visibility", "public")));
+    propose(first, UUID.randomUUID(), 0, admin).andExpect(jsonPath("$.status").value("APLICADO"));
+    propose(second, UUID.randomUUID(), 0, collaborator).andExpect(jsonPath("$.status").value("PENDIENTE"))
+        .andExpect(jsonPath("$.conflicts.length()", org.hamcrest.Matchers.greaterThan(0)));
+    mvc.perform(get(path()+"/"+base.get("id")).with(actor(admin)))
+        .andExpect(jsonPath("$.document.classes[0].methods[0].name").value("activar"));
   }
 
   @Test

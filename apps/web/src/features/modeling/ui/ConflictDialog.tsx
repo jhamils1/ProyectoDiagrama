@@ -19,6 +19,8 @@ function describe(value: unknown, entities: Record<string, string> = {}): string
         name: 'Nombre',
         abstract: 'Abstracta',
         attributes: 'Atributos',
+        methods: 'Métodos',
+        returnType: 'Tipo de retorno',
         position: 'Posición',
         dataType: 'Tipo',
         visibility: 'Visibilidad',

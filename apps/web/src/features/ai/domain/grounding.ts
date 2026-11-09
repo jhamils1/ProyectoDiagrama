@@ -52,6 +52,13 @@ export function validateGrounding(instruction: string, proposal: AiProposal): vo
             `El tipo ${operation.dataType} no fue especificado en la solicitud. Pide el tipo si falta; rechaza un tipo no admitido.`,
           )
         break
+      case 'addMethod':
+        identifier(operation.className)
+        identifier(operation.name)
+        if (operation.returnType && !(operation.returnType === 'void'
+          ? folded.has('void') : aliases[operation.returnType].some(alias => folded.has(alias))))
+          throw new Error(`El tipo de retorno ${operation.returnType} no fue especificado en la solicitud.`)
+        break
       case 'addRelation':
         identifier(operation.source)
         identifier(operation.target)

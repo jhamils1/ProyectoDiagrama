@@ -742,3 +742,10 @@
   font-size: 11px;
   padding: 6px 10px;
 }
+.account-edit-name { margin-left: auto; padding: 5px; color: #d3c9ea; background: transparent; border: 0; border-radius: 6px; cursor: pointer; }
+.account-edit-name:hover, .account-edit-name:focus-visible { background: #48415f; }
+.account-name-form { display: grid; gap: 6px; margin: 8px 12px; color: #e6e1f1; font-size: 12px; }
+.account-name-form input { width: 100%; min-width: 0; box-sizing: border-box; padding: 7px; border: 1px solid #766ba0; border-radius: 6px; background: #2c2c40; color: white; font: inherit; }
+.account-name-form div { display: flex; gap: 8px; }
+.account-name-form button { padding: 5px 8px; border: 1px solid #766ba0; border-radius: 6px; color: white; background: #494267; cursor: pointer; }
+.account-name-form [role="alert"] { color: #ffc7c7; }

@@ -25,10 +25,16 @@ final class DiagramFacts {
   private static final Pattern ADDITIONAL_ACTION = Pattern.compile(
       "\\b(?:agrega|añade|elimina|modifica|crea|cambia)\\b", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
   private static final Pattern CLASSES_QUESTION = Pattern.compile(
-      "^\\s*¿?(?:qu[eé] clases (?:hay|existen|tiene|contiene)(?: en (?:este|el) diagrama| (?:este|el) diagrama)?|cu[aá]les son las clases (?:del|de este|de el|en este|en el) diagrama)\\s*\\??\\s*$",
+      "^\\s*¿?(?:qu[eé] clases (?:hay|existen|tiene|contiene)(?: en (?:este|el|mi) diagrama| (?:este|el|mi) diagrama)?|cu[aá]les son las clases(?: (?:del|de este|de el|en este|en el|de mi) diagrama)?|(?:lista|enumera|muestra) las clases (?:del|de este|de mi) diagrama)\\s*\\??[.!]?\\s*$",
       Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
   private static final Pattern REVIEW_QUESTION = Pattern.compile(
-      "^\\s*¿?(?:revisa|revisar|analiza|analizar)\\s+(?:el|este|mi)\\s+diagrama(?: de clases)?(?:\\s+y\\s+dime\\s+(?:una|alguna)\\s+(?:mejora|sugerencia)(?: posible)?)?\\s*\\??[.!]?\\s*$",
+      "^\\s*¿?(?:(?:(?:puedes|podr[ií]as)\\s+)?(?:revisa|revisar|analiza|analizar|eval[uú]a|evaluar)\\s+(?:el|este|mi|nuestro)\\s+diagrama(?: de clases)?(?:\\s+y\\s+dime\\s+(?:una|alguna)\\s+(?:mejora|sugerencia)(?: posible)?)?|qu[eé] (?:mejoras|sugerencias|ideas) (?:sugieres|propones|recomiendas) para (?:el|este|mi|nuestro) diagrama(?: de clases)?|(?:c[oó]mo puedo mejorar|c[oó]mo mejorar[ií]as) (?:el|este|mi|nuestro) diagrama(?: de clases)?|tiene errores (?:el|este|mi) diagrama(?: de clases)?)\\s*\\??[.!]?\\s*$",
+      Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+  private static final Pattern CLASS_REVIEW = Pattern.compile(
+      "^\\s*¿?(?:(?:(?:puedes|podr[ií]as)\\s+)?(?:revisa|revisar|analiza|analizar|eval[uú]a|evaluar)\\s+(?:la\\s+)?clase\\s+|qu[eé] (?:mejoras|sugerencias|ideas) (?:sugieres|propones|recomiendas) para (?:la\\s+)?clase\\s+|c[oó]mo (?:puedo mejorar|mejorar[ií]as) (?:la\\s+)?clase\\s+)([\\p{L}_][\\p{L}\\p{N}_]*)\\s*\\??[.!]?\\s*$",
+      Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+  private static final Pattern CLASS_HELP = Pattern.compile(
+      "^\\s*¿?c[oó]mo (?:puedo |podr[ií]a )?(?:resolver|corregir|mejorar) (?:los problemas|los errores|las observaciones) de (?:la\\s+)?clase\\s+([\\p{L}_][\\p{L}\\p{N}_]*)\\s*\\??[.!]?\\s*$",
       Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
   private static final Pattern ATTRIBUTES_QUESTION = Pattern.compile(
       "^\\s*¿?(?:qu[eé]|cu[aá]les son los) atributos (?:tiene|posee|de) (?:la clase |el |la )?([\\p{L}][\\p{L}\\p{N}_]*)\\s*\\??\\s*$",
@@ -53,6 +59,8 @@ final class DiagramFacts {
       for (var a : c.attributes()) facts.append(a.name()).append(':').append(a.dataType().isEmpty() ? "tipo no definido" : a.dataType())
           .append(Boolean.TRUE.equals(a.identifier()) ? " ID" : "").append("; ");
       facts.append('\n');
+      for (var m : c.methods()) facts.append("Método de ").append(c.name()).append(": ").append(m.name())
+          .append("(): ").append(m.returnType().isEmpty() ? "retorno no definido" : m.returnType()).append(".\n");
     }
     if (doc.relations().isEmpty()) facts.append("No hay relaciones.\n");
     for (var r : doc.relations()) {
@@ -119,9 +127,18 @@ final class DiagramFacts {
 
   /** Use validated diagram data for narrow questions; defer everything else to the model. */
   static String answerQuestion(DiagramDocument doc, String question) {
+    String simple = normalize(question).replaceAll("[^\\p{L}\\p{N} ]+", " ").strip().replaceAll("\\s+", " ");
+    if (simple.matches("(?:que puedes (?:hacer|realizar)|que sabes hacer|como puedes ayudarme|como me puedes ayudar)"))
+      return "Puedo consultar el diagrama, explicar conceptos UML, revisar algunas características y sugerir mejoras. También puedo aplicar instrucciones de edición admitidas, como crear clases, atributos o métodos. Mis revisiones son limitadas y las respuestas abiertas pueden equivocarse.";
+    if (simple.matches("que atributos (?:coloco|pongo|agrego|debo poner|deberia poner|podria poner)"))
+      return "¿Para qué clase quieres sugerencias de atributos? Indica su nombre y para qué se usará; así no tendré que suponerlo.";
     String count = answerCount(doc, question);
     if (count != null) return count;
     if (REVIEW_QUESTION.matcher(question).matches()) return basicReview(doc);
+    var classReview = CLASS_REVIEW.matcher(question);
+    if (classReview.matches()) return reviewClass(doc, classReview.group(1));
+    var classHelp = CLASS_HELP.matcher(question);
+    if (classHelp.matches()) return reviewClass(doc, classHelp.group(1));
     if (CLASSES_QUESTION.matcher(question).matches()) {
       if (doc.classes().isEmpty()) return "El diagrama no contiene clases.";
       return "Clases del diagrama: " + String.join(", ", doc.classes().stream().map(DiagramDocument.ClassData::name).toList()) + ".";
@@ -167,18 +184,41 @@ final class DiagramFacts {
       if (type.attributes().isEmpty()) findings.add("La clase " + type.name() + " no tiene atributos propios; comprueba si necesita alguno.");
       for (var attribute : type.attributes())
         if (attribute.dataType().isBlank()) findings.add("El atributo " + type.name() + "." + attribute.name() + " no tiene tipo definido.");
+      for (var method : type.methods())
+        if (method.returnType().isBlank()) findings.add("El método " + type.name() + "." + method.name() + "() no tiene retorno definido; usa void si no devuelve valor.");
       boolean connected = doc.relations().stream().anyMatch(relation -> relation.sourceId().equals(type.id())
           || relation.targetId().equals(type.id()) || type.id().equals(relation.associationClassId()));
       if (!connected && doc.classes().size() > 1)
         findings.add("La clase " + type.name() + " no tiene relaciones registradas; revisa si debe conectarse con otras.");
     }
-    if (findings.isEmpty()) return "Revisión básica: no encontré clases sin atributos propios, atributos sin tipo ni clases aisladas. "
+    if (findings.isEmpty()) return "Revisión básica: no encontré clases sin atributos propios, atributos sin tipo, métodos sin retorno ni clases aisladas. "
         + "Estas comprobaciones no garantizan que el diseño o sus reglas de negocio sean correctos.";
     int limit = Math.min(12, findings.size());
     String result = "Revisión básica del diagrama (son sugerencias, no errores obligatorios):\n- "
         + String.join("\n- ", findings.subList(0, limit));
     if (findings.size() > limit) result += "\nHay " + (findings.size() - limit) + " observaciones más; revisa el diagrama.";
     return result + "\nEsta revisión no comprueba todas las reglas de negocio ni modifica el diagrama.";
+  }
+
+  private static String reviewClass(DiagramDocument doc, String name) {
+    var type = resolveClass(doc, name);
+    if (type == null) return "No puedo identificar esa clase de forma inequívoca en el diagrama. Indica su nombre exacto.";
+    var findings = new java.util.ArrayList<String>();
+    if (type.attributes().isEmpty()) findings.add("No tiene atributos propios. Comprueba si necesita datos propios; también podría heredarlos.");
+    for (var a : type.attributes()) if (a.dataType().isBlank())
+      findings.add("El atributo " + a.name() + " no tiene tipo. Edita el atributo y selecciona uno adecuado para el dato.");
+    for (var m : type.methods()) if (m.returnType().isBlank())
+      findings.add("El método " + m.name() + "() no tiene retorno. Edita el método y elige un tipo; usa void si no devuelve valor.");
+    boolean connected = doc.relations().stream().anyMatch(r -> r.sourceId().equals(type.id())
+        || r.targetId().equals(type.id()) || type.id().equals(r.associationClassId()));
+    if (!connected && doc.classes().size() > 1)
+      findings.add("No tiene relaciones registradas. Si debe conectarse, usa Relación y define sus extremos y multiplicidades según tus reglas.");
+    if (findings.isEmpty()) return "Revisión básica de " + type.name() + ": no encontré observaciones con estas comprobaciones. "
+        + "Confirma los requisitos y las multiplicidades; esto no garantiza que el diseño sea correcto ni modifica el diagrama.";
+    int limit = Math.min(8, findings.size());
+    String result = "Revisión básica de " + type.name() + " (sugerencias):\n- " + String.join("\n- ", findings.subList(0, limit));
+    if (findings.size() > limit) result += "\nHay más observaciones; revisa los demás atributos y métodos.";
+    return result + "\nConfirma estas decisiones con los requisitos. La revisión no comprueba todas las reglas de negocio y no modifica el diagrama.";
   }
 
   private static String describeNamedAssociation(DiagramDocument doc, String name) {

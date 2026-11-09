@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
+  Pencil,
 } from 'lucide-react'
 import { api, ApiError, errorMessage, type PageResult, type Project, type User } from '../../shared/api'
 import { LoginPage } from './LoginPage'
@@ -32,6 +33,10 @@ export default function AccountWorkspace() {
       new URLSearchParams(location.search).has('copies') ? 'copies' : 'projects',
     )
   const [offline, setOffline] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameError, setNameError] = useState('')
   const [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0)
   const [projectsOpen, setProjectsOpen] = useState(() =>
@@ -175,7 +180,33 @@ export default function AccountWorkspace() {
             <strong>{user.nombre}</strong>
             <span>{user.rol === 'ADMINISTRADOR' ? 'Administrador' : 'Colaborador'}</span>
           </div>
+          {user.rol === 'ADMINISTRADOR' && !offline && <button type="button" className="account-edit-name"
+            aria-label="Editar mi nombre" title="Editar mi nombre" onClick={() => {
+              setNameDraft(user.nombre); setNameError(''); setEditingName(true)
+            }}><Pencil size={15} /></button>}
         </div>
+        {editingName && <form className="account-name-form" onSubmit={event => {
+          event.preventDefault()
+          const nombre = nameDraft.trim()
+          if (!nombre || nameSaving) { setNameError('Escribe tu nombre.'); return }
+          setNameSaving(true); setNameError('')
+          void api<User>('/users/me/name', { method: 'PUT', body: JSON.stringify({ nombre, revision: user.revision }) })
+            .then(updated => {
+              setUser(updated); setEditingName(false)
+              void projectCopies().session().then(session => {
+                if (session && !session.locked && session.user.id === updated.id) return projectCopies().confirm(updated, session.epoch)
+              }).catch(() => {})
+            })
+            .catch(e => setNameError(errorMessage(e)))
+            .finally(() => setNameSaving(false))
+        }}>
+          <label htmlFor="account-name">Tu nombre</label>
+          <input id="account-name" value={nameDraft} maxLength={100} required autoFocus disabled={nameSaving}
+            onChange={event => setNameDraft(event.target.value)} />
+          {nameError && <span role="alert">{nameError}</span>}
+          <div><button type="submit" disabled={nameSaving}>{nameSaving ? 'Guardando…' : 'Guardar'}</button>
+            <button type="button" disabled={nameSaving} onClick={() => setEditingName(false)}>Cancelar</button></div>
+        </form>}
         <div className="sidebar-section">ESPACIO COMPARTIDO</div>
         <nav className="account-nav">
           <div className="account-project-menu">

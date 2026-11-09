@@ -100,6 +100,32 @@ class AccessProjectsIntegrationTest {
   }
 
   @Test
+  void adminCanRenameOwnAccountAndOthersCannot() throws Exception {
+    var session = admin();
+    var account = users.findByCorreo("admin@test.local").orElseThrow();
+    long revision = account.revision;
+    mvc.perform(put("/api/users/me/name").session(session).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(payload(Map.of("nombre", "  Jhamil Serrudo  ", "revision", revision))))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.nombre").value("Jhamil Serrudo"));
+    mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk())
+        .andExpect(jsonPath("$.nombre").value("Jhamil Serrudo"));
+    mvc.perform(put("/api/users/me/name").session(session).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content(payload(Map.of("nombre", "Otro", "revision", revision))))
+        .andExpect(status().isConflict());
+    mvc.perform(put("/api/users/me/name").session(session).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content(payload(Map.of("nombre", "   ", "revision", revision + 1))))
+        .andExpect(status().isBadRequest());
+    var colab = loginGoogle(collaborator("nombre-test@gmail.com"));
+    mvc.perform(put("/api/users/me/name").session(colab).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content(payload(Map.of("nombre", "Otro", "revision", 0))))
+        .andExpect(status().isForbidden());
+    mvc.perform(put("/api/users/me/name").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+            .content(payload(Map.of("nombre", "Otro", "revision", 0))))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void loginRequiresCsrf() throws Exception {
     mvc.perform(
             post("/api/auth/admin")

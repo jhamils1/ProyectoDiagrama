@@ -5,7 +5,7 @@ import { describeOperation, requestedEditorOperations, reviewedEditorCommand } f
 /** Only explicit, validated commands are applied; open-ended text still goes to Qwen. */
 export function isEditingInstruction(text: string) {
   try { requestedEditorOperations(text); return true } catch {
-    return /^\s*(crea(?:r)?|agrega(?:r)?|renombra(?:r)?|elimina(?:r)?|borra(?:r)?)\b/i.test(text)
+    return /^\s*(?:por favor\s*,?\s*)?¿?(?:(?:puedes|podr[ií]as)\s+)?(?:crea(?:r)?|agrega(?:r)?|añade|añadir|incorpora(?:r)?|incluye|incluir|pon(?:er)?|renombra(?:r)?|elimina(?:r)?|borra(?:r)?)\b/i.test(text)
   }
 }
 

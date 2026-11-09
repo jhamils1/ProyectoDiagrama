@@ -89,7 +89,8 @@ public class DiagramMerge {
   private String field(String key) {
     return switch (key) {
       case "name" -> "Nombre"; case "abstract" -> "Abstracta"; case "position" -> "Posición";
-      case "attributes" -> "Atributos"; case "classes" -> "Clases"; case "relations" -> "Relaciones";
+      case "attributes" -> "Atributos"; case "methods" -> "Métodos"; case "classes" -> "Clases"; case "relations" -> "Relaciones";
+      case "returnType" -> "Tipo de retorno";
       case "dataType" -> "Tipo de dato"; case "visibility" -> "Visibilidad";
       case "identifier" -> "Identificador"; case "required" -> "Obligatorio";
       case "sourceId" -> "Origen"; case "targetId" -> "Destino"; case "type" -> "Tipo";

@@ -41,6 +41,12 @@ export const attributeSchema = z.object({
   identifier: z.boolean(),
   required: z.boolean(),
 })
+export const methodSchema = z.object({
+  id: uuid,
+  name,
+  returnType: z.enum(['', 'void', ...dataTypes]),
+  visibility: z.enum(visibilities),
+})
 export const classSchema = z.object({
   id: uuid,
   name,
@@ -50,6 +56,7 @@ export const classSchema = z.object({
     y: z.number().finite().min(-100000).max(100000),
   }),
   attributes: z.array(attributeSchema).max(100),
+  methods: z.array(methodSchema).max(100).optional(),
 })
 export const relationSchema = z.object({
   id: uuid,
@@ -72,6 +79,7 @@ export const diagramSchema = z.object({
   relations: z.array(relationSchema).max(500),
 })
 export type UmlAttribute = z.infer<typeof attributeSchema>
+export type UmlMethod = z.infer<typeof methodSchema>
 export type UmlClass = z.infer<typeof classSchema>
 export type UmlRelation = z.infer<typeof relationSchema>
 export type Diagram = z.infer<typeof diagramSchema>
@@ -83,7 +91,7 @@ export function validateDiagram(input: unknown): Diagram {
   const diagram = result.data
   const allIds = [
     diagram.id,
-    ...diagram.classes.flatMap((c) => [c.id, ...c.attributes.map((a) => a.id)]),
+    ...diagram.classes.flatMap((c) => [c.id, ...c.attributes.map((a) => a.id), ...(c.methods ?? []).map(m => m.id)]),
     ...diagram.relations.map((r) => r.id),
   ]
   if (new Set(allIds).size !== allIds.length)
@@ -93,6 +101,8 @@ export function validateDiagram(input: unknown): Diagram {
   if (!uniqueNames(diagram.classes.map((c) => c.name)))
     throw new ModelError('Ya existe una clase con ese nombre.')
   for (const c of diagram.classes) {
+    if (!uniqueNames((c.methods ?? []).map(m => m.name)))
+      throw new ModelError('Ya existe un método con ese nombre en la clase.')
     if (!uniqueNames(c.attributes.map((a) => a.name)))
       throw new ModelError('Ya existe un atributo con ese nombre en la clase.')
     if (c.attributes.filter((a) => a.identifier).length > 1)
@@ -150,6 +160,8 @@ export type ModelCommand =
   | { type: 'deleteClass'; id: string; confirmRelations: boolean }
   | { type: 'upsertAttribute'; classId: string; value: UmlAttribute }
   | { type: 'deleteAttribute'; classId: string; id: string }
+  | { type: 'upsertMethod'; classId: string; value: UmlMethod }
+  | { type: 'deleteMethod'; classId: string; id: string }
   | { type: 'upsertRelation'; value: UmlRelation }
   | { type: 'deleteRelation'; id: string }
 
@@ -181,6 +193,20 @@ export function applyCommand(input: Diagram, command: ModelCommand): Diagram {
     case 'moveClass':
       getClass(command.id).position = command.position
       break
+    case 'upsertMethod': {
+      const c = getClass(command.classId)
+      c.methods ??= []
+      const index = c.methods.findIndex(m => m.id === command.value.id)
+      if (index < 0) c.methods.push(command.value)
+      else c.methods[index] = command.value
+      break
+    }
+    case 'deleteMethod': {
+      const c = getClass(command.classId)
+      if (!c.methods?.some(m => m.id === command.id)) throw new ModelError('El método ya no existe.')
+      c.methods = c.methods.filter(m => m.id !== command.id)
+      break
+    }
     case 'deleteClass': {
       getClass(command.id)
       const related = next.relations.filter(

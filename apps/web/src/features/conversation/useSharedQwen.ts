@@ -42,7 +42,7 @@ export function useSharedQwen(project: string, diagram: string, denied: boolean)
   }
   function yieldToOther() {
     dispose(); setBusy(false); setReady(false); setNeedsPreparation(false); setFailed(false)
-    setStatus('Otro participante está atendiendo la consulta. Espera la respuesta compartida.')
+    setStatus('La consulta se está procesando. Puede estar ejecutándose en otra ventana o dispositivo.')
   }
   useEffect(() => {
     if (denied) { dispose(); setBusy(false); setReady(false) }

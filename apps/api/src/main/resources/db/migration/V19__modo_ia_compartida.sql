@@ -1,0 +1,2 @@
+ALTER TABLE solicitud_ia_diagrama ADD COLUMN modo VARCHAR(16) NOT NULL DEFAULT 'LOCAL'
+  CHECK (modo IN ('LOCAL', 'INTERNET'));

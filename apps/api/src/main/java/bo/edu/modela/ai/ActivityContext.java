@@ -15,13 +15,13 @@ import org.springframework.http.HttpStatus;
 /** Bounded summary of committed versions, preserving missing authors and omitted changes. */
 final class ActivityContext {
   private static final int MAX_CHARS = 900, MAX_CHANGES = 4;
-  private static final Map<String,String> KINDS = Map.of("diagram", "diagrama", "class", "clase", "attribute", "atributo", "relation", "relación");
+  private static final Map<String,String> KINDS = Map.of("diagram", "diagrama", "class", "clase", "attribute", "atributo", "method", "método", "relation", "relación");
   private static final Map<String,String> FIELDS = Map.ofEntries(
       Map.entry("name", "nombre"), Map.entry("abstract", "abstracción"), Map.entry("position", "posición"),
       Map.entry("dataType", "tipo"), Map.entry("visibility", "visibilidad"), Map.entry("identifier", "identificador"),
       Map.entry("required", "obligatoriedad"), Map.entry("type", "tipo"), Map.entry("source", "origen"),
       Map.entry("target", "destino"), Map.entry("sourceMultiplicity", "multiplicidad de origen"),
-      Map.entry("targetMultiplicity", "multiplicidad de destino"), Map.entry("class", "clase"),
+      Map.entry("targetMultiplicity", "multiplicidad de destino"), Map.entry("class", "clase"), Map.entry("returnType", "tipo de retorno"),
       Map.entry("associationClass", "clase de asociación"));
   private static final List<String> VALUE_FIELDS = List.of("name", "abstract", "dataType", "visibility", "identifier", "required", "type", "sourceMultiplicity", "targetMultiplicity");
   private static final Pattern ACTIVITY_QUESTION = Pattern.compile(
@@ -159,6 +159,7 @@ final class ActivityContext {
     return switch (change.action()) {
       case "created" -> "creó " + kind + " " + label;
       case "deleted" -> "eliminó " + kind + " " + label;
+      case "unavailable" -> "no se puede comparar: falta la versión anterior";
       case "updated" -> {
         String field = FIELDS.getOrDefault(change.property(), "propiedad");
         String details = VALUE_FIELDS.contains(change.property())

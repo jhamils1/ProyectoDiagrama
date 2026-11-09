@@ -15,6 +15,10 @@ const name = z
 export const operationSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('addClass'), name, abstract: z.boolean().default(false) }).strict(),
   z.object({ type: z.literal('renameClass'), name, newName: name }).strict(),
+  z.object({
+    type: z.literal('addMethod'), className: name, name,
+    returnType: z.enum(['', 'void', ...dataTypes]).default(''),
+  }).strict(),
   z
     .object({
       type: z.literal('addAttribute'),
@@ -91,6 +95,15 @@ export function previewProposal(input: Diagram, proposal: AiProposal): Diagram {
             identifier: false,
             visibility: 'private',
           },
+        })
+        break
+      }
+      case 'addMethod': {
+        const item = next.classes.find(c => c.name.toLowerCase() === operation.className.toLowerCase())
+        if (!item) throw new Error(`No existe la clase ${operation.className}.`)
+        next = applyCommand(next, {
+          type: 'upsertMethod', classId: item.id,
+          value: { id: crypto.randomUUID(), name: operation.name, returnType: operation.returnType, visibility: 'public' },
         })
         break
       }

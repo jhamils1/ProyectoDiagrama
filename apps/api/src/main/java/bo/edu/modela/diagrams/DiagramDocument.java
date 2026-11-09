@@ -33,7 +33,24 @@ public record DiagramDocument(
       String name,
       @JsonProperty("abstract") Boolean abstractClass,
       Position position,
-      List<AttributeData> attributes) {}
+      List<AttributeData> attributes,
+      List<MethodData> methods) {
+    @Override public List<MethodData> methods() { return methods == null ? List.of() : methods; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean methodsProvided() { return methods != null; }
+    @Override public boolean equals(Object other) {
+      if (!(other instanceof ClassData c)) return false;
+      return Objects.equals(id, c.id) && Objects.equals(name, c.name)
+          && Objects.equals(abstractClass, c.abstractClass) && Objects.equals(position, c.position)
+          && Objects.equals(attributes, c.attributes) && Objects.equals(methods(), c.methods());
+    }
+    @Override public int hashCode() { return Objects.hash(id, name, abstractClass, position, attributes, methods()); }
+    public ClassData(UUID id, String name, Boolean abstractClass, Position position, List<AttributeData> attributes) {
+      this(id, name, abstractClass, position, attributes, List.of());
+    }
+  }
+
+  public record MethodData(UUID id, String name, String returnType, String visibility) {}
 
   public record RelationData(
       UUID id,
@@ -59,6 +76,18 @@ public record DiagramDocument(
         && name.trim().equals(other.name)
         && classes.equals(other.classes)
         && relations.equals(other.relations);
+  }
+
+  public void requireMethodCompatible(DiagramDocument existing) {
+    if (classes == null || existing == null || existing.classes() == null) return;
+    var stored = new HashMap<UUID, ClassData>();
+    for (var c : existing.classes()) if (c != null) stored.put(c.id(), c);
+    for (var c : classes) {
+      if (c == null || c.methodsProvided()) continue;
+      var previous = stored.get(c.id());
+      if (previous != null && !previous.methods().isEmpty())
+        throw ApiException.conflict("Esta versión del editor no admite métodos. Actualiza la aplicación antes de guardar para evitar perderlos.");
+    }
   }
 
   private static void require(boolean valid, String message) {
@@ -141,6 +170,14 @@ public record DiagramDocument(
         }
       }
       require(identifiers <= 1, "Solo se admite un identificador por clase.");
+      require(c.methods().size() <= 100, "Máximo 100 métodos por clase.");
+      Set<String> methodNames = new HashSet<>();
+      for (var method : c.methods()) {
+        require(method != null && method.id != null && ids.add(method.id), "Identificador de método duplicado o inválido.");
+        require(name(method.name) && methodNames.add(method.name.toLowerCase(Locale.ROOT)), "Nombre de método inválido o duplicado.");
+        require(method.returnType != null && (method.returnType.isEmpty() || method.returnType.equals("void") || types.contains(method.returnType))
+            && method.visibility != null && visibility.contains(method.visibility), "Tipo o visibilidad de método inválidos.");
+      }
     }
     Map<UUID, UUID> parents = new HashMap<>();
     Set<List<Object>> keys = new HashSet<>();

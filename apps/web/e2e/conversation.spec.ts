@@ -4,17 +4,18 @@ import { randomUUID } from 'node:crypto'
 function room() {
   const project = randomUUID(), diagram = randomUUID()
   const messages: { id: string; sequence: number; authorId: string; authorName: string; content: string;
-    createdAt: string; diagramRevision: number; kind?: string; continuationQuestion?: string | null; proposalInstruction?: string | null; proposalData?: string | null }[] = []
+    createdAt: string; diagramRevision: number; kind?: string; answerScope?: string; continuationQuestion?: string | null; proposalInstruction?: string | null; proposalData?: string | null }[] = []
   const requestIds: string[] = []
-  let assistant: { id: string; status: string; error: string | null } | null = null
+  let assistant: { id: string; status: string; error: string | null; mode?: string } | null = null
   const options = { failNextPost: false, failProposal: false, failChangeAck: false, oldBackend: false, conflict: false, denied: false, insertBeforePost: false, failCompletion: false, revision: 0,
     permission: 'CONSULTA' }
   const completions: unknown[] = []
+  const onlineCalls: string[] = []
   const sharedFiles: { id: string; name: string; size: number; author: string; createdAt: string; canDelete: boolean }[] = []
   const writes: { id: string; baseRevision: number; document: { classes: { name: string }[] } }[] = []
   let lastChange: { id: string; result: unknown } | null = null
   let savedDocument: unknown = null
-  function add(content: string, authorName = 'Ana', id = randomUUID(), extra: { kind?: string; continuationQuestion?: string | null; proposalInstruction?: string | null; proposalData?: string | null } = {}) {
+  function add(content: string, authorName = 'Ana', id = randomUUID(), extra: { kind?: string; answerScope?: string; continuationQuestion?: string | null; proposalInstruction?: string | null; proposalData?: string | null } = {}) {
     const entry = { id, sequence: messages.length + 1, authorId: authorName, authorName, content,
       createdAt: '2026-11-06T12:00:00Z', diagramRevision: 0, ...extra }
     messages.push(entry)
@@ -93,11 +94,11 @@ function room() {
         if (options.failProposal) { options.failProposal = false; return route.fulfill({ status: 503, json: { message: 'Confirmación perdida.' } }) }
       }
       else if (path.endsWith('/conversation/assistant')) {
-        const body = request.postDataJSON() as { id: string; content: string }
+        const body = request.postDataJSON() as { id: string; content: string; mode?: string }
         requestIds.push(body.id)
         if (options.insertBeforePost) { add('Mensaje concurrente', 'Pedro'); options.insertBeforePost = false }
         if (!messages.some(m => m.id === body.id)) add(body.content, name, body.id)
-        if (!assistant || assistant.id !== body.id) assistant = { id: body.id, status: 'PENDIENTE', error: null }
+        if (!assistant || assistant.id !== body.id) assistant = { id: body.id, status: 'PENDIENTE', error: null, mode: body.mode ?? 'LOCAL' }
         if (body.content === 'Actividad antes de la versión 10') {
           if (assistant.status !== 'COMPLETADA') add('Versión 9: Ana creó Producto.', 'Asistente · actividad registrada', randomUUID(), { kind: 'ASISTENTE' })
           assistant.status = 'COMPLETADA'
@@ -106,6 +107,12 @@ function room() {
           options.failNextPost = false
           return route.fulfill({ status: 503, json: { message: 'No se pudo confirmar el envío.' } })
         }
+        json = assistant
+      }
+      else if (path.endsWith('/switch-internet') || path.endsWith('/internet')) {
+        onlineCalls.push(path)
+        if (assistant) { assistant.mode = 'INTERNET'; assistant.status = 'COMPLETADA'; assistant.error = null }
+        add('Una sugerencia de prueba.', 'Gemini · IA por internet', randomUUID(), { kind: 'ASISTENTE' })
         json = assistant
       }
       else if (path.endsWith('/assistant/claim')) {
@@ -170,9 +177,66 @@ function room() {
     await expect(page.getByRole('button', { name: 'Preguntar a la IA' })).toBeVisible()
     await expect(page.getByText('Conectando con la conversación…')).toHaveCount(0)
   }
-  return { messages, requestIds, options, add, install, completions, writes, sharedFiles,
+  return { messages, requestIds, options, add, install, completions, writes, sharedFiles, onlineCalls,
     expireClaim: () => { if (assistant?.status === 'PROCESANDO') assistant.status = 'PENDIENTE' } }
 }
+
+test('muestra ejemplos de consultas para revisar y pedir sugerencias', async ({ page }) => {
+  const state = room()
+  await state.install(page, 'Ana')
+  await page.getByText('Ejemplos de consultas y sugerencias').click()
+  await expect(page.getByText('¿Cómo puedo mejorar mi diagrama?')).toBeVisible()
+  await expect(page.getByText('Revisa la clase Factura', { exact: true })).toBeVisible()
+  await expect(page.getByText('Las revisiones básicas usan el diagrama guardado.', { exact: false })).toBeVisible()
+})
+
+test('se puede elegir Gemini y no se envía nada hasta preguntar', async ({ page }) => {
+  const state = room()
+  await state.install(page, 'Ana')
+  await page.getByLabel('Modo de IA').click()
+  await page.getByRole('button', { name: 'En línea · Gemini' }).click()
+  await expect(page.getByText(/se enviarán a Google/)).toBeVisible()
+  expect(state.onlineCalls).toHaveLength(0)
+  await page.getByLabel('Pregunta o consulta para la IA').fill('¿Cómo modelarías una computadora?')
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  await expect.poll(() => state.onlineCalls.length).toBe(1)
+  await expect(page.getByText('Una sugerencia de prueba.')).toBeVisible()
+  await page.getByLabel('Modo de IA').click()
+  await page.getByRole('button', { name: 'Local · Qwen' }).click()
+  expect(state.onlineCalls).toHaveLength(1)
+})
+
+test('si falla Qwen se solicita una acción explícita antes de usar Gemini', async ({ page }) => {
+  const state = room()
+  await state.install(page, 'Ana')
+  await page.evaluate(() => { document.body.dataset.longContext = 'true' })
+  await page.getByLabel('Pregunta o consulta para la IA').fill('Explica la relación del diagrama')
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  const fallback = page.getByRole('button', { name: 'Responder esta consulta con Gemini' })
+  await expect(fallback).toBeVisible({ timeout: 15000 })
+  expect(state.onlineCalls).toHaveLength(0)
+  await fallback.click()
+  await expect.poll(() => state.onlineCalls.length).toBe(1)
+  await expect(page.getByText('Una sugerencia de prueba.')).toBeVisible()
+  expect(state.messages.filter(message => message.content === 'Explica la relación del diagrama')).toHaveLength(1)
+})
+
+test('Enter envía consultas y Mayús Enter agrega una línea', async ({ page }) => {
+  const state = room()
+  await state.install(page, 'Ana')
+  const input = page.getByLabel('Pregunta o consulta para la IA')
+  await input.press('Enter')
+  expect(state.requestIds).toHaveLength(0)
+  await input.fill('Primera línea')
+  await input.press('Shift+Enter')
+  await input.pressSequentially('Segunda línea')
+  await expect(input).toHaveValue('Primera línea\nSegunda línea')
+  await expect(page.getByRole('button', { name: 'Preguntar a la IA' })).toBeEnabled()
+  await input.press('Enter')
+  await expect.poll(() => state.requestIds.length).toBe(1)
+  await expect(input).toHaveValue('')
+  expect(state.messages[0].content).toBe('Primera línea\nSegunda línea')
+})
 
 test('panel oscuro se desliza sin permitir archivos y conserva el lienzo interactivo', async ({ page }) => {
   const state = room()
@@ -342,6 +406,22 @@ test('el borde permite ampliar y reducir el asistente sin perder el borrador', a
   await expect(input).toHaveValue('Borrador conservado')
 })
 
+test('las variantes explícitas editan y una pregunta no guarda cambios', async ({ page }) => {
+  const state = room()
+  state.options.permission = 'EDICION'
+  await state.install(page, 'Ana')
+  const input = page.getByLabel('Pregunta o consulta para la IA')
+  await input.fill('¿Puedes crear una clase llamada Factura?')
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  await expect.poll(() => state.writes.length).toBe(1)
+  await expect(page.getByText('La clase Factura ha sido creada.', { exact: true })).toBeVisible()
+  await input.fill('¿Cómo puedo crear la clase Pedido?')
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  await expect.poll(() => state.requestIds.length).toBe(1)
+  expect(state.writes).toHaveLength(1)
+  expect(state.messages.some(m => m.content === '¿Cómo puedo crear la clase Pedido?')).toBe(true)
+})
+
 test('crea una clase automáticamente y la coloca en la zona visible', async ({ page }) => {
   const state = room()
   state.options.permission = 'EDICION'
@@ -394,17 +474,38 @@ test('mantiene validaciones y permisos antes de aplicar cambios', async ({ page 
   state.options.permission = 'EDICION'
   await state.install(page, 'Ana')
   const input = page.getByLabel('Pregunta o consulta para la IA')
-  await input.fill('Agrega un método calcular a factura')
+  await input.fill('Elimina el método calcular de factura')
   await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
   await expect(page.getByText('Instrucción no disponible.', { exact: false })).toBeVisible()
   expect(state.writes).toHaveLength(0)
   state.options.permission = 'CONSULTA'
   await page.reload()
   await page.getByRole('button', { name: 'Asistente IA · Qwen3', exact: true }).click()
-  await input.fill('crea clase factura')
+  await input.fill('Agrega el método encender con retorno void a factura')
   await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
   await expect(page.getByText('Necesitas permiso de edición', { exact: false })).toBeVisible()
   expect(state.writes).toHaveLength(0)
+})
+
+test('crea un método desde el asistente y rechaza duplicados', async ({ page }) => {
+  const state = room()
+  state.options.permission = 'EDICION'
+  await state.install(page, 'Ana')
+  await page.getByRole('button', { name: 'Nueva clase', exact: true }).click()
+  await expect(page.locator('.class-node')).toHaveCount(1)
+  const instruction = '¿Puedes incluir el método encender en la clase Clase1 que devuelve void?'
+  const input = page.getByLabel('Pregunta o consulta para la IA')
+  await input.fill(instruction)
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  await expect(page.locator('.class-node')).toContainText('encender(): void')
+  await expect(page.getByText('Cambios guardados: Agregar método Clase1.encender(): void.')).toBeVisible()
+  const writes = state.writes.length
+  await input.fill(instruction)
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  await expect(page.getByText('Ya existe un método con ese nombre en la clase.')).toBeVisible()
+  expect(state.writes).toHaveLength(writes)
+  await page.reload()
+  await expect(page.locator('.class-node')).toContainText('encender(): void')
 })
 
 test('otro participante ve la instrucción y la respuesta guardadas', async ({ page, browser }) => {
@@ -503,14 +604,22 @@ test('aplica clases, atributos y asociaciones admitidas sin confirmación', asyn
 test('avisa cuando una respuesta corresponde a una revisión anterior del diagrama cargado', async ({ page }) => {
   const state = room()
   state.add('Respuesta anterior', 'Asistente · datos del diagrama', randomUUID(), { kind: 'ASISTENTE' })
+  state.add('Explicación conceptual', 'Asistente · conceptos UML', randomUUID(), { kind: 'ASISTENTE' })
+  state.add('Respuesta abierta', 'Qwen3-1.7B · IA local', randomUUID(), { kind: 'ASISTENTE' })
+  state.add('Respuesta de Qwen sobre el modelo', 'Qwen3-1.7B · IA local', randomUUID(), { kind: 'ASISTENTE', answerScope: 'DIAGRAMA' })
+  state.add('Explicación teórica de Qwen', 'Qwen3-1.7B · IA local', randomUUID(), { kind: 'ASISTENTE', answerScope: 'CONCEPTO' })
   state.add('Pregunta anterior', 'Ana', randomUUID(), { kind: 'PERSONA' })
   await state.install(page, 'Ana')
-  await expect(page.getByText('El editor muestra una revisión posterior', { exact: false })).toHaveCount(0)
+  await expect(page.getByText('El diagrama cambió desde esta respuesta.')).toHaveCount(0)
   state.options.revision = 1
   await page.reload()
   await page.getByRole('button', { name: 'Asistente IA · Qwen3', exact: true }).click()
-  const warning = page.getByText('El editor muestra una revisión posterior (r1). Comprueba si esta respuesta sigue vigente.')
-  await expect(warning).toHaveCount(1)
+  const warning = page.getByText('El diagrama cambió desde esta respuesta.')
+  await expect(warning).toHaveCount(2)
+  await expect(page.locator('li').filter({ hasText: 'Explicación conceptual' }).getByText('El diagrama cambió', { exact: false })).toHaveCount(0)
+  await expect(page.locator('li').filter({ hasText: 'Respuesta abierta' }).getByText('El diagrama cambió', { exact: false })).toHaveCount(0)
+  await expect(page.locator('li').filter({ hasText: 'Explicación teórica de Qwen' }).getByText('El diagrama cambió', { exact: false })).toHaveCount(0)
+  await expect(page.getByText('La IA puede equivocarse. Revisa sus respuestas.')).toHaveCount(1)
   await expect(page.getByText('Respuesta anterior')).toBeVisible()
   await expect(page.getByText('Pregunta anterior')).toBeVisible()
 })
@@ -625,6 +734,21 @@ test('si faltan recursos pide preparación y permite detener sin perder la pregu
   expect(state.messages.filter(message => message.content === '¿Qué clases hay?')).toHaveLength(1)
 })
 
+test('otra ventana de la misma cuenta no se identifica como otro participante', async ({ page, browser }) => {
+  const state = room()
+  await state.install(page, 'Ana')
+  await page.evaluate(() => { document.body.dataset.stallChat = 'true' })
+  await page.getByLabel('Pregunta o consulta para la IA').fill('Explica la relación del diagrama')
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  await expect(page.locator('body')).toHaveAttribute('data-qwen-calls', '1', { timeout: 15000 })
+  const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4173' })
+  const other = await otherContext.newPage()
+  await state.install(other, 'Ana')
+  await expect(other.getByText(/La consulta se está procesando\. Puede estar ejecutándose en otra ventana o dispositivo/)).toBeVisible()
+  await expect(other.getByText(/Otro participante está atendiendo/)).toHaveCount(0)
+  await otherContext.close()
+})
+
 test('otro participante atiende la consulta cuando vence la reserva del navegador desconectado', async ({ page, browser }) => {
   const state = room()
   await state.install(page, 'Ana')
@@ -635,7 +759,7 @@ test('otro participante atiende la consulta cuando vence la reserva del navegado
   const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4173' })
   const other = await otherContext.newPage()
   await state.install(other, 'Pedro')
-  await expect(other.getByText(/Otro participante está atendiendo la consulta/)).toBeVisible()
+  await expect(other.getByText(/La consulta se está procesando\. Puede estar ejecutándose en otra ventana o dispositivo/)).toBeVisible()
   await page.close()
   // The mock advances the server lease; PostgreSQL integration tests exercise real expiry and tokens.
   state.expireClaim()

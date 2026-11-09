@@ -9,6 +9,7 @@ export function copyLocalDiagram(original: Diagram): Diagram {
   for (const c of copy.classes) {
     c.id = ids.get(c.id)!
     for (const a of c.attributes) a.id = crypto.randomUUID()
+    for (const m of c.methods ?? []) m.id = crypto.randomUUID()
   }
   for (const r of copy.relations) {
     r.id = crypto.randomUUID()

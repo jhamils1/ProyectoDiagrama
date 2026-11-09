@@ -29,6 +29,12 @@ export function ClassNode({ data, selected, isConnectable }: NodeProps<ClassFlow
           ))
         )}
       </div>
+      {!!c.methods?.length && <div className="class-attributes" style={{ borderTop: '1px solid #ded9e9' }}>
+        {c.methods.map(m => <div key={m.id} className="node-attribute">
+          <span className="visibility">{visibilitySymbols[m.visibility]}</span>
+          <span>{m.name}()</span><span className="attribute-type">{m.returnType ? `: ${m.returnType}` : ''}</span>
+        </div>)}
+      </div>}
       {/* Keep the handle mounted so React Flow measures it before selection. */}
         <Handle
           id="relationship-source"

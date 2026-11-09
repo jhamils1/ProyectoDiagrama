@@ -16,6 +16,7 @@ public class UsuarioController {
       @NotBlank @Size(max = 100) String nombre,
       @NotNull Boolean activo,
       @NotNull @PositiveOrZero Long revision) {}
+  record OwnName(@NotBlank @Size(max = 100) String nombre, @NotNull @PositiveOrZero Long revision) {}
 
   private final UsuarioService service;
 
@@ -33,6 +34,11 @@ public class UsuarioController {
   @ResponseStatus(org.springframework.http.HttpStatus.CREATED)
   UsuarioDto create(@Valid @RequestBody Create b) {
     return service.create(b.nombre(), b.correo());
+  }
+
+  @PutMapping("/me/name")
+  UsuarioDto updateOwnName(@Valid @RequestBody OwnName b) {
+    return service.updateOwnAdminName(b.nombre(), b.revision());
   }
 
   @PutMapping("/{id}")

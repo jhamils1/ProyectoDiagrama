@@ -10,6 +10,10 @@ export const editorExamples = [
   'Agrega capacidad de tipo Long a Lancha.',
   'Agrega modelo a Lancha.',
   'Agrega el atributo modelo en la clase Lancha.',
+  'Agrega el método encender con retorno void a Lancha.',
+  'Por favor, añade la clase Factura.',
+  '¿Puedes incorporar el atributo fecha de tipo Date a Factura?',
+  'Incorpora a la clase Lancha el método apagar con retorno void.',
   'Agrega licencia de tipo String obligatoria a Capitan.',
   'Crea Faro y agrega altura de tipo Decimal a Faro.',
   'Lancha hereda de Embarcacion.',
@@ -28,10 +32,26 @@ export function requestedEditorOperations(instruction: string, diagram?: Diagram
     return [association]
   }
   const text = instruction.trim().replace(/\s+/g, ' ')
-  let match = text.match(pattern(`Crea (?:la )?clase ${identifier}`))
+    .replace(/^por favor\s*,?\s*/i, '').replace(/\s*,?\s+por favor(?=[?.!]*$)/i, '')
+  const verb = '(?:agrega|agregar|añade|añadir|crea|crear|incorpora|incorporar|incluye|incluir|pon|poner)'
+  const action = `(?:${verb}|(?:puedes|podr[ií]as) (?:agregar|añadir|crear|incorporar|incluir|poner))`
+  const named = '(?:(?:un|el) )?m[eé]todo (?:(?:llamado|llamada) )?'
+  const returnPhrase = '(?:con (?:tipo de )?retorno|de tipo|que devuelve|que devuelva)'
+  const methodPattern = (value: string) => new RegExp(`^¿?${value}\\??\\.?$`, 'i')
+  const methodBeforeClass = text.match(methodPattern(`${action} ${named}${identifier}(?:\\(\\))?(?: ${returnPhrase} ${identifier})? (?:(?:a|en|de|para) (?:la clase )?)${identifier}`))
+  const methodAfterClass = text.match(methodPattern(`${action} ${named}${identifier}(?:\\(\\))? (?:(?:a|en|de|para) (?:la clase )?)${identifier}(?: ${returnPhrase} ${identifier})?`))
+  const classFirst = text.match(methodPattern(`${action} (?:a|en) la clase ${identifier} ${named}${identifier}(?:\\(\\))?(?: ${returnPhrase} ${identifier})?`))
+  const method = methodBeforeClass ?? methodAfterClass ?? classFirst
+  if (method) {
+    const returnType = (methodBeforeClass ? method[2] : method[3]) ?? ''
+    return [operationSchema.parse({ type: 'addMethod', name: classFirst ? method[2] : method[1],
+      returnType: returnType.toLowerCase() === 'void' ? 'void' : canonicalDataType(returnType),
+      className: classFirst ? method[1] : methodBeforeClass ? method[3] : method[2] })]
+  }
+  let match = text.match(methodPattern(`${action} (?:(?:una|la) )?clase (?:llamada )?${identifier}`))
   if (match) return [operationSchema.parse({ type: 'addClass', name: match[1] })]
   match = text.match(
-    pattern(`Crea (?:la )?clase ${identifier} con (?:el )?atributo ${identifier}`),
+    methodPattern(`${action} (?:(?:una|la) )?clase (?:llamada )?${identifier} con (?:(?:el|un) )?atributo ${identifier}`),
   )
   if (match)
     return [
@@ -43,12 +63,13 @@ export function requestedEditorOperations(instruction: string, diagram?: Diagram
         dataType: '',
       }),
     ]
-  match = text.match(pattern(`Renombra ${identifier} a ${identifier}`))
+  const rename = '(?:renombra|renombrar|(?:puedes|podr[ií]as) renombrar)'
+  match = text.match(methodPattern(`${rename} (?:(?:la )?clase )?${identifier} (?:a|como) ${identifier}`))
   if (match)
     return [operationSchema.parse({ type: 'renameClass', name: match[1], newName: match[2] })]
   match = text.match(
-    pattern(
-      `Agrega (?:el atributo )?${identifier}(?: de tipo ${identifier}| sin tipo)?( obligatori[oa])? (?:a (?:la clase )?|en la clase )${identifier}`,
+    methodPattern(
+      `${action} (?:(?:(?:el|un) )?atributo )?${identifier}(?: de tipo ${identifier}| sin tipo)?( obligatori[oa])? (?:a (?:la clase )?|en la clase |para (?:la clase )?)${identifier}`,
     ),
   )
   if (match)
@@ -89,7 +110,7 @@ export function requestedEditorOperations(instruction: string, diagram?: Diagram
       }),
     ]
   throw new Error(
-    'Instrucción no disponible. Usa una de las formas de los ejemplos, cambiando nombres y tipos. Métodos, composición, agregación, borrado y otras modificaciones todavía no están disponibles por IA.',
+    'Instrucción no disponible. Usa una de las formas de los ejemplos, cambiando nombres y tipos. La composición, agregación, borrado y otras modificaciones todavía no están disponibles por IA.',
   )
 }
 
@@ -127,6 +148,8 @@ export function describeOperation(op: AiOperation): string {
       return `Renombrar ${op.name} a ${op.newName}.`
     case 'addAttribute':
       return `Agregar ${op.className}.${op.name}: ${op.dataType || 'sin tipo'}, ${op.required ? 'obligatorio' : 'opcional'}, privado.`
+    case 'addMethod':
+      return `Agregar método ${op.className}.${op.name}()${op.returnType ? `: ${op.returnType}` : ''}.`
     case 'addRelation':
       return op.kind === 'association'
         ? `Asociación UML: ${op.source} ${op.sourceMultiplicity} — ${op.targetMultiplicity} ${op.target}. Se relacionan clases existentes.`

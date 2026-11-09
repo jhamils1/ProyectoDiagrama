@@ -82,6 +82,7 @@ public class ChangeService {
     if (assistantInstruction != null && (assistantInstruction.isBlank() || assistantInstruction.length() > 1500 || assistantInstruction.indexOf(0) >= 0))
       throw DiagramMerge.invalid();
     var current=diagrams.forWrite(project,diagram);
+    proposal.requireMethodCompatible(current.document());
     proposal.validate();
     if(!diagram.equals(proposal.id())) throw DiagramMerge.invalid();
     var existing=rows.find(id);
@@ -105,8 +106,10 @@ public class ChangeService {
       if (assistantInstruction != null) {
         var diff = DiagramActivityDiff.between(current.document(), saved.current().document());
         var created = diff.stream().filter(d -> d.kind().equals("class") && d.action().equals("created")).toList();
+        var methods = diff.stream().filter(d -> d.kind().equals("method") && d.action().equals("created")).toList();
         String answer = diff.isEmpty() ? "No se realizaron cambios en el diagrama."
             : created.size() == 1 && diff.size() == 1 ? "La clase " + created.getFirst().label() + " ha sido creada."
+            : methods.size() == 1 && diff.size() == 1 ? "El método " + methods.getFirst().label() + " ha sido agregado."
             : "Los cambios solicitados se guardaron en el diagrama. Consulta la actividad para ver el detalle.";
         conversation.recordAppliedEdit(project, diagram, id, assistantInstruction, answer, saved.current().revision());
         return response(c, saved.current());

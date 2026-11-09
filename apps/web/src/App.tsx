@@ -545,6 +545,7 @@ export function EditorView({
             {conversationMounted && remote?.generationSource && !remote.localCopy && (
               <ConversationDialog key={active.id} projectId={remote.generationSource.projectId}
                 diagramId={active.id} revision={remote.generationSource.revision}
+                presence={remote.presence} connection={remote.connection}
                 diagram={active} saving={saving} execute={editor.execute}
                 position={() => newClassPosition.current?.()} editorError={editor.error}
                 canEdit={!locked && !pendingFields && !renaming && !relation && !deleting && online}

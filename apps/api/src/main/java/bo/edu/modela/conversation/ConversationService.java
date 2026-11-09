@@ -16,13 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class ConversationService {
   public record Message(UUID id, long sequence, UUID authorId, String authorName,
       String content, Instant createdAt, long diagramRevision, String kind, String executorName, String continuationQuestion,
-      String proposalInstruction, String proposalData) {}
-  public record AssistantStatus(UUID id, String status, String error) {}
+      String proposalInstruction, String proposalData, String answerScope) {}
+  public record AssistantStatus(UUID id, String status, String error, String mode) {}
   public record Page(List<Message> items, Long nextBefore, Long nextAfter, AssistantStatus assistant) {}
   private static final RowMapper<Message> MESSAGE = (rs, row) -> new Message(
       rs.getObject("id", UUID.class), rs.getLong("secuencia"), rs.getObject("autor_id", UUID.class),
       rs.getString("autor_nombre"), rs.getString("contenido"),
-      rs.getTimestamp("fecha_creacion").toInstant(), rs.getLong("revision_diagrama"), rs.getString("tipo"), rs.getString("ejecutor_nombre"), rs.getString("siguiente_consulta"), rs.getString("instruccion_propuesta"), rs.getString("propuesta_datos"));
+      rs.getTimestamp("fecha_creacion").toInstant(), rs.getLong("revision_diagrama"), rs.getString("tipo"), rs.getString("ejecutor_nombre"), rs.getString("siguiente_consulta"), rs.getString("instruccion_propuesta"), rs.getString("propuesta_datos"), rs.getString("alcance_respuesta"));
   private final DiagramService diagrams;
   private final ProyectoRepository projects;
   private final CurrentUser current;
@@ -47,8 +47,8 @@ public class ConversationService {
     boolean more = found.size() > limit;
     var items = new ArrayList<>(found.subList(0, Math.min(limit, found.size())));
     if (!forward) Collections.reverse(items);
-    var statuses = jdbc.query("SELECT id, CASE WHEN estado='PROCESANDO' AND vencimiento < now() THEN 'PENDIENTE' ELSE estado END AS estado, error FROM solicitud_ia_diagrama WHERE diagrama_id=? ORDER BY creado_en DESC, id DESC LIMIT 1",
-        (rs, row) -> new AssistantStatus(rs.getObject("id", UUID.class), rs.getString("estado"), rs.getString("error")), diagram);
+    var statuses = jdbc.query("SELECT id, CASE WHEN estado='PROCESANDO' AND vencimiento < now() THEN CASE WHEN modo='LOCAL' THEN 'PENDIENTE' ELSE 'FALLIDA' END ELSE estado END AS estado, CASE WHEN estado='PROCESANDO' AND vencimiento < now() AND modo='INTERNET' THEN 'No se confirmó la consulta por internet. Comprueba el historial antes de volver a preguntar.' ELSE error END AS error, modo FROM solicitud_ia_diagrama WHERE diagrama_id=? ORDER BY creado_en DESC, id DESC LIMIT 1",
+        (rs, row) -> new AssistantStatus(rs.getObject("id", UUID.class), rs.getString("estado"), rs.getString("error"), rs.getString("modo")), diagram);
     return new Page(List.copyOf(items), more && !forward ? items.getFirst().sequence() : null,
         more && forward ? items.getLast().sequence() : null, statuses.isEmpty() ? null : statuses.getFirst());
   }
@@ -85,7 +85,7 @@ public class ConversationService {
         VALUES (?,?,?,?,?,?,?,?)
         """, messageId, diagram, sequence, author.id, author.nombre, text,
         java.sql.Timestamp.from(now), state.revision());
-    return new Message(messageId, sequence, author.id, author.nombre, text, now, state.revision(), "PERSONA", null, null, null, null);
+    return new Message(messageId, sequence, author.id, author.nombre, text, now, state.revision(), "PERSONA", null, null, null, null, null);
   }
 
   @Transactional
@@ -139,7 +139,7 @@ public class ConversationService {
         INSERT INTO mensaje_diagrama(id,diagrama_id,secuencia,autor_id,autor_nombre,contenido,fecha_creacion,revision_diagrama,tipo,instruccion_propuesta,propuesta_datos)
         VALUES (?,?,?,?,?,?,?,?,'PROPUESTA',?,?)
         """, id, diagram, sequence, author.id, author.nombre, text, java.sql.Timestamp.from(now), baseRevision, instruction.strip(), proposalData);
-    return new Message(id, sequence, author.id, author.nombre, text, now, baseRevision, "PROPUESTA", null, null, instruction.strip(), proposalData);
+    return new Message(id, sequence, author.id, author.nombre, text, now, baseRevision, "PROPUESTA", null, null, instruction.strip(), proposalData, "DIAGRAMA");
   }
 
   private static ApiException invalid(String message) {

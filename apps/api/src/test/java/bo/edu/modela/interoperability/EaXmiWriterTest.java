@@ -93,6 +93,22 @@ class EaXmiWriterTest {
     assertThat(inventory.relations().getFirst().associationClassId()).isNotBlank();
   }
 
+  @Test void methodsDoNotChangeEitherXmlExport() {
+    var sale = clazz("Venta", false, List.of(attr("id", "Long", "private", true, true)));
+    var product = clazz("Producto", false, List.of(attr("precio", "Decimal", "private", false, false)));
+    var relation = new RelationData(UUID.randomUUID(), "association", sale.id(), product.id(), "contiene", "1", "1..*");
+    var original = model(List.of(sale, product), List.of(relation));
+    var withMethod = new ClassData(sale.id(), sale.name(), sale.abstractClass(), sale.position(), sale.attributes(),
+        List.of(new MethodData(UUID.randomUUID(), "calcularTotal", "Decimal", "public")));
+    var changed = new DiagramDocument(original.schemaVersion(), original.id(), original.name(), original.localRevision(),
+        original.updatedAt(), List.of(withMethod, product), original.relations());
+    changed.validate();
+    assertThat(EaXmiWriter.write(changed)).isEqualTo(EaXmiWriter.write(original));
+    assertThat(EaXmiWriter.writeEnterpriseArchitect11(changed)).isEqualTo(EaXmiWriter.writeEnterpriseArchitect11(original));
+    var xml = new String(EaXmiWriter.writeEnterpriseArchitect11(changed), java.nio.charset.Charset.forName("windows-1252"));
+    assertThat(xml).contains("Venta", "Producto", "precio", "UML:Association").doesNotContain("calcularTotal", "UML:Operation");
+  }
+
   @Test void nativeEaEnvelopeKeepsPackageDiagramAndAssociationClassReferencesTogether() throws Exception {
     var sale = new ClassData(UUID.randomUUID(), "Venta", false, new Position(300d, 40d),
         List.of(attr("id", "Integer", "private", true, true)));

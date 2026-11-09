@@ -169,6 +169,7 @@ public class DiagramService {
       throw ApiException.conflict(
           "Otra persona guardó este diagrama. Recarga antes de volver a editar; el servidor"
               + " conserva la versión más reciente.");
+    doc.requireMethodCompatible(diagrams.read(d));
     doc.validate();
     if (!id.equals(doc.id()))
       throw ApiException.conflict("El identificador del documento no coincide con la ruta.");

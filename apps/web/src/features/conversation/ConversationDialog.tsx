@@ -5,12 +5,14 @@ import { useSharedQwen } from './useSharedQwen'
 import './conversation.css'
 
 import type { Diagram, ModelCommand } from '../modeling/domain/model'
+import type { ConnectionStatus, Presence } from '../modeling/infrastructure/diagramLive'
 import { editorExamples } from '../ai/domain/editorProposal'
 import { isEditingInstruction, useSharedEditing } from './useSharedEditing'
 import { usePanelResize } from './usePanelResize'
 
-export function ConversationDialog({ projectId, diagramId, diagram, revision, canEdit, saving, execute, position, editorError, visible, close }: {
+export function ConversationDialog({ projectId, diagramId, diagram, revision, canEdit, saving, execute, position, editorError, visible, close, presence, connection }: {
   projectId: string; diagramId: string; diagram: Diagram; revision: number; canEdit: boolean; saving: boolean
+  presence: Presence; connection: ConnectionStatus
   execute: (command: ModelCommand, assistantInstruction?: string) => Promise<boolean>; position: () => { x: number; y: number } | undefined
   editorError: string | null; visible: boolean; close: () => void
 }) {
@@ -18,6 +20,8 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
   const resize = usePanelResize()
   const follow = useRef(true)
   const [draft, setDraft] = useState('')
+  const [mode, setMode] = useState<'LOCAL' | 'INTERNET'>('LOCAL')
+  const [modeMenuOpen, setModeMenuOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [displayed, setDisplayed] = useState(visible)
   const conversation = useConversation(projectId, diagramId)
@@ -38,6 +42,7 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
   }, [conversation.messages])
   useEffect(() => {
     const state = conversation.assistant?.status
+    if (conversation.assistant?.mode === 'INTERNET') return
     if (state === 'PROCESANDO' || state === 'COMPLETADA' || state === 'FALLIDA') {
       // An unclaimed local load is unnecessary if someone else has taken the job.
       if (!qwen.ready && (qwen.busy || qwen.needsPreparation)) qwen.yieldToOther()
@@ -49,7 +54,7 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
     return () => clearTimeout(timer)
     // A job transition, not every progress update, drives the automatic attempt.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.assistant?.id, conversation.assistant?.status])
+  }, [conversation.assistant?.id, conversation.assistant?.status, conversation.assistant?.mode])
   function requestClose() {
     if (conversation.denied) { close(); return }
     if (conversation.sending || editLocked) return
@@ -69,8 +74,8 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
       {...resize.separator} />}
     <header className="conversation-heading">
       <span className="conversation-brand" aria-hidden="true"><Sparkles size={22} /></span>
-      <div><h2 id="conversation-title">Asistente IA · Qwen3</h2>
-        <p>Consulta y edita con tu equipo</p></div>
+      <div><h2 id="conversation-title">Asistente IA</h2>
+        <p className="conversation-models">Qwen3 local · Gemini por internet</p></div>
       <button className="icon-button" type="button" aria-label={expanded ? 'Restaurar tamaño del asistente' : 'Ampliar asistente a pantalla completa'}
         title={expanded ? 'Restaurar tamaño' : 'Ampliar a pantalla completa'} aria-pressed={expanded} onClick={() => setExpanded(value => !value)}>
         {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
@@ -78,8 +83,14 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
       <button className="icon-button" aria-label="Cerrar conversación" disabled={editLocked || (conversation.sending && !conversation.denied)}
         onClick={requestClose}><X size={20} /></button>
     </header>
-    <div className="conversation-connection" data-connected={conversation.ready && !conversation.syncError && !conversation.denied}>
-      <span aria-hidden="true" />{conversation.denied ? 'Acceso no disponible' : conversation.syncError ? 'Reconectando…' : conversation.ready ? 'Proyecto compartido' : 'Conectando…'}
+    <div className="conversation-connection" data-connected={connection === 'connected' && !conversation.denied}>
+      <span className="conversation-connection-dot" aria-hidden="true" />
+      {conversation.denied ? 'Acceso no disponible' : connection === 'connected' ? 'Conectados' : 'Reconectando…'}
+      {connection === 'connected' && !conversation.denied && <div className="conversation-presence" aria-label="Participantes conectados">
+        {presence.map(user => <span className="conversation-presence-avatar" key={user.id} title={user.name} aria-label={user.name}>
+          {user.name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => Array.from(part)[0]).join('').toLocaleUpperCase() || '?'}
+        </span>)}
+      </div>}
     </div>
     <div className="conversation-panel-content">
     <div className="conversation-messages" ref={list} onScroll={() => {
@@ -97,13 +108,12 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
         <div className="conversation-author"><strong>{message.kind === 'PROPUESTA' ? `Propuesta compartida por ${message.authorName}` : message.authorName}</strong>
           <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString('es-BO')}</time></div>
         <p>{message.content}</p>
-        {message.executorName && <small>Generada en el navegador de {message.executorName}. </small>}
-        {message.executorName && <small>Comprueba las afirmaciones de Qwen antes de aplicar cambios. </small>}
-        <small>Revisión del diagrama al enviar: {message.diagramRevision}</small>
-        {(message.kind === 'ASISTENTE' || message.kind === 'PROPUESTA') && Number.isInteger(message.diagramRevision)
+        <small>{message.executorName ? `IA en el navegador de ${message.executorName} · ` : ''}Revisión {message.diagramRevision}</small>
+        {(message.kind === 'PROPUESTA' || (message.kind === 'ASISTENTE' && (message.answerScope != null
+          ? ['DIAGRAMA', 'ACTIVIDAD'].includes(message.answerScope)
+          : ['Asistente · datos del diagrama', 'Asistente · actividad registrada'].includes(message.authorName)))) && Number.isInteger(message.diagramRevision)
           && Number.isInteger(revision) && message.diagramRevision < revision &&
-          <p className="conversation-stale">El editor muestra una revisión posterior (r{revision}).
-            Comprueba si {message.kind === 'PROPUESTA' ? 'esta propuesta' : 'esta respuesta'} sigue vigente.</p>}
+          <p className="conversation-stale">El diagrama cambió desde {message.kind === 'PROPUESTA' ? 'esta propuesta' : 'esta respuesta'}.</p>}
         {message.kind === 'ASISTENTE' && message.continuationQuestion && <div className="conversation-continuation">
           <button type="button" className="secondary" disabled={editLocked || !conversation.ready || conversation.denied || conversation.sending
             || Boolean(draft.trim()) || ['PENDIENTE', 'PROCESANDO'].includes(conversation.assistant?.status ?? '')}
@@ -119,17 +129,22 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
     {!conversation.denied && <section className="conversation-edit-preview" aria-label="Edición compartida">
       {editing.status && <p role="status">{editing.status}</p>}
       {editing.status && editorError && <p role="alert">{editorError}</p>}
+      <details><summary>Ejemplos de consultas y sugerencias</summary>
+        <ul><li>¿Cómo puedo mejorar mi diagrama?</li><li>Revisa la clase Factura</li>
+          <li>¿Cómo puedo resolver los problemas de la clase Factura?</li><li>¿Cómo modelarías una devolución?</li></ul>
+        <p>Las revisiones básicas usan el diagrama guardado. Las preguntas abiertas pueden usar Qwen y sus sugerencias requieren revisión.</p>
+      </details>
       {canEdit && <details><summary>Ejemplos de edición disponibles</summary>
         <ul>{editorExamples.map(example => <li key={example}>{example}</li>)}</ul>
         <p>Estos comandos usan reglas validadas. Para otras consultas se utiliza la IA local; sus respuestas no modifican el diagrama.</p>
       </details>}
     </section>}
     {!conversation.denied && <section className="conversation-engine" aria-label="IA local compartida">
-      <strong>Qwen3-1.7B · IA local del equipo</strong>
-      <p role="status">{conversation.assistant?.status === 'PROCESANDO' && !qwen.ready && !qwen.busy
-        ? 'Otro participante está atendiendo la consulta. Espera la respuesta compartida.' : qwen.status}</p>
+      {(conversation.assistant?.status === 'PROCESANDO' || qwen.status !== 'Respuesta compartida. IA lista para la próxima pregunta del equipo.') && <p role="status">{conversation.assistant?.mode === 'INTERNET' && conversation.assistant.status === 'PROCESANDO'
+        ? 'Gemini está procesando la consulta.' : conversation.assistant?.status === 'PROCESANDO' && !qwen.ready && !qwen.busy
+        ? 'La consulta se está procesando. Puede estar ejecutándose en otra ventana o dispositivo.' : qwen.status}</p>}
       <div className="conversation-compose-actions">
-        {qwen.needsPreparation && <>
+        {qwen.needsPreparation && mode === 'LOCAL' && <>
           <label className="conversation-local-source">Usar archivos de mi PC
             <input type="file" aria-label="Elegir carpeta local de Qwen" multiple {...{ webkitdirectory: '' }}
               onChange={event => {
@@ -141,27 +156,60 @@ export function ConversationDialog({ projectId, diagramId, diagram, revision, ca
           <button type="button" className="secondary" onClick={() => void qwen.prepare()}>Descargar desde el servidor</button>
         </>}
         {qwen.failed && conversation.assistant?.status === 'PENDIENTE' && <button type="button" className="secondary" onClick={() => void qwen.start()}>Reintentar en este equipo</button>}
-        {(qwen.busy || qwen.ready || qwen.needsPreparation) && <button type="button" className="secondary" onClick={qwen.stop}>Detener en este equipo</button>}
+        {(qwen.busy || qwen.ready || qwen.needsPreparation) && <button type="button" className="secondary conversation-stop" onClick={qwen.stop}>Detener en este equipo</button>}
       </div>
-      {qwen.needsPreparation && <p>Selecciona la carpeta <strong>apps/web/public/ai</strong> de tu proyecto. Los archivos del modelo permanecen en este equipo.</p>}
+      {qwen.needsPreparation && mode === 'LOCAL' && <p>Selecciona la carpeta <strong>apps/web/public/ai</strong> de tu proyecto. Los archivos del modelo permanecen en este equipo.</p>}
     </section>}
     {conversation.assistant && ['PENDIENTE', 'PROCESANDO'].includes(conversation.assistant.status) &&
       <p role="status" className="conversation-notice">{conversation.assistant.status === 'PENDIENTE'
-        ? 'Consulta pendiente. Buscando una IA disponible entre los participantes…'
+        ? conversation.assistant.mode === 'INTERNET' ? 'Consulta por internet pendiente de iniciar.' : 'Consulta pendiente. Buscando una IA disponible entre los participantes…'
         : 'Consulta en proceso. La respuesta será visible para el equipo.'}</p>}
+    {conversation.assistant?.mode === 'INTERNET' && conversation.assistant.status === 'PENDIENTE' && !conversation.sending &&
+      <button type="button" className="secondary" onClick={() => void conversation.continueInternet()}>Continuar consulta por internet</button>}
     {conversation.assistant?.status === 'FALLIDA' && <p role="status" className="conversation-notice">
       {conversation.assistant.error ?? 'La consulta de IA no pudo completarse.'}</p>}
+    {conversation.assistant && conversation.assistant.mode !== 'INTERNET' &&
+      (conversation.assistant.status === 'FALLIDA' || (conversation.assistant.status === 'PENDIENTE' && (qwen.failed || qwen.needsPreparation))) && <>
+      <p className="conversation-disclaimer">Puedes enviar esta consulta y su contexto a Google; puede consumir cuota o generar cargos.</p>
+      <button type="button" className="secondary" disabled={conversation.sending} onClick={() => {
+        setMode('INTERNET')
+        void conversation.switchInternet()
+      }}>Responder esta consulta con Gemini</button>
+    </>}
     </div>
     {!conversation.denied && <form onSubmit={event => {
       event.preventDefault()
       if (isEditingInstruction(draft)) { void editing.apply(draft.trim()).then(saved => { if (saved) { setDraft(''); follow.current = true } }); return }
-      void conversation.send(draft, true).then(sent => { if (sent) { setDraft(''); follow.current = true } })
+      void conversation.send(draft, true, mode).then(sent => { if (sent) { setDraft(''); follow.current = true } })
     }}>
       <label htmlFor="team-message" className="conversation-visually-hidden">Pregunta o consulta para la IA</label>
-      <textarea id="team-message" maxLength={1500} rows={2} value={draft}
+      <textarea id="team-message" maxLength={1500} rows={1} value={draft}
         disabled={conversation.sending || editLocked} onChange={event => setDraft(event.target.value)}
+        onKeyDown={event => {
+          if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.nativeEvent.isComposing) return
+          event.preventDefault()
+          const submit = event.currentTarget.form?.querySelector<HTMLButtonElement>('button[type="submit"]')
+          if (submit && !submit.disabled) event.currentTarget.form?.requestSubmit(submit)
+        }}
+        title="Enter para enviar; Mayús + Enter para una nueva línea"
         placeholder="Por ejemplo: crea clase Factura" />
       <div className="conversation-compose-actions"><small>{draft.length}/1500</small>
+        <div className="conversation-mode" onBlur={event => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setModeMenuOpen(false)
+        }} onKeyDown={event => { if (event.key === 'Escape' && modeMenuOpen) { event.stopPropagation(); setModeMenuOpen(false) } }}>
+          <span>Modo</span>
+          <button type="button" className="conversation-mode-trigger" aria-label="Modo de IA" aria-expanded={modeMenuOpen}
+            disabled={conversation.sending || editLocked} onClick={() => setModeMenuOpen(open => !open)}>
+            {mode === 'LOCAL' ? 'Local · Qwen' : 'En línea · Gemini'} <span aria-hidden="true">▾</span>
+          </button>
+          {modeMenuOpen && <div className="conversation-mode-options" aria-label="Seleccionar modo de IA">
+            {(['LOCAL', 'INTERNET'] as const).map(option => <button type="button" key={option}
+              aria-pressed={mode === option} onClick={() => { setMode(option); setModeMenuOpen(false) }}>
+              <span>{option === 'LOCAL' ? 'Local · Qwen' : 'En línea · Gemini'}</span>
+              {mode === option && <span aria-hidden="true">✓</span>}
+            </button>)}
+          </div>}
+        </div>
         <button type="submit" className="primary conversation-send" aria-label={editLocked ? 'Guardando…' : conversation.sending ? 'Enviando…' : 'Preguntar a la IA'}
           title={editLocked ? 'Guardando…' : conversation.sending ? 'Enviando…' : 'Preguntar a la IA'} disabled={editLocked || !conversation.ready || conversation.sending || !draft.trim()
           || ['PENDIENTE', 'PROCESANDO'].includes(conversation.assistant?.status ?? '')}>

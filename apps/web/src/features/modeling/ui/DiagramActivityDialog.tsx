@@ -14,11 +14,11 @@ type Entry = {
 type ActivityPage = { items: Entry[]; nextBeforeVersion: number | null }
 type ChangePage = { version: number; items: Change[]; totalChanges: number; nextOffset: number | null }
 const kinds: Record<string, string> = {
-  diagram: 'Diagrama', class: 'Clase', attribute: 'Atributo', relation: 'Relación',
+  diagram: 'Diagrama', class: 'Clase', attribute: 'Atributo', method: 'Método', relation: 'Relación',
 }
 const actions: Record<string, string> = { created: 'Creó', deleted: 'Eliminó', updated: 'Modificó' }
 const properties: Record<string, string> = {
-  name: 'nombre', abstract: 'abstracta', position: 'posición', class: 'clase', dataType: 'tipo de dato',
+  name: 'nombre', abstract: 'abstracta', position: 'posición', class: 'clase', dataType: 'tipo de dato', returnType: 'tipo de retorno',
   visibility: 'visibilidad', identifier: 'identificador', required: 'obligatorio', type: 'tipo',
   source: 'origen', target: 'destino', sourceMultiplicity: 'multiplicidad de origen',
   targetMultiplicity: 'multiplicidad de destino', associationClass: 'clase de asociación',

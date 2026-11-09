@@ -4,6 +4,7 @@ import {
   dataTypes,
   visibilities,
   type UmlAttribute,
+  type UmlMethod,
   type UmlClass,
   type ModelCommand,
 } from '../domain/model'
@@ -27,11 +28,13 @@ export function Inspector({
   const [name, setName] = useState(value.name)
   const [abstract, setAbstract] = useState(value.abstract)
   const [editing, setEditing] = useState<UmlAttribute | null>(null)
+  const [editingMethod, setEditingMethod] = useState<UmlMethod | null>(null)
   const classDirty = name !== value.name || abstract !== value.abstract
-  const pending = classDirty || !!editing
+  const pending = classDirty || !!editing || !!editingMethod
   const locked = busy || readOnly
   const classForm = useRef<HTMLFormElement>(null)
   const attributeForm = useRef<HTMLFormElement>(null)
+  const methodForm = useRef<HTMLFormElement>(null)
   const committing = useRef(false)
   useLayoutEffect(() => {
     notifyEditing?.('inspector', pending)
@@ -49,16 +52,24 @@ export function Inspector({
   }
   async function commit() {
     if (committing.current || locked) return
-    if (!classDirty && !editing) return
+    if (!classDirty && !editing && !editingMethod) return
+    if (editingMethod && !editingMethod.name.trim() && !(value.methods ?? []).some(m => m.id === editingMethod.id)) {
+      setEditingMethod(null)
+      return
+    }
     if (editing && !editing.name.trim() && !value.attributes.some((a) => a.id === editing.id)) {
       setEditing(null)
       return
     }
-    const form = editing ? attributeForm.current : classForm.current
+    const form = editingMethod ? methodForm.current : editing ? attributeForm.current : classForm.current
     if (!form?.reportValidity()) return
     committing.current = true
     try {
-      if (editing) {
+      if (editingMethod) {
+        const original = (value.methods ?? []).find(m => m.id === editingMethod.id)
+        if (JSON.stringify(original) === JSON.stringify(editingMethod) ||
+          (await execute({ type: 'upsertMethod', classId: value.id, value: editingMethod }))) setEditingMethod(null)
+      } else if (editing) {
         const original = value.attributes.find((a) => a.id === editing.id)
         if (
           JSON.stringify(original) === JSON.stringify(editing) ||
@@ -72,7 +83,7 @@ export function Inspector({
   }
   useEffect(() => {
     const outside = (event: PointerEvent) => {
-      const form = editing ? attributeForm.current : classForm.current
+      const form = editingMethod ? methodForm.current : editing ? attributeForm.current : classForm.current
       if (!pending || form?.contains(event.target as Node)) return
       // Keep the selected element and invalid fields until the asynchronous save finishes.
       event.preventDefault()
@@ -213,7 +224,7 @@ export function Inspector({
         <label>
           Nombre
           <input
-            disabled={locked || !!editing}
+            disabled={locked || !!editing || !!editingMethod}
             aria-label="Nombre de la clase"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -225,7 +236,7 @@ export function Inspector({
           <input
             type="checkbox"
             aria-label="Clase abstracta"
-            disabled={locked || !!editing}
+            disabled={locked || !!editing || !!editingMethod}
             checked={abstract}
             onChange={(e) => setAbstract(e.target.checked)}
           />
@@ -240,7 +251,7 @@ export function Inspector({
           className="icon-button"
           onClick={newAttribute}
           aria-label="Agregar atributo"
-          disabled={locked || classDirty || !!editing}
+          disabled={locked || classDirty || !!editing || !!editingMethod}
           title="Agregar atributo"
         >
           <Plus size={17} />
@@ -249,7 +260,7 @@ export function Inspector({
       {value.attributes.length === 0 && !editing && (
         <div className="empty-attributes">
           <p>Todavía no hay atributos.</p>
-          <button className="text-button" onClick={newAttribute} disabled={locked || classDirty}>
+          <button className="text-button" onClick={newAttribute} disabled={locked || classDirty || !!editingMethod}>
             Nuevo atributo…
           </button>
         </div>
@@ -266,7 +277,7 @@ export function Inspector({
             <div key={a.id} className="attribute-row">
               <button
                 className="attribute-edit"
-                disabled={locked || classDirty || !!editing}
+                disabled={locked || classDirty || !!editing || !!editingMethod}
                 onClick={() => setEditing(a)}
                 aria-label={`Editar atributo ${a.name}`}
               >
@@ -279,7 +290,7 @@ export function Inspector({
               </button>
               <button
                 className="icon-button danger"
-                disabled={locked || classDirty || !!editing}
+                disabled={locked || classDirty || !!editing || !!editingMethod}
                 aria-label={`Eliminar atributo ${a.name}`}
                 onClick={() =>
                   void execute({ type: 'deleteAttribute', classId: value.id, id: a.id })
@@ -292,8 +303,39 @@ export function Inspector({
         )}
       </div>
       {editing && !value.attributes.some((a) => a.id === editing.id) && attributeEditor}
+      <div className="section-row">
+        <h3>Métodos <span className="count">{value.methods?.length ?? 0}</span></h3>
+        <button type="button" className="icon-button" aria-label="Agregar método" disabled={locked || classDirty || !!editing || !!editingMethod}
+          onClick={() => setEditingMethod({ id: crypto.randomUUID(), name: '', returnType: '', visibility: 'public' })}><Plus size={17} /></button>
+      </div>
+      {(value.methods ?? []).map(method => <div className="attribute-row" key={method.id}>
+        <button type="button" className="attribute-edit" disabled={locked || pending} onClick={() => setEditingMethod(method)}
+          aria-label={`Editar método ${method.name}`}><span>{method.name}(){method.returnType ? `: ${method.returnType}` : ''}</span><Pencil size={13} /></button>
+        <button type="button" className="icon-button danger" disabled={locked || pending} aria-label={`Eliminar método ${method.name}`}
+          onClick={() => void execute({ type: 'deleteMethod', classId: value.id, id: method.id })}><Trash2 size={14} /></button>
+      </div>)}
+      {editingMethod && <form ref={methodForm} className="attribute-form" onBlur={leaveForm} onKeyDown={event => {
+        if (event.key === 'Escape') { event.preventDefault(); setEditingMethod(null) }
+      }} onSubmit={event => {
+        event.preventDefault()
+        void commit()
+      }}>
+        <label>Nombre del método<input required maxLength={80} value={editingMethod.name} disabled={locked}
+          onChange={event => setEditingMethod({ ...editingMethod, name: event.target.value })} /></label>
+        <label>Tipo de retorno<select value={editingMethod.returnType} disabled={locked}
+          onChange={event => setEditingMethod({ ...editingMethod, returnType: event.target.value as UmlMethod['returnType'] })}>
+          <option value="">Sin tipo</option><option value="void">void (sin retorno)</option>{dataTypes.map(type => <option key={type}>{type}</option>)}
+        </select></label>
+        <label>Visibilidad del método<select value={editingMethod.visibility} disabled={locked}
+          onChange={event => setEditingMethod({ ...editingMethod, visibility: event.target.value as UmlMethod['visibility'] })}>
+          {visibilities.map(visibility => <option key={visibility}>{visibility}</option>)}
+        </select></label>
+        <button type="submit" className="primary" disabled={locked}>Guardar método</button>
+        <button type="button" className="secondary" onClick={() => setEditingMethod(null)}>Cancelar</button>
+      </form>}
+      <p className="section-note">Los métodos se muestran en el diagrama; no se incluyen en el backend generado.</p>
       <div className="inspector-bottom">
-        <button className="danger-button" onClick={onDelete} disabled={locked}>
+        <button className="danger-button" onClick={onDelete} disabled={locked || !!editingMethod}>
           <Trash2 size={15} />
           Eliminar clase
         </button>
