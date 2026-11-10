@@ -19,7 +19,7 @@ class ActivityContextTest {
         new Change("class", id, "Pedido", "created", "", null, null),
         new Change("attribute", id, "Pedido.nombre", "updated", "dataType", "Integer", "String")), 2);
     assertThat(ActivityContext.format(new Page(List.of(entry), null)))
-        .contains("Versión 3", "2026-11-06T12:00:00Z", "Ana", "creó clase Pedido", "cambió tipo de atributo Pedido.nombre (de Integer a String)")
+        .contains("Versión 3", "2026-11-06T12:00:00Z", "Ana", "creó la clase Pedido", "cambió el tipo del atributo Pedido.nombre (de Integer a String)")
         .doesNotContain("omitidos");
   }
 
@@ -42,6 +42,14 @@ class ActivityContextTest {
 
   @Test void emptyActivityDoesNotInventAnAuthor() {
     assertThat(ActivityContext.format(new Page(List.of(), null))).contains("No hay versiones en el tramo consultado");
+  }
+
+  @Test void prioritizesRelevantOlderChangesAndKeepsTheirRecordedAuthor() {
+    var newest = new Entry(5, time, UUID.randomUUID(), "Pedro", List.of(new Change("class", id, "Auto", "created", "", null, null)), 1);
+    var old = new Entry(2, time, UUID.randomUUID(), "Ana", List.of(new Change("class", id, "Factura", "created", "", null, null)), 1);
+    String result = ActivityContext.formatRelevant(new Page(List.of(newest, old), 1L), "¿Cómo mejorar las facturas?");
+    assertThat(result).contains("Versión 2", "Ana", "Factura", "Versión 5", "Pedro", "omitidos");
+    assertThat(result.indexOf("Versión 2")).isLessThan(result.indexOf("Versión 5"));
   }
 
   @Test void identifiesDiagramCreatorOnlyFromTheActualCreationEntry() {

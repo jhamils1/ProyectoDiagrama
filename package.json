@@ -6,6 +6,8 @@
   ],
   "scripts": {
     "ai:prepare": "node scripts/ai/prepare.mjs",
+    "ai:prepare-vision": "node scripts/ai/prepare-vision.mjs",
+    "ai:check-instructions": "node scripts/ai/check-shared-instructions.mjs",
     "dev": "npm run dev --workspace web -- --host 127.0.0.1",
     "build": "npm run build --workspace web",
     "test": "npm run test --workspace web",

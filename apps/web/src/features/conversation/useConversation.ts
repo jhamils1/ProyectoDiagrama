@@ -9,7 +9,7 @@ export type ConversationMessage = {
   proposalInstruction?: string | null
   proposalData?: string | null
 }
-type AssistantStatus = { id: string; status: 'PENDIENTE' | 'PROCESANDO' | 'COMPLETADA' | 'FALLIDA'; error: string | null; mode?: 'LOCAL' | 'INTERNET' }
+type AssistantStatus = { id: string; status: 'PENDIENTE' | 'PROCESANDO' | 'COMPLETADA' | 'FALLIDA'; error: string | null; mode?: 'LOCAL' | 'INTERNET'; executorName?: string | null; executionExpired?: boolean }
 type ConversationPage = { items: ConversationMessage[]; nextBefore: number | null; nextAfter: number | null; assistant?: AssistantStatus | null }
 type Session = {
   controller: AbortController; denied: boolean; ready: boolean; after: number
@@ -170,7 +170,13 @@ export function useConversation(projectId: string, diagramId: string) {
       if (alive(state) && result) setAssistant(result)
       if (result.status === 'FALLIDA' && onlineRequest.current?.id === id) onlineRequest.current.controller.abort()
       return result.status === 'FALLIDA'
-    } catch (e) { if (alive(state) && !deny(state, e)) setError(errorMessage(e)); return false }
+    } catch (e) {
+      if (alive(state)) {
+        if (e instanceof ApiError && e.status === 403) setError('Solo quien hizo la pregunta o un administrador puede cancelar esta consulta.')
+        else if (!deny(state, e)) setError(errorMessage(e))
+      }
+      return false
+    }
     finally { if (!state.controller.signal.aborted) setCanceling(false) }
   }
 

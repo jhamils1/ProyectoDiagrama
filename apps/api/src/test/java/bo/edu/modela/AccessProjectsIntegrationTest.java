@@ -44,6 +44,12 @@ class AccessProjectsIntegrationTest {
     try (var connection = datasource.getConnection()) {
       assertThat(connection.getCatalog()).isEqualTo("modela_test");
     }
+    // La base de prueba puede conservar una contraseña de pruebas manuales anteriores.
+    // El cambio queda dentro de la transacción de la prueba y se revierte al terminar.
+    var admin = users.findByCorreo("admin@test.local").orElseThrow();
+    admin.passwordHash = encoder.encode("test-only-admin-password-123");
+    admin.activo = true;
+    users.saveAndFlush(admin);
   }
 
   MockHttpSession admin() throws Exception {

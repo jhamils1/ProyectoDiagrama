@@ -33,6 +33,7 @@ server:
     include-message: never
     include-stacktrace: never
 modela:
+  firebase-service-account: ${FIREBASE_SERVICE_ACCOUNT:}
   ai:
     gemini-api-key: ${GEMINI_API_KEY:}
     gemini-model: ${GEMINI_MODEL:gemini-3.5-flash-lite}

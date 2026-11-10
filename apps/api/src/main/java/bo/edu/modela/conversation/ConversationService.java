@@ -17,7 +17,7 @@ public class ConversationService {
   public record Message(UUID id, long sequence, UUID authorId, String authorName,
       String content, Instant createdAt, long diagramRevision, String kind, String executorName, String continuationQuestion,
       String proposalInstruction, String proposalData, String answerScope) {}
-  public record AssistantStatus(UUID id, String status, String error, String mode) {}
+  public record AssistantStatus(UUID id, String status, String error, String mode, String executorName, boolean executionExpired) {}
   public record Page(List<Message> items, Long nextBefore, Long nextAfter, AssistantStatus assistant) {}
   private static final RowMapper<Message> MESSAGE = (rs, row) -> new Message(
       rs.getObject("id", UUID.class), rs.getLong("secuencia"), rs.getObject("autor_id", UUID.class),
@@ -47,8 +47,8 @@ public class ConversationService {
     boolean more = found.size() > limit;
     var items = new ArrayList<>(found.subList(0, Math.min(limit, found.size())));
     if (!forward) Collections.reverse(items);
-    var statuses = jdbc.query("SELECT id, CASE WHEN estado='PROCESANDO' AND vencimiento < now() THEN CASE WHEN modo='LOCAL' THEN 'PENDIENTE' ELSE 'FALLIDA' END ELSE estado END AS estado, CASE WHEN estado='PROCESANDO' AND vencimiento < now() AND modo='INTERNET' THEN 'No se confirmó la consulta por internet. Comprueba el historial antes de volver a preguntar.' ELSE error END AS error, modo FROM solicitud_ia_diagrama WHERE diagrama_id=? ORDER BY creado_en DESC, id DESC LIMIT 1",
-        (rs, row) -> new AssistantStatus(rs.getObject("id", UUID.class), rs.getString("estado"), rs.getString("error"), rs.getString("modo")), diagram);
+    var statuses = jdbc.query("SELECT id, CASE WHEN estado='PROCESANDO' AND vencimiento < now() THEN CASE WHEN modo='LOCAL' THEN 'PENDIENTE' ELSE 'FALLIDA' END ELSE estado END AS estado, CASE WHEN estado='PROCESANDO' AND vencimiento < now() AND modo='INTERNET' THEN 'No se confirmó la consulta por internet. Comprueba el historial antes de volver a preguntar.' ELSE error END AS error, modo, CASE WHEN estado='PROCESANDO' AND vencimiento >= now() AND modo='LOCAL' THEN ejecutor_nombre ELSE NULL END AS ejecutor_visible, (estado='PROCESANDO' AND modo='LOCAL' AND vencimiento < now()) AS ejecucion_vencida FROM solicitud_ia_diagrama WHERE diagrama_id=? ORDER BY creado_en DESC, id DESC LIMIT 1",
+        (rs, row) -> new AssistantStatus(rs.getObject("id", UUID.class), rs.getString("estado"), rs.getString("error"), rs.getString("modo"), rs.getString("ejecutor_visible"), rs.getBoolean("ejecucion_vencida")), diagram);
     return new Page(List.copyOf(items), more && !forward ? items.getFirst().sequence() : null,
         more && forward ? items.getLast().sequence() : null, statuses.isEmpty() ? null : statuses.getFirst());
   }

@@ -31,6 +31,23 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class DiagramIntegrationTest {
+  @Test
+  void deviceRegistrationRequiresSessionAndCannotBeRemovedByAnotherUser() throws Exception {
+    String token = "test-device-" + UUID.randomUUID();
+    String body = json.writeValueAsString(Map.of("token", token));
+    mvc.perform(post("/api/notification-devices").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isUnauthorized());
+    mvc.perform(post("/api/notification-devices").with(actor(collaborator)).contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isForbidden());
+    mvc.perform(post("/api/notification-devices").with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isOk());
+    mvc.perform(post("/api/notification-devices/remove").with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isOk());
+    assertThat(jdbc.queryForObject("select count(*) from dispositivo_notificacion where token=?", Integer.class, token)).isEqualTo(1);
+    mvc.perform(post("/api/notification-devices/remove").with(actor(collaborator)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isOk());
+    assertThat(jdbc.queryForObject("select count(*) from dispositivo_notificacion where token=?", Integer.class, token)).isZero();
+  }
   @MockitoBean GeminiClient gemini;
   String assistantPath(Map<String, Object> doc) { return path() + "/" + doc.get("id") + "/conversation/assistant"; }
   ResultActions askAssistant(Map<String, Object> doc, UUID id, Usuario user) throws Exception {
@@ -208,6 +225,43 @@ class DiagramIntegrationTest {
   }
 
   @Test
+  void sharedContextIncludesAnOlderRelevantMessageWithItsAuthor() throws Exception {
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    message(doc, UUID.randomUUID(), "Acordamos registrar factura en bolivianos", collaborator)
+        .andExpect(status().isCreated());
+    for (int i = 0; i < 60; i++)
+      message(doc, UUID.randomUUID(), "Comentario " + i, admin).andExpect(status().isCreated());
+    mvc.perform(post(assistantPath(doc)).with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", UUID.randomUUID(), "content", "¿Qué decidimos sobre factura?"))))
+        .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value("PENDIENTE"));
+    String context = claimAssistant(doc, admin).path("messages").get(1).path("content").asString();
+    assertThat(context).contains("factura en bolivianos", collaborator.nombre, "Comentario 59", "omitidos");
+  }
+
+  @Test
+  void internetProviderReceivesRelevantHistoryAndAuthenticatedRequester() throws Exception {
+    when(gemini.configured()).thenReturn(true);
+    when(gemini.generate(anyList())).thenReturn("Ana mencionó que la factura usa bolivianos; comprueba si fue una decisión del equipo.");
+    members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
+    var doc = document(); create(doc, admin).andExpect(status().isCreated());
+    message(doc, UUID.randomUUID(), "Acordamos registrar factura en bolivianos", collaborator).andExpect(status().isCreated());
+    for (int i = 0; i < 10; i++) message(doc, UUID.randomUUID(), "Comentario " + i, admin).andExpect(status().isCreated());
+    UUID id = UUID.randomUUID();
+    mvc.perform(post(assistantPath(doc)).with(actor(admin)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        .content(json.writeValueAsString(Map.of("id", id, "content", "¿Qué decidimos sobre factura?", "mode", "INTERNET"))))
+        .andExpect(status().isAccepted());
+    mvc.perform(post(assistantPath(doc) + "/" + id + "/internet").with(actor(admin)).with(csrf()))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETADA"));
+    verify(gemini).generate(argThat(messages -> messages.get(0).content().contains("No supongas que propuestas")
+        && messages.get(1).content().contains("factura en bolivianos")
+        && messages.get(1).content().contains(collaborator.nombre)
+        && messages.get(1).content().contains("Pregunta actual de " + admin.nombre)));
+    mvc.perform(get(path()+"/"+doc.get("id")+"/conversation").with(actor(collaborator)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.items[12].authorName").value("Gemini · IA por internet"));
+  }
+
+  @Test
   void classConceptAndObviousNonAnswersAreSharedWithoutChangingTheDiagram() throws Exception {
     members.saveAndFlush(new Participacion(collaborator, project, Participacion.Permiso.CONSULTA));
     var doc = document(); create(doc, admin).andExpect(status().isCreated());
@@ -354,7 +408,7 @@ class DiagramIntegrationTest {
     String prompt = claim.path("messages").get(1).path("content").asString();
     assertThat(claim.path("revision").asLong()).isEqualTo(1);
     assertThat(prompt).contains("Actividad confirmada reciente", "Versión 2", collaborator.nombre,
-        "cambió nombre de diagrama", "Ventas revisadas").doesNotContain("Edicion posterior");
+        "cambió el nombre del diagrama", "Ventas revisadas").doesNotContain("Edicion posterior");
     finishAssistant(doc, claim, collaborator, "Hubo un cambio en el nombre.", false).andExpect(status().isOk());
     mvc.perform(get(path()+"/"+doc.get("id")+"/state").with(actor(admin)))
         .andExpect(jsonPath("$.revision").value(2));
@@ -533,10 +587,16 @@ class DiagramIntegrationTest {
     UUID questionId = UUID.randomUUID();
     askAssistant(doc, questionId, collaborator).andExpect(status().isAccepted());
     var first = claimAssistant(doc, admin);
+    mvc.perform(get(path() + "/" + doc.get("id") + "/conversation").with(actor(collaborator)))
+        .andExpect(jsonPath("$.assistant.status").value("PROCESANDO"))
+        .andExpect(jsonPath("$.assistant.executorName").value(admin.nombre))
+        .andExpect(jsonPath("$.assistant.executionExpired").value(false));
     // An abrupt disconnect cannot release its lease: expiration permits another participant to take over.
     jdbc.update("update solicitud_ia_diagrama set vencimiento=now()-interval '1 minute' where id=?", questionId);
     mvc.perform(get(path() + "/" + doc.get("id") + "/conversation").with(actor(collaborator)))
-        .andExpect(jsonPath("$.assistant.status").value("PENDIENTE"));
+        .andExpect(jsonPath("$.assistant.status").value("PENDIENTE"))
+        .andExpect(jsonPath("$.assistant.executorName").doesNotExist())
+        .andExpect(jsonPath("$.assistant.executionExpired").value(true));
     var second = claimAssistant(doc, collaborator);
     finishAssistant(doc, first, admin, "Resultado antiguo", false).andExpect(status().isConflict());
     finishAssistant(doc, second, collaborator, "Pedido se relaciona con Cliente.", false).andExpect(status().isOk());

@@ -70,6 +70,7 @@ export function useSharedQwen(project: string, diagram: string, denied: boolean)
           const answer = await state.client!.request<Generation>('chat', state.claim.messages)
           if (!alive(state)) return
           if (answer.raw.length > 4000) throw new Error('Qwen no produjo una respuesta válida.')
+          if (!answer.raw.trim()) console.info('Qwen local: la generación terminó sin texto visible.')
           state.result = { token: state.claim.token, content: answer.raw.trim() || 'Actualmente no tengo una respuesta adecuada para esa pregunta. ¿Puedes reformularla o darme más detalles?', failed: false }
           if (answer.tokenLimitReached) state.result.content = state.result.content.slice(0, 3900) + '\n[Respuesta limitada por la longitud máxima de generación.]'
         } catch (e) {

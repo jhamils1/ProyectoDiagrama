@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.LinkedHashMap;
 import java.text.Normalizer;
 import java.util.regex.Pattern;
 import bo.edu.modela.shared.ApiException;
@@ -106,6 +107,27 @@ final class ActivityContext {
     return render(page).text();
   }
 
+  /** Prioritizes recorded activity matching the question without inventing authors or changes. */
+  static String formatRelevant(Page page, String question) {
+    var terms = ConversationContext.terms(question);
+    if (terms.isEmpty()) return format(page);
+    var selected = new LinkedHashMap<Long, Entry>();
+    for (var entry : page.items()) {
+      boolean match = entry.changes().stream().anyMatch(change ->
+          ConversationContext.terms(change.label()).stream().anyMatch(terms::contains));
+      if (match) selected.put(entry.version(), entry);
+      if (selected.size() == 2) break;
+    }
+    if (selected.isEmpty()) return format(page);
+    for (var entry : page.items()) {
+      if (selected.size() >= 4) break;
+      selected.putIfAbsent(entry.version(), entry);
+    }
+    boolean omitted = selected.size() < page.items().size();
+    var summary = format(new Page(List.copyOf(selected.values()), page.nextBeforeVersion()));
+    return omitted ? summary + "Se omitieron otras versiones del tramo consultado.\n" : summary;
+  }
+
   private static Answer withNext(Rendered rendered, String person) {
     return new Answer(rendered.text() + "Este resumen no necesariamente contiene toda la actividad del diagrama. "
         + nextHint(rendered.nextBeforeVersion(), person), nextQuestion(rendered.nextBeforeVersion(), person));
@@ -153,18 +175,22 @@ final class ActivityContext {
     return new Rendered(result.toString(), nextBefore);
   }
 
-  private static String describe(Change change) {
+  static String describe(Change change) {
     String kind = KINDS.getOrDefault(change.kind(), "elemento");
+    String article = kind.equals("clase") || kind.equals("relación") ? "la " : "el ";
     String label = clean(change.label(), 70);
     return switch (change.action()) {
-      case "created" -> "creó " + kind + " " + label;
-      case "deleted" -> "eliminó " + kind + " " + label;
+      case "created" -> "creó " + article + kind + " " + label;
+      case "deleted" -> "eliminó " + article + kind + " " + label;
       case "unavailable" -> "no se puede comparar: falta la versión anterior";
       case "updated" -> {
         String field = FIELDS.getOrDefault(change.property(), "propiedad");
         String details = VALUE_FIELDS.contains(change.property())
             ? " (de " + clean(change.before(), 35) + " a " + clean(change.after(), 35) + ")" : "";
-        yield "cambió " + field + " de " + kind + " " + label + details;
+        String fieldArticle = List.of("abstracción", "posición", "visibilidad", "obligatoriedad",
+            "multiplicidad de origen", "multiplicidad de destino", "clase", "clase de asociación").contains(field) ? "la " : "el ";
+        String of = article.equals("la ") ? "de la " : "del ";
+        yield "cambió " + fieldArticle + field + " " + of + kind + " " + label + details;
       }
       default -> "cambió " + kind + " " + label;
     };

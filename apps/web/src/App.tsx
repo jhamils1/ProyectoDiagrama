@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Radio,
+  ImagePlus,
 } from 'lucide-react'
 import { useEditor } from './features/modeling/application/useEditor'
 import { createClass, type UmlRelation, type Diagram } from './features/modeling/domain/model'
@@ -28,6 +29,7 @@ import { Inspector } from './features/modeling/ui/Inspector'
 import { RelationDialog } from './features/modeling/ui/RelationDialog'
 import { DiagramActivityDialog } from './features/modeling/ui/DiagramActivityDialog'
 import { ConversationDialog } from './features/conversation/ConversationDialog'
+import { ImageDiagramDialog } from './features/ai/ui/ImageDiagramDialog'
 import type { Presence, ConnectionStatus } from './features/modeling/infrastructure/diagramLive'
 import type { User } from './shared/api'
 import '@xyflow/react/dist/style.css'
@@ -109,6 +111,7 @@ export function EditorView({
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [activityOpen, setActivityOpen] = useState(false)
+  const [imageDiagramOpen, setImageDiagramOpen] = useState(false)
   const [conversationOpen, setConversationOpen] = useState(false)
   const [conversationMounted, setConversationMounted] = useState(false)
   const [sidebarVisible, setSidebarVisible] = useState(true)
@@ -122,9 +125,9 @@ export function EditorView({
     [notifyEditing],
   )
   useLayoutEffect(() => {
-    notifyEditing?.('dialog', renaming || !!relation || deleting)
+    notifyEditing?.('dialog', renaming || !!relation || deleting || imageDiagramOpen)
     return () => notifyEditing?.('dialog', false)
-  }, [notifyEditing, renaming, relation, deleting])
+  }, [notifyEditing, renaming, relation, deleting, imageDiagramOpen])
   const [online, setOnline] = useState(navigator.onLine)
   const {
     offlineReady: [offlineReady],
@@ -466,6 +469,9 @@ export function EditorView({
                   source={remote.generationSource}
                   blocked={locked || !online || pendingFields || renaming || !!relation || deleting}
                 />}
+                <button className="secondary" onClick={() => setImageDiagramOpen(true)} disabled={locked || pendingFields || !!relation || deleting || renaming}>
+                  <ImagePlus size={16} /> Desde imagen
+                </button>
                 <button
                   className="secondary"
                   onClick={() => newRelation()}
@@ -584,6 +590,7 @@ export function EditorView({
           projectId={remote.generationSource.projectId} diagramId={active.id}
           revision={remote.generationSource.revision} close={() => setActivityOpen(false)} />
       )}
+      {imageDiagramOpen && active && <ImageDiagramDialog diagram={active} close={() => setImageDiagramOpen(false)} execute={editor.execute} busy={locked} />}
       {relation && active && (
         <RelationDialog
           diagram={active}

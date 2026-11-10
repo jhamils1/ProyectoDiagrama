@@ -6,9 +6,9 @@ function room() {
   const messages: { id: string; sequence: number; authorId: string; authorName: string; content: string;
     createdAt: string; diagramRevision: number; kind?: string; answerScope?: string; continuationQuestion?: string | null; proposalInstruction?: string | null; proposalData?: string | null }[] = []
   const requestIds: string[] = []
-  let assistant: { id: string; status: string; error: string | null; mode?: string } | null = null
+  let assistant: { id: string; status: string; error: string | null; mode?: string; executorName?: string | null; executionExpired?: boolean } | null = null
   const options = { failNextPost: false, failProposal: false, failChangeAck: false, oldBackend: false, conflict: false, denied: false, insertBeforePost: false, failCompletion: false, revision: 0,
-    permission: 'CONSULTA' }
+    permission: 'CONSULTA', denyCancel: false }
   const completions: unknown[] = []
   const onlineCalls: string[] = []
   const sharedFiles: { id: string; name: string; size: number; author: string; createdAt: string; canDelete: boolean }[] = []
@@ -111,6 +111,7 @@ function room() {
         json = assistant
       }
       else if (path.endsWith('/cancel')) {
+        if (options.denyCancel) return route.fulfill({ status: 403, json: { message: 'Sin permiso.' } })
         if (assistant) { assistant.status = 'FALLIDA'; assistant.error = 'Consulta cancelada. Puedes seleccionar un modo y preguntar de nuevo.' }
         json = assistant
       }
@@ -123,6 +124,8 @@ function room() {
       else if (path.endsWith('/assistant/claim')) {
         if (assistant?.status !== 'PENDIENTE') return route.fulfill({ status: 204 })
         assistant.status = 'PROCESANDO'
+        assistant.executorName = name
+        assistant.executionExpired = false
         json = { id: assistant.id, token: 'lease', expiresAt: new Date(Date.now() + 180000).toISOString(), messages: [{role:'user',content:'Explica las clases'}] }
       }
       else if (path.endsWith('/complete')) {
@@ -183,8 +186,16 @@ function room() {
     await expect(page.getByText('Conectando con la conversación…')).toHaveCount(0)
   }
   return { messages, requestIds, options, add, install, completions, writes, sharedFiles, onlineCalls,
-    expireClaim: () => { if (assistant?.status === 'PROCESANDO') assistant.status = 'PENDIENTE' } }
+    setExpired: () => { assistant = { id: randomUUID(), status: 'PENDIENTE', error: null, mode: 'LOCAL', executionExpired: true } },
+    expireClaim: () => { if (assistant?.status === 'PROCESANDO') { assistant.status = 'PENDIENTE'; assistant.executorName = null; assistant.executionExpired = true } } }
 }
+
+test('una ejecución vencida indica espera sin afirmar una desconexión', async ({ page }) => {
+  const state = room()
+  state.setExpired()
+  await state.install(page, 'Ana')
+  await expect(page.getByText(/La ejecución anterior venció sin completarse/)).toBeVisible()
+})
 
 test('muestra ejemplos de consultas para revisar y pedir sugerencias', async ({ page }) => {
   const state = room()
@@ -222,15 +233,80 @@ test('si Qwen tarda la consulta se cancela y el cambio a Gemini es manual', asyn
   await page.evaluate(() => { document.body.dataset.stallQwen = 'true' })
   await page.getByLabel('Pregunta o consulta para la IA').fill('Explica la relación del diagrama')
   await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
-  await expect(page.getByRole('button', { name: 'Cancelar consulta pendiente' })).toBeVisible({ timeout: 15000 })
+  await expect(page.getByRole('button', { name: 'Cancelar consulta' })).toBeVisible({ timeout: 15000 })
   expect(state.onlineCalls).toHaveLength(0)
-  await page.getByRole('button', { name: 'Cancelar consulta pendiente' }).click()
+  await page.getByRole('button', { name: 'Cancelar consulta' }).click()
   await page.getByLabel('Modo de IA').click()
   await page.getByRole('button', { name: 'En línea · Gemini' }).click()
   await page.getByLabel('Pregunta o consulta para la IA').fill('Explica nuevamente la relación')
   await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
   await expect.poll(() => state.onlineCalls.length).toBe(1)
   await expect(page.getByText('Una sugerencia de prueba.')).toBeVisible()
+})
+
+test('si otro participante no puede cancelar conserva la conversación', async ({ page }) => {
+  const state = room()
+  state.options.denyCancel = true
+  await state.install(page, 'Ana')
+  await page.evaluate(() => { document.body.dataset.stallQwen = 'true' })
+  await page.getByLabel('Pregunta o consulta para la IA').fill('Explica el diagrama')
+  await page.getByRole('button', { name: 'Preguntar a la IA' }).click()
+  await page.getByRole('button', { name: 'Cancelar consulta' }).click()
+  await expect(page.getByText('Solo quien hizo la pregunta o un administrador puede cancelar esta consulta.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Mensajes del equipo' }).getByText('Explica el diagrama')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Cancelar consulta' })).toBeVisible()
+})
+
+test('el dictado agrega texto al borrador sin enviarlo y muestra errores de permiso', async ({ page }) => {
+  await page.addInitScript(() => {
+    class FakeSpeech {
+      lang = ''; continuous = false; interimResults = false
+      onresult: ((event: unknown) => void) | null = null
+      onerror: ((event: unknown) => void) | null = null
+      onend: (() => void) | null = null
+      start() { setTimeout(() => {
+        if (document.body.dataset.voiceDenied === 'true') this.onerror?.({ error: 'not-allowed' })
+        else this.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'crea clase factura' } }] })
+        this.onend?.()
+      }, 30) }
+      stop() { this.onend?.() }
+      abort() {}
+    }
+    Object.defineProperty(window, 'SpeechRecognition', { value: FakeSpeech, configurable: true })
+  })
+  const state = room()
+  await state.install(page, 'Ana')
+  const input = page.getByLabel('Pregunta o consulta para la IA')
+  await input.fill('Por favor')
+  await page.getByRole('button', { name: 'Dictar mensaje' }).click()
+  await expect(input).toHaveValue('Por favor crea clase factura')
+  expect(state.requestIds).toHaveLength(0)
+  await page.evaluate(() => { document.body.dataset.voiceDenied = 'true' })
+  await page.getByRole('button', { name: 'Dictar mensaje' }).click()
+  await expect(page.getByText('Permite el acceso al micrófono en el navegador para dictar.')).toBeVisible()
+  await expect(input).toHaveValue('Por favor crea clase factura')
+})
+
+test('el dictado se detiene al cerrar el asistente', async ({ page }) => {
+  await page.addInitScript(() => {
+    class FakeSpeech {
+      lang = ''; continuous = false; interimResults = false
+      onresult: ((event: unknown) => void) | null = null
+      onerror: ((event: unknown) => void) | null = null
+      onend: (() => void) | null = null
+      start() {}
+      stop() { this.onend?.() }
+      abort() { document.body.dataset.voiceAborted = 'true' }
+    }
+    Object.defineProperty(window, 'SpeechRecognition', { value: FakeSpeech, configurable: true })
+  })
+  const state = room()
+  await state.install(page, 'Ana')
+  await page.getByRole('button', { name: 'Dictar mensaje' }).click()
+  await expect(page.getByRole('button', { name: 'Detener dictado' })).toBeVisible()
+  await page.getByRole('button', { name: 'Cerrar conversación' }).click()
+  await expect.poll(() => page.evaluate(() => document.body.dataset.voiceAborted)).toBe('true')
+  expect(state.requestIds).toHaveLength(0)
 })
 
 test('Enter envía consultas y Mayús Enter agrega una línea', async ({ page }) => {
@@ -716,6 +792,16 @@ test('una respuesta vacía del modelo muestra una alternativa compartida', async
   expect(state.completions).toHaveLength(1)
 })
 
+test('el aviso de respuesta no disponible queda separado de la revisión', async ({ page }) => {
+  const state = room()
+  state.add('Actualmente no tengo una respuesta adecuada.', 'Asistente · respuesta no disponible', randomUUID(), { kind: 'ASISTENTE' })
+  await state.install(page, 'Ana')
+  const note = page.getByText('No se obtuvo una respuesta adecuada. Puedes volver a preguntar.')
+  await expect(note).toBeVisible()
+  await expect(note).toHaveCSS('display', 'block')
+  await expect(page.getByText('Revisión 0', { exact: true })).toBeVisible()
+})
+
 test('una pregunta explícita muestra la respuesta compartida y el estado', async ({ page, browser }) => {
   const state = room()
   await state.install(page, 'Ana')
@@ -747,7 +833,7 @@ test('una carga detenida termina con aviso y permite volver a intentar', async (
   await page.getByRole('button', {name:'Preguntar a la IA'}).click()
   await expect(page.getByText(/Consulta pendiente/)).toBeVisible()
   await page.clock.fastForward(5000)
-  await expect(page.getByRole('button', {name:'Detener en este equipo'})).toBeVisible()
+  await expect(page.getByRole('button', {name:'Cancelar consulta'})).toBeVisible()
   // Wait until the worker request has started, then advance its bounded timeout.
   await expect(page.locator('body')).toHaveAttribute('data-qwen-load-started', 'true')
   await page.clock.fastForward(181000)
@@ -755,7 +841,7 @@ test('una carga detenida termina con aviso y permite volver a intentar', async (
   await expect(page.getByRole('button', {name:'Reintentar en este equipo'})).toBeEnabled()
 })
 
-test('si faltan recursos pide preparación y permite detener sin perder la pregunta', async ({ page }) => {
+test('si faltan recursos pide preparación y permite cancelar desde el botón de envío', async ({ page }) => {
   const state = room()
   await state.install(page, 'Ana')
   await page.evaluate(() => caches.delete('modela-ai-v1'))
@@ -764,9 +850,8 @@ test('si faltan recursos pide preparación y permite detener sin perder la pregu
   await expect(page.getByLabel('Elegir carpeta local de Qwen')).toBeAttached({ timeout: 12000 })
   await expect(page.getByRole('button', { name: 'Descargar desde el servidor' })).toBeVisible()
   await expect(page.getByText(/1,46 GB/)).toBeVisible()
-  await page.getByRole('button', { name: 'Detener en este equipo' }).click()
-  await expect(page.getByText(/La consulta sigue pendiente/)).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Reintentar en este equipo' })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancelar consulta' }).click()
+  await expect(page.getByText(/Consulta cancelada/)).toBeVisible()
   expect(state.messages.filter(message => message.content === '¿Qué clases hay?')).toHaveLength(1)
 })
 
@@ -780,7 +865,7 @@ test('otra ventana de la misma cuenta no se identifica como otro participante', 
   const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4173' })
   const other = await otherContext.newPage()
   await state.install(other, 'Ana')
-  await expect(other.getByText(/La consulta se está procesando\. Puede estar ejecutándose en otra ventana o dispositivo/)).toBeVisible()
+  await expect(other.getByText('Qwen está procesando la consulta en una sesión de Ana.')).toBeVisible()
   await expect(other.getByText(/Otro participante está atendiendo/)).toHaveCount(0)
   await otherContext.close()
 })

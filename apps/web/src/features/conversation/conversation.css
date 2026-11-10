@@ -33,6 +33,7 @@
 .conversation-author { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
 .conversation-author strong { font-size: 12px; color: #f4efff; }
 .conversation-author time, .conversation-messages small, .conversation-compose-actions small { color: #bcb7cd; font-size: 10px; }
+.conversation-messages small.conversation-answer-note { display: block; margin: 8px 0 4px; }
 .conversation-messages li p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; margin: 8px 0; color: #f2eff9; font-size: 13px; }
 .conversation-message-person > p { padding: 10px 12px; background: #3e385c; border-radius: 4px 12px 12px; }
 .conversation-messages li p.conversation-stale { color: #e4c47b; margin: 5px 0; font-size: 11px; }
@@ -56,6 +57,14 @@
 .conversation-mode-options button:hover, .conversation-mode-options button:focus-visible { background: #514775; }
 .conversation-panel button.primary { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, #b28aff, #8855e8); color: #181326; border: 0; border-radius: 18px; padding: 9px 12px; font-size: 12px; font-weight: 600; }
 .conversation-panel button.conversation-send { width: 34px; height: 34px; padding: 0; justify-content: center; border-radius: 50%; }
+.conversation-panel button.conversation-microphone { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; color: #e5dcf4; background: transparent; cursor: pointer; }
+.conversation-panel button.conversation-microphone:hover, .conversation-panel button.conversation-microphone[aria-pressed="true"] { background: #514775; }
+.conversation-microphone-spinner { position: absolute; inset: 1px; border: 2px solid #bca8e555; border-top-color: #dfd0ff; border-radius: 50%; animation: conversation-spin 1s linear infinite; pointer-events: none; }
+.conversation-voice-status { display: block; margin: 3px 0; color: #c9bfdc; font-size: 10px; }
+.conversation-panel button.conversation-send-stop { position: relative; }
+.conversation-stop-spinner { position: absolute; inset: 3px; border: 2px solid rgba(24, 19, 38, .25); border-top-color: #181326; border-radius: 50%; animation: conversation-spin 1s linear infinite; }
+@keyframes conversation-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .conversation-stop-spinner, .conversation-microphone-spinner { animation: none; } }
 .conversation-panel button.secondary { color: #ded2fa; background: #302b42; border: 1px solid #54466d; border-radius: 8px; padding: 7px 10px; font-size: 11px; }
 .conversation-panel button.conversation-stop { padding: 5px 8px; }
 .conversation-local-source { position: relative; display: inline-flex; align-items: center; color: #ded2fa; background: #302b42; border: 1px solid #54466d; border-radius: 8px; padding: 7px 10px; font-size: 11px; cursor: pointer; }

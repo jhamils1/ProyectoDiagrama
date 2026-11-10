@@ -23,14 +23,18 @@ class ParticipantReviewTest {
   @Test void recognizesSpecificReviewWithoutAcceptingExtraInstructions() {
     assertThat(ParticipantReview.matches("¿Puedes revisar mi trabajo?")).isTrue();
     assertThat(ParticipantReview.matches("Analiza los cambios de Ana Pérez")).isTrue();
+    assertThat(ParticipantReview.matches("Revisa lo que hizo Ana Pérez")).isTrue();
+    assertThat(ParticipantReview.matches("¿Puedes evaluar lo que modificó Ana?")).isTrue();
     assertThat(ParticipantReview.matches("Revisa mi trabajo y crea Factura")).isFalse();
   }
   @Test void reviewsOnlyTheIdentifiedAuthorsElementsAndMakesLimitsExplicit() {
     var page = new Page(List.of(entry(ana, "Ana Pérez", classId, "Factura"), entry(pedro, "Pedro", other, "Producto")), 1L);
     String result = ParticipantReview.answer(page, doc(), "Revisa el trabajo de Ana", pedro);
-    assertThat(result).contains("Factura", "no tiene atributos ni métodos", "otras personas pudieron modificar", "parcial")
+    assertThat(result).contains("Cambios encontrados:", "creó la clase Factura", "Sugerencias para revisar:", "no tiene atributos ni métodos", "otras personas pudieron modificar", "parte de la actividad")
         .doesNotContain("Producto", "Pedro");
     assertThat(ParticipantReview.answer(page, doc(), "Revisa mis cambios", pedro)).contains("Producto").doesNotContain("Factura");
+    assertThat(ParticipantReview.answer(page, doc(), "Revisa lo que hizo Ana", pedro)).contains("Factura").doesNotContain("Producto");
+    assertThat(ParticipantReview.answer(page, doc(), "Evalúa lo que modificó Ana", pedro)).contains("Factura").doesNotContain("Producto");
   }
   @Test void unknownAndAmbiguousNamesDoNotAssignChanges() {
     var page = new Page(List.of(entry(ana, "Ana Pérez", classId, "Factura"), entry(pedro, "Ana Ruiz", other, "Producto")), null);
@@ -41,6 +45,6 @@ class ParticipantReviewTest {
   @Test void deletedOrMissingComparisonsAreNotInventedAsCurrentFindings() {
     var missing = new Entry(4, now, ana, "Ana", List.of(new Change("diagram", null, "", "unavailable", "", null, null)), 1);
     String result = ParticipantReview.answer(new Page(List.of(missing), null), doc(), "Revisa mi trabajo", ana);
-    assertThat(result).contains("falta la versión anterior", "No hay cambios comparables").doesNotContain("creó diagrama");
+    assertThat(result).contains("falta la versión anterior", "No pude revisar esos cambios").doesNotContain("creó diagrama");
   }
 }
